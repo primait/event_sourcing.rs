@@ -26,11 +26,16 @@ pub struct PostgreStore<
 }
 
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        'a,
+        Evt: 'a + Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     > PostgreStore<Evt, Err>
 {
-    pub async fn new(url: &str, name: &str) -> Result<Self, Err> {
+    pub async fn new(
+        url: &'a str,
+        name: &'a str,
+        projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
+    ) -> Result<Self, Err> {
         let pool: Pool<Postgres> = PgPoolOptions::new().connect(url).await?;
         // Check if table and indexes exist and eventually create them
         let _ = run_preconditions(&pool, name).await?;
@@ -39,7 +44,7 @@ impl<
             pool: PgPoolOptions::new().connect(url).await?,
             select: select_query(name),
             insert: insert_query(name),
-            projectors: vec![],
+            projectors,
         })
     }
 
