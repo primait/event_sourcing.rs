@@ -4,7 +4,6 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[cfg(test)]
 use mockall::automock;
 
 use crate::SequenceNumber;
@@ -12,7 +11,7 @@ use crate::SequenceNumber;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 
-#[cfg_attr(test, automock)]
+#[automock]
 #[async_trait]
 pub trait EventStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
