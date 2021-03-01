@@ -2,8 +2,12 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+#[cfg(test)]
+use mockall::automock;
+
 use crate::async_impl::store::StoreEvent;
 
+#[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Projector<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
     /// This function projects one event in each read model that implements this trait.

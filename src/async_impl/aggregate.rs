@@ -3,11 +3,15 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
+#[cfg(test)]
+use mockall::automock;
+
 use crate::async_impl::store::EventStore;
 use crate::async_impl::store::StoreEvent;
 use crate::state::AggregateState;
 
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
+#[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Aggregate {
     type State: Default + Send + Sync;
