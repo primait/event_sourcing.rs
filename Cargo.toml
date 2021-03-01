@@ -1,5 +1,5 @@
 [package]
-name = "event_sourcing_rs"
+name = "esrs"
 version = "0.1.0"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
