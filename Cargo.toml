@@ -1,9 +1,29 @@
 [package]
-name = "event_sourcing_rs"
+name = "esrs"
 version = "0.1.0"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+blocking = []
+async = ["sqlx", "async-std"]
+postgres = []
+
 [dependencies]
+# Serialization/Deserialization
+serde = {version = "^1.0", features = ["derive"]}
+serde_json = "^1.0"
+# Uuid generation
+uuid = {version = "^0.8.1", features = ["serde", "v4"]}
+# Time lib
+chrono = {version = "^0.4", features = ["serde"]}
+# Build async trait
+async-trait = "0.1.40"
+# Errors
+thiserror = "^1.0"
+
+# Sql library for async impl
+sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
+async-std = { version = "1.6", features = [ "attributes" ], optional = true }
