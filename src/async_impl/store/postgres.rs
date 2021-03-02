@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use async_trait::async_trait;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -63,8 +63,7 @@ impl<
             .bind(Uuid::new_v4())
             .bind(aggregate_id)
             .bind(serde_json::to_value(event).unwrap())
-            .bind(Utc::now().naive_utc())
-            .bind(Utc::now().naive_utc())
+            .bind(Utc::now())
             .bind(sequence_number)
             .fetch_one(&self.pool)
             .await?
@@ -112,9 +111,10 @@ impl<
     }
 
     async fn rebuild_event(&self, store_event: &StoreEvent<Evt>) -> Result<(), Err> {
-        Ok(for projector in &self.projectors {
+        for projector in &self.projectors {
             projector.project(store_event).await?
-        })
+        }
+        Ok(())
     }
 }
 
@@ -123,8 +123,7 @@ struct Event {
     pub id: Uuid,
     pub aggregate_id: Uuid,
     pub payload: Value,
-    pub inserted_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub occurred_on: DateTime<Utc>,
     pub sequence_number: SequenceNumber,
 }
 
@@ -136,8 +135,7 @@ impl<E: Serialize + DeserializeOwned + Clone + Send + Sync> TryInto<StoreEvent<E
             id: self.id,
             aggregate_id: self.aggregate_id,
             payload: serde_json::from_value::<E>(self.payload)?,
-            inserted_at: self.inserted_at,
-            updated_at: self.updated_at,
+            occurred_on: self.occurred_on,
             sequence_number: self.sequence_number,
         })
     }
@@ -165,8 +163,7 @@ fn create_table(aggregate_name: &str) -> String {
       id uuid NOT NULL,
       aggregate_id uuid NOT NULL,
       payload jsonb NOT NULL,
-      inserted_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
-      updated_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
+      occurred_on TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
       sequence_number INT NOT NULL DEFAULT 1,
       CONSTRAINT {0}_events_pkey PRIMARY KEY (id)
     )
@@ -197,8 +194,8 @@ fn insert_query(aggregate_name: &str) -> String {
     format!(
         "
     INSERT INTO {}_events
-    (id, aggregate_id, payload, inserted_at, updated_at, sequence_number)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    (id, aggregate_id, payload, occurred_on, sequence_number)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *
     ",
         aggregate_name

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
@@ -28,8 +28,7 @@ pub struct StoreEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync>
     pub id: Uuid,
     pub aggregate_id: Uuid,
     pub payload: Event,
-    pub inserted_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub occurred_on: DateTime<Utc>,
     pub sequence_number: SequenceNumber,
 }
 
