@@ -11,10 +11,12 @@ use uuid::Uuid;
 
 use crate::projector::Projector;
 use crate::store::StoreEvent;
-use crate::{query, SequenceNumber};
+use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
+use crate::aggregate::Identifiable;
 
+/// TODO: some doc here
 pub struct PostgreStore<
     Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
@@ -31,19 +33,36 @@ impl<
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     > PostgreStore<Evt, Err>
 {
+    /// Prefer this. Pool could be shared between stores
     pub async fn new(
-        url: &'a str,
-        name: &'a str,
+        pool: &'a Pool<Postgres>,
+        aggregate: &'a dyn Identifiable,
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
-        let pool: Pool<Postgres> = PgPoolOptions::new().connect(url).await?;
         // Check if table and indexes exist and eventually create them
-        let _ = run_preconditions(&pool, name).await?;
+        let _ = run_preconditions(pool, aggregate.name()).await?;
 
         Ok(Self {
-            pool: PgPoolOptions::new().connect(url).await?,
-            select: query::select_statement(name),
-            insert: query::insert_statement(name),
+            pool: pool.clone(),
+            select: query::select_statement(aggregate.name()),
+            insert: query::insert_statement(aggregate.name()),
+            projectors,
+        })
+    }
+
+    pub async fn new_from_params(
+        params: StoreParams<'a>,
+        aggregate: &'a dyn Identifiable,
+        projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
+    ) -> Result<Self, Err> {
+        let pool: Pool<Postgres> = PgPoolOptions::new().connect(params.postgres_url().as_str()).await?;
+        // Check if table and indexes exist and eventually create them
+        let _ = run_preconditions(&pool, aggregate.name()).await?;
+
+        Ok(Self {
+            pool,
+            select: query::select_statement(aggregate.name()),
+            insert: query::insert_statement(aggregate.name()),
             projectors,
         })
     }

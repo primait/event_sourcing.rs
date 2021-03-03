@@ -9,14 +9,11 @@ use crate::state::AggregateState;
 
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
 #[async_trait]
-pub trait Aggregate {
+pub trait Aggregate: Identifiable {
     type State: Default + Send + Sync;
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Clone + Send + Sync;
     type Error: Send + Sync;
-
-    /// Returns the aggregate name
-    fn name(&self) -> &'static str;
 
     /// Event store configured for aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
@@ -79,4 +76,9 @@ pub trait Aggregate {
             .persist(aggregate_state.id, event, aggregate_state.next_sequence_number())
             .await?)
     }
+}
+
+pub trait Identifiable {
+    /// Returns the aggregate name
+    fn name(&self) -> &'static str;
 }
