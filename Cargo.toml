@@ -7,9 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-blocking = ["postgres"]
+blocking = []
 async = ["sqlx", "async-std"]
-postgres = []
+postgres-store = []
 
 [dependencies]
 # Serialization/Deserialization
@@ -27,6 +27,3 @@ thiserror = "^1.0"
 # Sql library for async impl
 sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
 async-std = { version = "1.6", features = [ "attributes" ], optional = true }
-
-# Sql library for blocking impl
-postgres = { version = "0.19.0", optional = true }

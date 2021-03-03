@@ -7,6 +7,7 @@ mod async_impl;
 #[cfg(feature = "blocking")]
 pub mod blocking;
 
+mod query;
 pub mod state;
 
 pub type SequenceNumber = i32;

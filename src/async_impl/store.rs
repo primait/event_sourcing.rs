@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::SequenceNumber;
 
-#[cfg(feature = "postgres")]
+#[cfg(feature = "postgres-store")]
 pub mod postgres;
 
 #[async_trait]

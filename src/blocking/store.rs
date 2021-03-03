@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::SequenceNumber;
 
-#[cfg(feature = "postgres")]
+#[cfg(feature = "postgres-store")]
 pub mod postgres;
 
 pub trait EventStore<Event: Serialize + DeserializeOwned + Clone, Error> {
