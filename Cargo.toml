@@ -9,7 +9,7 @@ edition = "2018"
 [features]
 blocking = []
 async = ["sqlx", "async-std"]
-postgres-store = []
+postgresql = []
 
 [dependencies]
 # Serialization/Deserialization
@@ -21,8 +21,6 @@ uuid = {version = "^0.8.1", features = ["serde", "v4"]}
 chrono = {version = "^0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.40"
-# Errors
-thiserror = "^1.0"
 
 # Sql library for async impl
 sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }

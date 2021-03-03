@@ -2,13 +2,14 @@ use uuid::Uuid;
 
 use crate::SequenceNumber;
 
-pub struct AggregateState<S: Default> {
+#[derive(Clone)]
+pub struct AggregateState<S: Default + Clone> {
     pub id: Uuid,
     pub sequence_number: SequenceNumber,
     pub inner: S,
 }
 
-impl<S: Default> Default for AggregateState<S> {
+impl<S: Default + Clone> Default for AggregateState<S> {
     fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -18,7 +19,7 @@ impl<S: Default> Default for AggregateState<S> {
     }
 }
 
-impl<S: Default> AggregateState<S> {
+impl<S: Default + Clone> AggregateState<S> {
     pub fn new(id: Uuid) -> Self {
         Self {
             id,
@@ -39,6 +40,11 @@ impl<S: Default> AggregateState<S> {
         self.id
     }
 
+    pub fn set_inner(&mut self, inner: S) -> &Self {
+        self.inner = inner;
+        self
+    }
+
     pub fn get_sequence_number(&self) -> SequenceNumber {
         self.sequence_number
     }
@@ -50,7 +56,10 @@ impl<S: Default> AggregateState<S> {
         }
     }
 
-    pub fn next_sequence_number(&self) -> SequenceNumber {
-        &self.sequence_number + 1
+    pub fn incr_sequence_number(self) -> Self {
+        Self {
+            sequence_number: self.sequence_number + 1,
+            ..self
+        }
     }
 }

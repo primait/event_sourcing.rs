@@ -8,13 +8,10 @@ use crate::state::AggregateState;
 
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
 pub trait Aggregate {
-    type State: Default;
+    type State: Default + Clone;
     type Command;
     type Event: Serialize + DeserializeOwned + Clone;
     type Error;
-
-    /// Returns the aggregate name
-    fn name(&self) -> &'static str;
 
     /// Event store configured for aggregate
     fn event_store(&self) -> &dyn EventStore<Self::Event, Self::Error>;
@@ -31,13 +28,13 @@ pub trait Aggregate {
         &self,
         aggregate_state: &AggregateState<Self::State>,
         cmd: Self::Command,
-    ) -> Result<StoreEvent<Self::Event>, Self::Error>;
+    ) -> Result<AggregateState<Self::State>, Self::Error>;
 
     fn handle_command(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         cmd: Self::Command,
-    ) -> Result<StoreEvent<Self::Event>, Self::Error> {
+    ) -> Result<AggregateState<Self::State>, Self::Error> {
         Self::validate_command(aggregate_state, &cmd)?;
         self.do_handle_command(aggregate_state, cmd)
     }
@@ -68,11 +65,17 @@ pub trait Aggregate {
 
     fn persist(
         &self,
-        aggregate_state: &AggregateState<Self::State>,
+        aggregate_state: AggregateState<Self::State>,
         event: Self::Event,
-    ) -> Result<StoreEvent<Self::Event>, Self::Error> {
+    ) -> Result<AggregateState<Self::State>, Self::Error> {
+        let new_state = aggregate_state.incr_sequence_number();
         Ok(self
             .event_store()
-            .persist(aggregate_state.id, event, aggregate_state.next_sequence_number())?)
+            .persist(
+                new_state.id,
+                event,
+                new_state.get_sequence_number(),
+            )
+            .map(|event| Self::apply_event(new_state, &event))?)
     }
 }

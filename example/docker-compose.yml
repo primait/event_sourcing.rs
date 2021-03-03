@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  web:
+    build: .
+    volumes:
+      - .:$PWD
+    ports:
+      - 3000:3000
+    working_dir: $PWD
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://example:example@postgres:5432/example
+      BUILD_ENV: DEV
+    networks:
+      - default
+
+  postgres:
+    image: postgres:11-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: example

@@ -14,7 +14,6 @@ use crate::store::StoreEvent;
 use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
-use crate::aggregate::Identifiable;
 
 /// TODO: some doc here
 pub struct PostgreStore<
@@ -36,33 +35,35 @@ impl<
     /// Prefer this. Pool could be shared between stores
     pub async fn new(
         pool: &'a Pool<Postgres>,
-        aggregate: &'a dyn Identifiable,
+        // aggregate: &'a dyn Identifiable,
+        name: &'a str,
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
         // Check if table and indexes exist and eventually create them
-        let _ = run_preconditions(pool, aggregate.name()).await?;
+        let _ = run_preconditions(pool, name).await?;
 
         Ok(Self {
             pool: pool.clone(),
-            select: query::select_statement(aggregate.name()),
-            insert: query::insert_statement(aggregate.name()),
+            select: query::select_statement(name),
+            insert: query::insert_statement(name),
             projectors,
         })
     }
 
     pub async fn new_from_params(
         params: StoreParams<'a>,
-        aggregate: &'a dyn Identifiable,
+        // aggregate: &'a dyn Identifiable,
+        name: &'a str,
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
         let pool: Pool<Postgres> = PgPoolOptions::new().connect(params.postgres_url().as_str()).await?;
         // Check if table and indexes exist and eventually create them
-        let _ = run_preconditions(&pool, aggregate.name()).await?;
+        let _ = run_preconditions(&pool, name).await?;
 
         Ok(Self {
             pool,
-            select: query::select_statement(aggregate.name()),
-            insert: query::insert_statement(aggregate.name()),
+            select: query::select_statement(name),
+            insert: query::insert_statement(name),
             projectors,
         })
     }
