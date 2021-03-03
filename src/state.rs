@@ -4,9 +4,9 @@ use crate::SequenceNumber;
 
 #[derive(Clone)]
 pub struct AggregateState<S: Default + Clone> {
-    pub id: Uuid,
-    pub sequence_number: SequenceNumber,
-    pub inner: S,
+    id: Uuid,
+    sequence_number: SequenceNumber,
+    inner: S,
 }
 
 impl<S: Default + Clone> Default for AggregateState<S> {
@@ -28,38 +28,34 @@ impl<S: Default + Clone> AggregateState<S> {
         }
     }
 
-    pub fn new_with(id: Uuid, state: S) -> Self {
-        Self {
-            id,
-            inner: state,
-            sequence_number: 0,
-        }
-    }
-
     pub fn id(&self) -> Uuid {
         self.id
     }
 
-    pub fn set_inner(&mut self, inner: S) -> &Self {
-        self.inner = inner;
+    pub fn inner(&self) -> &S {
+        &self.inner
+    }
+
+    pub fn inner_mut(&mut self) -> &mut S {
+        &mut self.inner
+    }
+
+    pub fn set_inner(&mut self, s: S) -> &mut Self {
+        self.inner = s;
         self
     }
 
-    pub fn get_sequence_number(&self) -> SequenceNumber {
+    pub fn sequence_number(&self) -> SequenceNumber {
         self.sequence_number
     }
 
-    pub fn set_sequence_number(self, sequence_number: SequenceNumber) -> Self {
-        Self {
-            sequence_number,
-            ..self
-        }
+    pub(crate) fn set_sequence_number(&mut self, sequence_number: SequenceNumber) -> &mut Self {
+        self.sequence_number = sequence_number;
+        self
     }
 
-    pub fn incr_sequence_number(self) -> Self {
-        Self {
-            sequence_number: self.sequence_number + 1,
-            ..self
-        }
+    pub(crate) fn incr_sequence_number(&mut self) -> &mut Self {
+        self.sequence_number += 1;
+        self
     }
 }

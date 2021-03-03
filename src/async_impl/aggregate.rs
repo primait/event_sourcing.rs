@@ -21,7 +21,7 @@ pub trait Aggregate: Identifiable {
 
     /// This function applies the event onto the aggregate and returns a new one, updated with the event data
     fn apply_event(
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         event: &StoreEvent<Self::Event>,
     ) -> AggregateState<Self::State>;
 
@@ -29,26 +29,27 @@ pub trait Aggregate: Identifiable {
 
     async fn do_handle_command(
         &self,
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error>;
 
     async fn handle_command(
         &self,
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        Self::validate_command(&aggregate_state, &cmd)?;
+        Self::validate_command(aggregate_state, &cmd)?;
         self.do_handle_command(aggregate_state, cmd).await
     }
 
     fn apply_events(
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         events: Vec<StoreEvent<Self::Event>>,
     ) -> AggregateState<Self::State> {
-        events.iter().fold(aggregate_state, |acc, event| {
-            Self::apply_event(acc.set_sequence_number(event.sequence_number()), event)
-        })
+        for event in events.iter() {
+            Self::apply_event(aggregate_state.set_sequence_number(event.sequence_number()), event);
+        }
+        aggregate_state.to_owned()
     }
 
     async fn load(&self, aggregate_id: Uuid) -> Option<AggregateState<Self::State>> {
@@ -63,24 +64,20 @@ pub trait Aggregate: Identifiable {
         if events.is_empty() {
             None
         } else {
-            Some(Self::apply_events(AggregateState::new(aggregate_id), events))
+            Some(Self::apply_events(&mut AggregateState::new(aggregate_id), events))
         }
     }
 
     async fn persist(
         &self,
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         event: Self::Event,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let new_state = aggregate_state.incr_sequence_number();
+        let new_aggregate_state: &mut AggregateState<Self::State> = aggregate_state.incr_sequence_number();
         Ok(self
             .event_store()
-            .persist(
-                new_state.id,
-                event,
-                new_state.get_sequence_number(),
-            )
+            .persist(new_aggregate_state.id(), event, new_aggregate_state.sequence_number())
             .await
-            .map(|event| Self::apply_event(new_state, &event))?)
+            .map(|event| Self::apply_event(new_aggregate_state, &event))?)
     }
 }

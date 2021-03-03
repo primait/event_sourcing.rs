@@ -40,33 +40,28 @@ impl Aggregate for PaymentAggregate {
     }
 
     fn apply_event(
-        aggregate_state: AggregateState<PaymentState>,
+        aggregate_state: &mut AggregateState<PaymentState>,
         event: &StoreEvent<Self::Event>,
     ) -> AggregateState<PaymentState> {
         match event.payload() {
-            PaymentEvent::Payed { amount } => AggregateState {
-                inner: PaymentState {
-                    total_amount: aggregate_state.inner.total_amount + amount,
-                },
-                sequence_number: aggregate_state.sequence_number + 1,
-                ..aggregate_state
-            },
-            PaymentEvent::Refunded { amount } => AggregateState {
-                inner: PaymentState {
-                    total_amount: aggregate_state.inner.total_amount - amount,
-                },
-                sequence_number: aggregate_state.sequence_number + 1,
-                ..aggregate_state
-            },
+            PaymentEvent::Payed { amount } => {
+                aggregate_state.inner_mut().add_amount(*amount);
+                aggregate_state
+            }
+            PaymentEvent::Refunded { amount } => {
+                aggregate_state.inner_mut().sub_amount(*amount);
+                aggregate_state
+            }
         }
+        .to_owned()
     }
 
-    fn validate_command(state: &AggregateState<PaymentState>, cmd: &Self::Command) -> Result<(), Self::Error> {
+    fn validate_command(aggregate_state: &AggregateState<PaymentState>, cmd: &Self::Command) -> Result<(), Self::Error> {
         match cmd {
             PaymentCommand::Pay { amount } if *amount < 0.0 => Err(Self::Error::NegativeAmount),
             PaymentCommand::Pay { .. } => Ok(()),
             PaymentCommand::Refund { amount } if *amount < 0.0 => Err(Self::Error::NegativeAmount),
-            PaymentCommand::Refund { amount } if state.inner.total_amount - *amount < 0.0 => {
+            PaymentCommand::Refund { amount } if aggregate_state.inner().total_amount - *amount < 0.0 => {
                 Err(Self::Error::NegativeTotalAmount)
             }
             PaymentCommand::Refund { .. } => Ok(()),
@@ -75,12 +70,12 @@ impl Aggregate for PaymentAggregate {
 
     async fn do_handle_command(
         &self,
-        state: AggregateState<PaymentState>,
+        aggregate_state: &mut AggregateState<PaymentState>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match cmd {
-            PaymentCommand::Pay { amount } => self.persist(state, PaymentEvent::Payed { amount }).await,
-            PaymentCommand::Refund { amount } => self.persist(state, PaymentEvent::Refunded { amount }).await,
+            PaymentCommand::Pay { amount } => self.persist(aggregate_state, PaymentEvent::Payed { amount }).await,
+            PaymentCommand::Refund { amount } => self.persist(aggregate_state, PaymentEvent::Refunded { amount }).await,
         }
     }
 }

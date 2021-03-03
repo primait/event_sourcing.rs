@@ -30,24 +30,24 @@ async fn main() {
 
     // Payment aggregate
     let payment_aggregate: PaymentAggregate = PaymentAggregate::new(payment_store);
-    let state: AggregateState<PaymentState> = AggregateState::default();
+    let mut state: AggregateState<PaymentState> = AggregateState::default();
 
     println!("Paying 10€..\n");
 
     // Payment of 10 euros
-    let state: AggregateState<PaymentState> = payment_aggregate
-        .handle_command(state, PaymentCommand::Pay { amount: 10.0 })
+    let mut state: AggregateState<PaymentState> = payment_aggregate
+        .handle_command(&mut state, PaymentCommand::Pay { amount: 10.0 })
         .await
         .unwrap();
 
-    println!("Your total payed amount is {}€\n", state.inner.total_amount);
+    println!("Your total payed amount is {}€\n", state.inner().total_amount);
 
     println!("Ops. You owe just 5€. Have to refund 5€!\n");
 
     // Refund of 10 euros. Total amount is 20
     let state: AggregateState<PaymentState> = payment_aggregate
-        .handle_command(state, PaymentCommand::Refund { amount: 5.0 })
+        .handle_command(&mut state, PaymentCommand::Refund { amount: 5.0 })
         .await
         .unwrap();
-    println!("Your total payed amount is {}€\n", state.inner.total_amount);
+    println!("Your total payed amount is {}€\n", state.inner().total_amount);
 }

@@ -10,12 +10,12 @@ impl Default for PaymentState {
 }
 
 impl PaymentState {
-    pub fn add_amount(&mut self, amount: f32) -> &Self {
+    pub fn add_amount(&mut self, amount: f32) -> &mut Self {
         self.total_amount += amount;
         self
     }
 
-    pub fn sub_amount(&mut self, amount: f32) -> &Self {
+    pub fn sub_amount(&mut self, amount: f32) -> &mut Self {
         self.total_amount -= amount;
         self
     }
