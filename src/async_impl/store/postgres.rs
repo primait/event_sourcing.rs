@@ -11,10 +11,12 @@ use uuid::Uuid;
 
 use crate::projector::Projector;
 use crate::store::StoreEvent;
-use crate::SequenceNumber;
+use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
+use crate::aggregate::Identifiable;
 
+/// TODO: some doc here
 pub struct PostgreStore<
     Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
@@ -31,19 +33,36 @@ impl<
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     > PostgreStore<Evt, Err>
 {
+    /// Prefer this. Pool could be shared between stores
     pub async fn new(
-        url: &'a str,
-        name: &'a str,
+        pool: &'a Pool<Postgres>,
+        aggregate: &'a dyn Identifiable,
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
-        let pool: Pool<Postgres> = PgPoolOptions::new().connect(url).await?;
         // Check if table and indexes exist and eventually create them
-        let _ = run_preconditions(&pool, name).await?;
+        let _ = run_preconditions(pool, aggregate.name()).await?;
 
         Ok(Self {
-            pool: PgPoolOptions::new().connect(url).await?,
-            select: select_query(name),
-            insert: insert_query(name),
+            pool: pool.clone(),
+            select: query::select_statement(aggregate.name()),
+            insert: query::insert_statement(aggregate.name()),
+            projectors,
+        })
+    }
+
+    pub async fn new_from_params(
+        params: StoreParams<'a>,
+        aggregate: &'a dyn Identifiable,
+        projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
+    ) -> Result<Self, Err> {
+        let pool: Pool<Postgres> = PgPoolOptions::new().connect(params.postgres_url().as_str()).await?;
+        // Check if table and indexes exist and eventually create them
+        let _ = run_preconditions(&pool, aggregate.name()).await?;
+
+        Ok(Self {
+            pool,
+            select: query::select_statement(aggregate.name()),
+            insert: query::insert_statement(aggregate.name()),
             projectors,
         })
     }
@@ -143,61 +162,18 @@ impl<E: Serialize + DeserializeOwned + Clone + Send + Sync> TryInto<StoreEvent<E
 
 async fn run_preconditions(pool: &Pool<Postgres>, aggregate_name: &str) -> Result<(), sqlx::Error> {
     // Create table if not exists
-    let _: PgDone = sqlx::query(create_table(aggregate_name).as_str()).execute(pool).await?;
-    // Create 2 indexes if not exist
-    let _: PgDone = sqlx::query(create_id_index(aggregate_name).as_str())
+    let _: PgDone = sqlx::query(query::create_table_statement(aggregate_name).as_str())
         .execute(pool)
         .await?;
-    let _: PgDone = sqlx::query(create_aggregate_id_index(aggregate_name).as_str())
+
+    // Create 2 indexes if not exist
+    let _: PgDone = sqlx::query(query::create_id_index_statement(aggregate_name).as_str())
+        .execute(pool)
+        .await?;
+
+    let _: PgDone = sqlx::query(query::create_aggregate_id_index_statement(aggregate_name).as_str())
         .execute(pool)
         .await?;
 
     Ok(())
-}
-
-fn create_table(aggregate_name: &str) -> String {
-    format!(
-        "
-    CREATE TABLE IF NOT EXISTS {0}_events
-    (
-      id uuid NOT NULL,
-      aggregate_id uuid NOT NULL,
-      payload jsonb NOT NULL,
-      occurred_on TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
-      sequence_number INT NOT NULL DEFAULT 1,
-      CONSTRAINT {0}_events_pkey PRIMARY KEY (id)
-    )
-    ",
-        aggregate_name
-    )
-}
-
-fn create_id_index(aggregate_name: &str) -> String {
-    format!(
-        "CREATE INDEX IF NOT EXISTS {0}_events_aggregate_id ON public.{0}_events USING btree (((payload ->> 'id'::text)))",
-        aggregate_name
-    )
-}
-
-fn create_aggregate_id_index(aggregate_name: &str) -> String {
-    format!(
-        "CREATE UNIQUE INDEX IF NOT EXISTS {0}_events_aggregate_id_sequence_number ON {0}_events(aggregate_id, sequence_number)",
-        aggregate_name
-    )
-}
-
-fn select_query(aggregate_name: &str) -> String {
-    format!("SELECT * FROM {}_events WHERE aggregate_id = $1", aggregate_name)
-}
-
-fn insert_query(aggregate_name: &str) -> String {
-    format!(
-        "
-    INSERT INTO {}_events
-    (id, aggregate_id, payload, occurred_on, sequence_number)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *
-    ",
-        aggregate_name
-    )
 }

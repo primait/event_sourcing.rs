@@ -9,7 +9,7 @@ edition = "2018"
 [features]
 blocking = []
 async = ["sqlx", "async-std"]
-postgres = []
+postgres-store = []
 
 [dependencies]
 # Serialization/Deserialization

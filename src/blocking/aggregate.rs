@@ -1,22 +1,23 @@
-use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::async_impl::store::EventStore;
-use crate::async_impl::store::StoreEvent;
+use crate::blocking::store::EventStore;
+use crate::blocking::store::StoreEvent;
 use crate::state::AggregateState;
 
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
-#[async_trait]
-pub trait Aggregate: Identifiable {
-    type State: Default + Send + Sync;
-    type Command: Send + Sync;
-    type Event: Serialize + DeserializeOwned + Clone + Send + Sync;
-    type Error: Send + Sync;
+pub trait Aggregate {
+    type State: Default;
+    type Command;
+    type Event: Serialize + DeserializeOwned + Clone;
+    type Error;
+
+    /// Returns the aggregate name
+    fn name(&self) -> &'static str;
 
     /// Event store configured for aggregate
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
+    fn event_store(&self) -> &dyn EventStore<Self::Event, Self::Error>;
 
     /// This function applies the event onto the aggregate and returns a new one, updated with the event data
     fn apply_event(
@@ -26,19 +27,19 @@ pub trait Aggregate: Identifiable {
 
     fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
 
-    async fn do_handle_command(
+    fn do_handle_command(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<StoreEvent<Self::Event>, Self::Error>;
 
-    async fn handle_command(
+    fn handle_command(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<StoreEvent<Self::Event>, Self::Error> {
         Self::validate_command(aggregate_state, &cmd)?;
-        self.do_handle_command(aggregate_state, cmd).await
+        self.do_handle_command(aggregate_state, cmd)
     }
 
     fn apply_events(
@@ -50,11 +51,10 @@ pub trait Aggregate: Identifiable {
         })
     }
 
-    async fn load(&self, aggregate_id: Uuid) -> Option<AggregateState<Self::State>> {
+    fn load(&self, aggregate_id: Uuid) -> Option<AggregateState<Self::State>> {
         let events: Vec<StoreEvent<Self::Event>> = self
             .event_store()
             .by_aggregate_id(aggregate_id)
-            .await
             .ok()?
             .into_iter()
             .collect();
@@ -66,19 +66,13 @@ pub trait Aggregate: Identifiable {
         }
     }
 
-    async fn persist(
+    fn persist(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         event: Self::Event,
     ) -> Result<StoreEvent<Self::Event>, Self::Error> {
         Ok(self
             .event_store()
-            .persist(aggregate_state.id, event, aggregate_state.next_sequence_number())
-            .await?)
+            .persist(aggregate_state.id, event, aggregate_state.next_sequence_number())?)
     }
-}
-
-pub trait Identifiable {
-    /// Returns the aggregate name
-    fn name(&self) -> &'static str;
 }
