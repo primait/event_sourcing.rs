@@ -5,7 +5,7 @@ mod tests {
     use esrs::aggregate::Aggregate;
     use esrs::state::AggregateState;
     use esrs::store::postgres::PostgreStore;
-    use esrs::{Identifiable, StoreParams};
+    use esrs::{IdentifiableAggregate, StoreParams};
 
     use crate::payment::async_impl::PaymentAggregate;
     use crate::payment::command::PaymentCommand;
@@ -33,69 +33,69 @@ mod tests {
         // Payment aggregate
         let payment_aggregate: PaymentAggregate = PaymentAggregate::new(payment_store);
 
-        let mut state: AggregateState<PaymentState> = AggregateState::default();
-        assert_eq!(state.inner().total_amount, 0.0);
+        let state: AggregateState<PaymentState> = AggregateState::default();
+        assert_eq!(state.inner().total_amount, 0);
 
         // Cannot pay negative amount
         let result = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Pay { amount: -10.0 })
+            .handle_command(state.clone(), PaymentCommand::Pay { amount: -10 })
             .await;
 
         assert_eq!(result.err().unwrap().to_string(), "Negative amount");
 
         // Cannot refund negative amount
         let result = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Refund { amount: -10.0 })
+            .handle_command(state.clone(), PaymentCommand::Refund { amount: -10 })
             .await;
 
         assert_eq!(result.err().unwrap().to_string(), "Negative amount");
 
         // Cannot refund until total amount become negative (0 - 10)
         let result = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Refund { amount: 10.0 })
+            .handle_command(state.clone(), PaymentCommand::Refund { amount: 10 })
             .await;
 
         assert_eq!(result.err().unwrap().to_string(), "Negative total amount");
 
         // Payment of 10 euros
-        let mut state: AggregateState<PaymentState> = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Pay { amount: 10.0 })
+        let state: AggregateState<PaymentState> = payment_aggregate
+            .handle_command(state.clone(), PaymentCommand::Pay { amount: 10 })
             .await
             .unwrap();
 
-        assert_eq!(state.inner().total_amount, 10.0);
+        assert_eq!(state.inner().total_amount, 10);
 
         // Payment of 10 euros. Total amount is 20
-        let mut state: AggregateState<PaymentState> = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Pay { amount: 10.0 })
+        let state: AggregateState<PaymentState> = payment_aggregate
+            .handle_command(state, PaymentCommand::Pay { amount: 10 })
             .await
             .unwrap();
 
-        assert_eq!(state.inner().total_amount, 20.0);
+        assert_eq!(state.inner().total_amount, 20);
 
         // Payment of 10 euros. Total amount is 30
-        let mut state: AggregateState<PaymentState> = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Pay { amount: 10.0 })
+        let state: AggregateState<PaymentState> = payment_aggregate
+            .handle_command(state, PaymentCommand::Pay { amount: 10 })
             .await
             .unwrap();
 
-        assert_eq!(state.inner().total_amount, 30.0);
+        assert_eq!(state.inner().total_amount, 30);
 
         assert_eq!(
             state.inner().total_amount,
-            payment_aggregate.load(state.id()).await.unwrap().inner().total_amount
+            payment_aggregate.load(*state.id()).await.unwrap().inner().total_amount
         );
 
         // Refund of 10 euros. Total amount is 20
         let state: AggregateState<PaymentState> = payment_aggregate
-            .handle_command(&mut state, PaymentCommand::Refund { amount: 10.0 })
+            .handle_command(state, PaymentCommand::Refund { amount: 10 })
             .await
             .unwrap();
 
-        assert_eq!(state.inner().total_amount, 20.0);
+        assert_eq!(state.inner().total_amount, 20);
         assert_eq!(
             state.inner().total_amount,
-            payment_aggregate.load(state.id()).await.unwrap().inner().total_amount
+            payment_aggregate.load(*state.id()).await.unwrap().inner().total_amount
         );
     }
 }

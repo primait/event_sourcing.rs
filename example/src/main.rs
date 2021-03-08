@@ -1,7 +1,7 @@
 use esrs::aggregate::Aggregate;
 use esrs::state::AggregateState;
 use esrs::store::postgres::PostgreStore;
-use esrs::{Identifiable, StoreParams};
+use esrs::{IdentifiableAggregate, StoreParams};
 
 use example::payment::async_impl::PaymentAggregate;
 use example::payment::command::PaymentCommand;
@@ -30,13 +30,13 @@ async fn main() {
 
     // Payment aggregate
     let payment_aggregate: PaymentAggregate = PaymentAggregate::new(payment_store);
-    let mut state: AggregateState<PaymentState> = AggregateState::default();
+    let state: AggregateState<PaymentState> = AggregateState::default();
 
     println!("Paying 10€..\n");
 
     // Payment of 10 euros
-    let mut state: AggregateState<PaymentState> = payment_aggregate
-        .handle_command(&mut state, PaymentCommand::Pay { amount: 10.0 })
+    let state: AggregateState<PaymentState> = payment_aggregate
+        .handle_command(state, PaymentCommand::Pay { amount: 10 })
         .await
         .unwrap();
 
@@ -46,7 +46,7 @@ async fn main() {
 
     // Refund of 10 euros. Total amount is 20
     let state: AggregateState<PaymentState> = payment_aggregate
-        .handle_command(&mut state, PaymentCommand::Refund { amount: 5.0 })
+        .handle_command(state, PaymentCommand::Refund { amount: 5 })
         .await
         .unwrap();
     println!("Your total payed amount is {}€\n", state.inner().total_amount);

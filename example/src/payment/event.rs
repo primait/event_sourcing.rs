@@ -2,6 +2,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PaymentEvent {
-    Payed { amount: f32 },
-    Refunded { amount: f32 },
+    Payed { amount: i32 },
+    Refunded { amount: i32 },
 }

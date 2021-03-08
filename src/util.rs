@@ -1,6 +1,6 @@
 pub type SequenceNumber = i32;
 
-pub trait Identifiable {
+pub trait IdentifiableAggregate {
     /// Returns the aggregate name
     fn name() -> &'static str;
 }

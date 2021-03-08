@@ -6,7 +6,9 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::{PgDone, PgPoolOptions};
-use sqlx::{Pool, Postgres, Transaction};
+pub use sqlx::Pool;
+pub use sqlx::Postgres;
+pub use sqlx::Transaction;
 use uuid::Uuid;
 
 use crate::projector::Projector;

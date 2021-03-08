@@ -4,9 +4,9 @@ use crate::SequenceNumber;
 
 #[derive(Clone)]
 pub struct AggregateState<S: Default + Clone> {
-    id: Uuid,
-    sequence_number: SequenceNumber,
-    inner: S,
+    pub(crate) id: Uuid,
+    pub(crate) sequence_number: SequenceNumber,
+    pub(crate) inner: S,
 }
 
 impl<S: Default + Clone> Default for AggregateState<S> {
@@ -28,34 +28,11 @@ impl<S: Default + Clone> AggregateState<S> {
         }
     }
 
-    pub fn id(&self) -> Uuid {
-        self.id
+    pub fn id(&self) -> &Uuid {
+        &self.id
     }
 
     pub fn inner(&self) -> &S {
         &self.inner
-    }
-
-    pub fn inner_mut(&mut self) -> &mut S {
-        &mut self.inner
-    }
-
-    pub fn set_inner(&mut self, s: S) -> &mut Self {
-        self.inner = s;
-        self
-    }
-
-    pub fn sequence_number(&self) -> SequenceNumber {
-        self.sequence_number
-    }
-
-    pub(crate) fn set_sequence_number(&mut self, sequence_number: SequenceNumber) -> &mut Self {
-        self.sequence_number = sequence_number;
-        self
-    }
-
-    pub(crate) fn incr_sequence_number(&mut self) -> &mut Self {
-        self.sequence_number += 1;
-        self
     }
 }

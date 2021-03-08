@@ -1,4 +1,4 @@
 pub enum PaymentCommand {
-    Pay { amount: f32 },
-    Refund { amount: f32 },
+    Pay { amount: i32 },
+    Refund { amount: i32 },
 }
