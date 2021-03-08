@@ -1,6 +1,6 @@
 [package]
 name = "esrs"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
 description = "A Prima.it-opinionated library to achieve cqrs/es"
@@ -10,7 +10,7 @@ repository = "https://github.com/primait/event_sourcing.rs"
 [features]
 blocking = []
 async = ["sqlx", "async-std"]
-postgres-store = []
+postgresql = []
 
 [dependencies]
 # Serialization/Deserialization
@@ -22,8 +22,6 @@ uuid = {version = "^0.8.1", features = ["serde", "v4"]}
 chrono = {version = "^0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.40"
-# Errors
-thiserror = "^1.0"
 
 # Sql library for async impl
 sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }

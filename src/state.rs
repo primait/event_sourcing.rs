@@ -2,13 +2,14 @@ use uuid::Uuid;
 
 use crate::SequenceNumber;
 
-pub struct AggregateState<S: Default> {
-    pub id: Uuid,
-    pub sequence_number: SequenceNumber,
-    pub inner: S,
+#[derive(Clone)]
+pub struct AggregateState<S: Default + Clone> {
+    pub(crate) id: Uuid,
+    pub(crate) sequence_number: SequenceNumber,
+    pub(crate) inner: S,
 }
 
-impl<S: Default> Default for AggregateState<S> {
+impl<S: Default + Clone> Default for AggregateState<S> {
     fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -18,7 +19,7 @@ impl<S: Default> Default for AggregateState<S> {
     }
 }
 
-impl<S: Default> AggregateState<S> {
+impl<S: Default + Clone> AggregateState<S> {
     pub fn new(id: Uuid) -> Self {
         Self {
             id,
@@ -27,30 +28,11 @@ impl<S: Default> AggregateState<S> {
         }
     }
 
-    pub fn new_with(id: Uuid, state: S) -> Self {
-        Self {
-            id,
-            inner: state,
-            sequence_number: 0,
-        }
+    pub fn id(&self) -> &Uuid {
+        &self.id
     }
 
-    pub fn id(&self) -> Uuid {
-        self.id
-    }
-
-    pub fn get_sequence_number(&self) -> SequenceNumber {
-        self.sequence_number
-    }
-
-    pub fn set_sequence_number(self, sequence_number: SequenceNumber) -> Self {
-        Self {
-            sequence_number,
-            ..self
-        }
-    }
-
-    pub fn next_sequence_number(&self) -> SequenceNumber {
-        &self.sequence_number + 1
+    pub fn inner(&self) -> &S {
+        &self.inner
     }
 }
