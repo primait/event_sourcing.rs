@@ -16,6 +16,7 @@ use crate::store::StoreEvent;
 use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
+use crate::policy::Policy;
 
 /// TODO: some doc here
 pub struct PostgreStore<
@@ -26,6 +27,7 @@ pub struct PostgreStore<
     select: String,
     insert: String,
     projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
+    policies: Vec<Box<dyn Policy<Evt, Err> + Send + Sync>>,
 }
 
 impl<
@@ -49,6 +51,7 @@ impl<
             select: query::select_statement(name),
             insert: query::insert_statement(name),
             projectors,
+            policies: vec![],
         })
     }
 
@@ -67,11 +70,17 @@ impl<
             select: query::select_statement(name),
             insert: query::insert_statement(name),
             projectors,
+            policies: vec![],
         })
     }
 
     pub fn add_projector(&mut self, projector: Box<dyn Projector<Evt, Err> + Send + Sync>) -> &mut Self {
         self.projectors.push(projector);
+        self
+    }
+
+    pub fn add_policy(&mut self, policy: Box<dyn Policy<Evt, Err> + Send + Sync>) -> &mut Self {
+        self.policies.push(policy);
         self
     }
 
@@ -120,9 +129,15 @@ impl<
         sequence_number: SequenceNumber,
     ) -> Result<StoreEvent<Evt>, Err> {
         let transaction: Transaction<Postgres> = self.pool.begin().await?;
+
         match self.persist_and_project(aggregate_id, event, sequence_number).await {
             Ok(event) => {
                 transaction.commit().await?;
+
+                for policy in &self.policies {
+                    policy.handle_event(&event).await?
+                }
+
                 Ok(event)
             }
             Err(err) => {
