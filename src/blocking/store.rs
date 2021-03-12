@@ -19,6 +19,8 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Clone, Error> {
     ) -> Result<StoreEvent<Event>, Error>;
 
     fn rebuild_event(&self, store_event: &StoreEvent<Event>) -> Result<(), Error>;
+
+    fn close(&self);
 }
 
 #[derive(Clone)]

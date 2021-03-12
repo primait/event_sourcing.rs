@@ -104,10 +104,6 @@ impl<
 
         Ok(store_event)
     }
-
-    pub async fn close_connection(&self) {
-        self.pool.close().await
-    }
 }
 
 #[async_trait]
@@ -156,6 +152,10 @@ impl<
             projector.project(store_event).await?
         }
         Ok(())
+    }
+
+    async fn close(&self) {
+        self.pool.close().await
     }
 }
 
