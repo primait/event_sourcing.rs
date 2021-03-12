@@ -1,6 +1,6 @@
 [package]
 name = "esrs"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
 description = "A Prima.it-opinionated library to achieve cqrs/es"
