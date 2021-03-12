@@ -104,6 +104,10 @@ impl<
 
         Ok(store_event)
     }
+
+    pub async fn close_connection(&self) {
+        self.pool.close().await
+    }
 }
 
 #[async_trait]
@@ -154,6 +158,7 @@ impl<
         Ok(())
     }
 }
+
 
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Clone)]
 struct Event {
