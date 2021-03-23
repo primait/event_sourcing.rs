@@ -29,6 +29,10 @@ pub fn create_aggregate_id_index_statement(aggregate_name: &str) -> String {
     )
 }
 
+pub fn select_all_statement(aggregate_name: &str) -> String {
+    format!("SELECT * FROM {}_events", aggregate_name)
+}
+
 pub fn select_statement(aggregate_name: &str) -> String {
     format!("SELECT * FROM {}_events WHERE aggregate_id = $1", aggregate_name)
 }
