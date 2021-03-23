@@ -23,6 +23,7 @@ pub struct PostgreStore<
     Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
 > {
+    aggregate_name: String,
     pool: Pool<Postgres>,
     select: String,
     insert: String,
@@ -47,6 +48,7 @@ impl<
         let _ = run_preconditions(pool, name).await?;
 
         Ok(Self {
+            aggregate_name: name.to_string(),
             pool: pool.clone(),
             select: query::select_statement(name),
             insert: query::insert_statement(name),
@@ -66,6 +68,7 @@ impl<
         let _ = run_preconditions(&pool, name).await?;
 
         Ok(Self {
+            aggregate_name: name.to_string(),
             pool,
             select: query::select_statement(name),
             insert: query::insert_statement(name),
@@ -103,6 +106,23 @@ impl<
         self.rebuild_event(&store_event).await?;
 
         Ok(store_event)
+    }
+
+    async fn rebuild_events(&self) -> Result<(), Err> {
+        let query: String = query::select_all_statement(&self.aggregate_name);
+
+        let events: Vec<StoreEvent<Evt>> = sqlx::query_as::<_, Event>(query.as_str())
+            .fetch_all(&self.pool)
+            .await?
+            .into_iter()
+            .map(|event| Ok(event.try_into()?))
+            .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?;
+
+        for event in events {
+            self.rebuild_event(&event).await?;
+        }
+
+        Ok(())
     }
 }
 
