@@ -108,7 +108,7 @@ impl<
         Ok(store_event)
     }
 
-    async fn rebuild_events(&self) -> Result<(), Err> {
+    pub async fn rebuild_events(&self) -> Result<(), Err> {
         let query: String = query::select_all_statement(&self.aggregate_name);
 
         let events: Vec<StoreEvent<Evt>> = sqlx::query_as::<_, Event>(query.as_str())
