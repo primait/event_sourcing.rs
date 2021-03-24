@@ -2,10 +2,10 @@ pub mod payment;
 
 #[cfg(test)]
 mod tests {
+    use esrs::{IdentifiableAggregate, StoreParams};
     use esrs::aggregate::Aggregate;
     use esrs::state::AggregateState;
     use esrs::store::postgres::PostgreStore;
-    use esrs::{IdentifiableAggregate, StoreParams};
 
     use crate::payment::async_impl::PaymentAggregate;
     use crate::payment::command::PaymentCommand;
@@ -17,12 +17,14 @@ mod tests {
     async fn check_amounts() {
         // Database connection params
         let connection_params: StoreParams = StoreParams {
-            host: "localhost",
+            host: "postgres",
             port: None,
             user: "example",
             pass: "example",
             schema: "example",
         };
+
+        println!("{}", connection_params.postgres_url().as_str());
 
         // Payment aggregate store
         let payment_store: PostgreStore<PaymentEvent, Error> =

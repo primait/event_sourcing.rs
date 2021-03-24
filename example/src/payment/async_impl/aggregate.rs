@@ -1,15 +1,15 @@
 use async_trait::async_trait;
 use esrs::aggregate::Aggregate;
+use esrs::IdentifiableAggregate;
 use esrs::state::AggregateState;
-use esrs::store::postgres::PostgreStore;
 use esrs::store::{EventStore, StoreEvent};
+use esrs::store::postgres::PostgreStore;
+use uuid::Uuid;
 
 use crate::payment::command::PaymentCommand;
 use crate::payment::error::Error;
 use crate::payment::event::PaymentEvent;
 use crate::payment::state::PaymentState;
-use esrs::IdentifiableAggregate;
-use uuid::Uuid;
 
 const PAYMENT: &str = "payment";
 
