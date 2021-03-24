@@ -22,7 +22,9 @@ uuid = {version = "^0.8.1", features = ["serde", "v4"]}
 chrono = {version = "^0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.40"
+# Future to stream over sqlx results
+futures = "0.3.13"
 
 # Sql library for async impl
-sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
+sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono", "sqlite" ], optional = true }
 async-std = { version = "1.6", features = [ "attributes" ], optional = true }

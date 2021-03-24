@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -11,12 +12,13 @@ pub use sqlx::Postgres;
 pub use sqlx::Transaction;
 use uuid::Uuid;
 
-use crate::projector::Projector;
-use crate::store::StoreEvent;
+use crate::async_impl::policy::Policy;
+use crate::async_impl::projector::Projector;
+use crate::async_impl::store::StoreEvent;
 use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
-use crate::policy::Policy;
+use futures::stream::BoxStream;
 
 /// TODO: some doc here
 pub struct PostgreStore<
@@ -57,13 +59,12 @@ impl<
         })
     }
 
-    pub async fn new_from_params(
-        params: StoreParams<'a>,
-        // aggregate: &'a dyn Identifiable,
+    pub async fn new_from_url(
+        database_url: &'a str,
         name: &'a str,
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
-        let pool: Pool<Postgres> = PgPoolOptions::new().connect(params.postgres_url().as_str()).await?;
+        let pool: Pool<Postgres> = PgPoolOptions::new().connect(database_url).await?;
         // Check if table and indexes exist and eventually create them
         let _ = run_preconditions(&pool, name).await?;
 
@@ -77,6 +78,15 @@ impl<
         })
     }
 
+    pub async fn new_from_params(
+        params: StoreParams<'a>,
+        // aggregate: &'a dyn Identifiable,
+        name: &'a str,
+        projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
+    ) -> Result<Self, Err> {
+        Self::new_from_url(params.postgres_url().as_str(), name, projectors).await
+    }
+
     pub fn add_projector(&mut self, projector: Box<dyn Projector<Evt, Err> + Send + Sync>) -> &mut Self {
         self.projectors.push(projector);
         self
@@ -85,6 +95,11 @@ impl<
     pub fn add_policy(&mut self, policy: Box<dyn Policy<Evt, Err> + Send + Sync>) -> &mut Self {
         self.policies.push(policy);
         self
+    }
+
+    /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
+    pub async fn begin<'b>(&self) -> Result<Transaction<'b, Postgres>, sqlx::Error> {
+        self.pool.begin().await
     }
 
     async fn persist_and_project(
@@ -111,15 +126,12 @@ impl<
     pub async fn rebuild_events(&self) -> Result<(), Err> {
         let query: String = query::select_all_statement(&self.aggregate_name);
 
-        let events: Vec<StoreEvent<Evt>> = sqlx::query_as::<_, Event>(query.as_str())
-            .fetch_all(&self.pool)
-            .await?
-            .into_iter()
-            .map(|event| Ok(event.try_into()?))
-            .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?;
+        let mut events: BoxStream<Result<Event, sqlx::Error>> =
+            sqlx::query_as::<_, Event>(query.as_str()).fetch(&self.pool);
 
-        for event in events {
-            self.rebuild_event(&event).await?;
+        while let Some(event) = events.try_next().await? {
+            let evt: StoreEvent<Evt> = event.try_into()?;
+            self.rebuild_event(&evt).await?;
         }
 
         Ok(())
@@ -178,7 +190,6 @@ impl<
         self.pool.close().await
     }
 }
-
 
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Clone)]
 struct Event {

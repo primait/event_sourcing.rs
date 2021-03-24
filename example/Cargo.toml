@@ -12,7 +12,7 @@ default-run = "example"
 # async main
 actix-rt = "^1.0"
 
-esrs = { version = "0.2.0", features = ["async", "blocking", "postgresql"] }
+esrs = { version = "0.2.4", features = ["async", "blocking", "postgresql"] }
 
 async-trait = "0.1.40"
 chrono = {version = "^0.4", features = ["serde"]}

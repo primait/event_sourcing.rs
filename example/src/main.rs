@@ -1,8 +1,7 @@
+use esrs::{IdentifiableAggregate, StoreParams};
 use esrs::aggregate::Aggregate;
 use esrs::state::AggregateState;
 use esrs::store::postgres::PostgreStore;
-use esrs::{IdentifiableAggregate, StoreParams};
-
 use example::payment::async_impl::PaymentAggregate;
 use example::payment::command::PaymentCommand;
 use example::payment::error::Error;
