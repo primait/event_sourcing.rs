@@ -25,7 +25,7 @@ async-trait = "0.1.40"
 
 
 # Sql library for async impl
-sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
+sqlx = { version = "0.5.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
 async-std = { version = "1.6", features = [ "attributes" ], optional = true }
 ## Future to stream over sqlx results
 futures = { version = "0.3.13", optional = true }
