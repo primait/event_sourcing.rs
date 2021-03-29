@@ -81,13 +81,12 @@ pub trait Aggregate {
         event: Self::Event,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         let next_sequence_number: SequenceNumber = aggregate_state.sequence_number + 1;
-        Ok(self
-            .event_store()
+        self.event_store()
             .persist(aggregate_state.id, event, next_sequence_number)
             .map(|event| AggregateState {
                 inner: Self::apply_event(&aggregate_state.id.to_owned(), aggregate_state.inner, &event),
                 sequence_number: next_sequence_number,
                 ..aggregate_state
-            })?)
+            })
     }
 }
