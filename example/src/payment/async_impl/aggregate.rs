@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use esrs::aggregate::Aggregate;
-use esrs::IdentifiableAggregate;
+use esrs::async_impl::aggregate::Aggregate;
+use esrs::async_impl::store::postgres::PostgreStore;
+use esrs::async_impl::store::{EventStore, StoreEvent};
 use esrs::state::AggregateState;
-use esrs::store::{EventStore, StoreEvent};
-use esrs::store::postgres::PostgreStore;
+use esrs::IdentifiableAggregate;
 use uuid::Uuid;
 
 use crate::payment::command::PaymentCommand;

@@ -2,10 +2,10 @@ pub mod payment;
 
 #[cfg(test)]
 mod tests {
-    use esrs::{IdentifiableAggregate, StoreParams};
     use esrs::aggregate::Aggregate;
     use esrs::state::AggregateState;
     use esrs::store::postgres::PostgreStore;
+    use esrs::{IdentifiableAggregate, StoreParams};
 
     use crate::payment::async_impl::PaymentAggregate;
     use crate::payment::command::PaymentCommand;
