@@ -1,6 +1,6 @@
 [package]
 name = "esrs"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
 description = "A Prima.it-opinionated library to achieve cqrs/es"
@@ -9,7 +9,7 @@ repository = "https://github.com/primait/event_sourcing.rs"
 
 [features]
 blocking = []
-async = ["sqlx", "async-std"]
+async = ["sqlx", "async-std", "futures"]
 postgresql = []
 
 [dependencies]
@@ -22,9 +22,10 @@ uuid = {version = "^0.8.1", features = ["serde", "v4"]}
 chrono = {version = "^0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.40"
-# Future to stream over sqlx results
-futures = "0.3.13"
+
 
 # Sql library for async impl
 sqlx = { version = "0.4.1", features = [ "postgres", "runtime-async-std-native-tls", "uuid", "json", "chrono" ], optional = true }
 async-std = { version = "1.6", features = [ "attributes" ], optional = true }
+## Future to stream over sqlx results
+futures = { version = "0.3.13", optional = true }

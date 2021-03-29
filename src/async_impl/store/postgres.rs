@@ -20,13 +20,15 @@ use crate::{query, SequenceNumber, StoreParams};
 use super::EventStore;
 use futures::stream::BoxStream;
 
+pub type PostgrePool = Pool<Postgres>;
+
 /// TODO: some doc here
 pub struct PostgreStore<
     Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
 > {
     aggregate_name: String,
-    pool: Pool<Postgres>,
+    pool: PostgrePool,
     select: String,
     insert: String,
     projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
@@ -85,6 +87,10 @@ impl<
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
         Self::new_from_url(params.postgres_url().as_str(), name, projectors).await
+    }
+
+    pub async fn new_pool(url: &str) -> Result<Pool<Postgres>, sqlx::Error> {
+        PgPoolOptions::new().connect(url).await
     }
 
     pub fn add_projector(&mut self, projector: Box<dyn Projector<Evt, Err> + Send + Sync>) -> &mut Self {

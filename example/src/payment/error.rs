@@ -1,4 +1,4 @@
-use esrs::{JsonError, SqlError};
+use esrs::async_impl::{JsonError, SqlError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
