@@ -2,11 +2,13 @@ use std::convert::TryInto;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::postgres::{PgDone, PgPoolOptions};
+use sqlx::postgres::PgDone;
+pub use sqlx::postgres::PgPoolOptions;
 pub use sqlx::Pool;
 pub use sqlx::Postgres;
 pub use sqlx::Transaction;
@@ -18,9 +20,6 @@ use crate::async_impl::store::StoreEvent;
 use crate::{query, SequenceNumber, StoreParams};
 
 use super::EventStore;
-use futures::stream::BoxStream;
-
-pub type PostgrePool = Pool<Postgres>;
 
 /// TODO: some doc here
 pub struct PostgreStore<
@@ -28,7 +27,7 @@ pub struct PostgreStore<
     Err: From<sqlx::Error> + From<serde_json::Error>,
 > {
     aggregate_name: String,
-    pool: PostgrePool,
+    pool: Pool<Postgres>,
     select: String,
     insert: String,
     projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
@@ -87,10 +86,6 @@ impl<
         projectors: Vec<Box<dyn Projector<Evt, Err> + Send + Sync>>,
     ) -> Result<Self, Err> {
         Self::new_from_url(params.postgres_url().as_str(), name, projectors).await
-    }
-
-    pub async fn new_pool(url: &str) -> Result<Pool<Postgres>, sqlx::Error> {
-        PgPoolOptions::new().connect(url).await
     }
 
     pub fn add_projector(&mut self, projector: Box<dyn Projector<Evt, Err> + Send + Sync>) -> &mut Self {

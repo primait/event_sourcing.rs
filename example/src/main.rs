@@ -1,6 +1,5 @@
-use esrs::aggregate::Aggregate;
 use esrs::async_impl::aggregate::Aggregate;
-use esrs::async_impl::store::postgres::{PostgrePool, PostgreStore, Postgres};
+use esrs::async_impl::store::postgres::{PgPoolOptions, Pool, PostgreStore, Postgres};
 use esrs::state::AggregateState;
 use esrs::{IdentifiableAggregate, StoreParams};
 
@@ -24,7 +23,7 @@ async fn main() {
     };
 
     // Can either crate it from pool
-    let pool: PostgrePool = PostgreStore::new_pool(connection_params.postgres_url().as_str()).unwrap();
+    let pool: Pool<Postgres> = PgPoolOptions::new().connect(connection_params.postgres_url().as_str()).await.unwrap();
 
     // Payment aggregate store
     let payment_store: PostgreStore<PaymentEvent, Error> = PostgreStore::new(&pool, PaymentAggregate::name(), vec![])
