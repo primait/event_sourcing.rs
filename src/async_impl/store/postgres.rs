@@ -8,8 +8,9 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::PgDone;
-use sqlx::postgres::PgPoolOptions;
-use sqlx::{Pool, Postgres, Transaction};
+pub use sqlx::postgres::PgPoolOptions;
+pub use sqlx::Pool;
+use sqlx::{Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::async_impl::policy::Policy;
