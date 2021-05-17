@@ -8,10 +8,8 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::postgres::PgDone;
-pub use sqlx::postgres::PgPoolOptions;
-pub use sqlx::Pool;
-pub use sqlx::Postgres;
-pub use sqlx::Transaction;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::async_impl::policy::Policy;
@@ -103,11 +101,12 @@ impl<
         self.pool.begin().await
     }
 
-    async fn persist_and_project(
+    async fn persist_and_project<'b>(
         &self,
         aggregate_id: Uuid,
         event: Evt,
         sequence_number: SequenceNumber,
+        transaction: &mut Transaction<'b, Postgres>,
     ) -> Result<StoreEvent<Evt>, Err> {
         let store_event: StoreEvent<Evt> = sqlx::query_as::<_, Event>(&self.insert)
             .bind(Uuid::new_v4())
@@ -115,7 +114,7 @@ impl<
             .bind(serde_json::to_value(event).unwrap())
             .bind(Utc::now())
             .bind(sequence_number)
-            .fetch_one(&self.pool)
+            .fetch_one(transaction)
             .await?
             .try_into()?;
 
@@ -161,9 +160,12 @@ impl<
         event: Evt,
         sequence_number: SequenceNumber,
     ) -> Result<StoreEvent<Evt>, Err> {
-        let transaction: Transaction<Postgres> = self.pool.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
-        match self.persist_and_project(aggregate_id, event, sequence_number).await {
+        match self
+            .persist_and_project(aggregate_id, event, sequence_number, &mut transaction)
+            .await
+        {
             Ok(event) => {
                 transaction.commit().await?;
 
