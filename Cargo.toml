@@ -26,7 +26,7 @@ async-trait = "0.1.40"
 
 # Sql library for async impl
 sqlx = { version = "0.4.1", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true }
-tokio = { version = "1.5.0", features = ["full"], optional = true }
+tokio = { version = "1.6.0", features = ["full"], optional = true }
 
 ## Future to stream over sqlx results
 futures = { version = "0.3.13", optional = true }
