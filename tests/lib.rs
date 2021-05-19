@@ -1,1 +1,1 @@
-mod postgres_example_test;
+mod credit_card_test;

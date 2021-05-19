@@ -1,8 +1,7 @@
 [workspace]
 members = [
     ".",
-    "esrs-core",
-    "examples/postgres"
+    "examples/payments"
 ]
 
 [package]
@@ -17,12 +16,30 @@ keywords = ["event_sourcing", "async", "postgres"]
 categories = ["event_sourcing"]
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 
-[dependencies]
-esrs-core = { version = "0.3.0", path = "esrs-core", default-features = false }
-
-[dev-dependencies]
-postgres-example = { path = "examples/postgres" }
-actix-rt = "^1.0"
+[[example]]
+name = "payments"
+path = "examples/payments/src/main.rs"
 
 [features]
 postgres = []
+
+[dependencies]
+# Serialization/Deserialization
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+# Uuid generation
+uuid = { version = "^0.8.1", features = ["serde", "v4"] }
+# Time esrs-core
+chrono = { version = "^0.4", features = ["serde"] }
+# Build async trait
+async-trait = "0.1.50"
+
+# Sql library for async impl
+sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+# To stream over sqlx results
+futures = { version = "0.3.13" }
+
+[dev-dependencies]
+payments = { path = "examples/payments" }
+actix-rt = "^1.0"
+
