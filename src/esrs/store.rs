@@ -1,3 +1,6 @@
+use std::future::Future;
+use std::pin::Pin;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
@@ -20,11 +23,14 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, 
     async fn close(&self);
 }
 
-#[async_trait]
 pub trait ProjectEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
-    async fn project_event(&self, store_event: &StoreEvent<Event>, executor: &mut Executor) -> Result<(), Error>
+    fn project_event<'a>(
+        &'a self,
+        store_event: &'a StoreEvent<Event>,
+        executor: &'a mut Executor,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
     where
-        Executor: 'async_trait;
+        Self: Sync + 'a;
 }
 
 #[derive(Clone)]

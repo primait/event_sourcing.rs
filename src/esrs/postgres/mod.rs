@@ -1,4 +1,6 @@
 use std::convert::TryInto;
+use std::future::Future;
+use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -166,21 +168,35 @@ impl<
     }
 }
 
-#[async_trait]
 impl<
         'c,
         Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     > ProjectEvent<Evt, Transaction<'c, Postgres>, Err> for PgStore<Evt, Err>
 {
-    async fn project_event(
-        &self,
-        store_event: &StoreEvent<Evt>,
-        executor: &mut Transaction<'c, Postgres>,
-    ) -> Result<(), Err> {
-        for projector in &self.projectors {
-            projector.project(store_event, executor).await?
+    fn project_event<'a>(
+        &'a self,
+        store_event: &'a StoreEvent<Evt>,
+        executor: &'a mut Transaction<'c, Postgres>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Err>> + Send + 'a>>
+    where
+        Self: Sync + 'a,
+    {
+        async fn commit<
+            Ev: Serialize + DeserializeOwned + Clone + Send + Sync,
+            Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+        >(
+            _self: &PgStore<Ev, Er>,
+            store_event: &StoreEvent<Ev>,
+            executor: &mut Transaction<'_, Postgres>,
+        ) -> Result<(), Er> {
+            for projector in &_self.projectors {
+                projector.project(store_event, executor).await?
+            }
+
+            Ok(())
         }
-        Ok(())
+
+        Box::pin(commit::<Evt, Err>(self, store_event, executor))
     }
 }

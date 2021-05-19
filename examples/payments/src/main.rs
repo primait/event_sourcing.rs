@@ -51,10 +51,16 @@ async fn main() {
         .await
         .unwrap();
 
-    println!("===> Your bank account balance is {} euros", bank_account_state.inner().balance);
+    println!(
+        "===> Your bank account balance is {} euros",
+        bank_account_state.inner().balance
+    );
 
     let tv_price: i32 = 599;
-    println!("===> You are buying a new TV using your credit card. Price is {} euros", tv_price);
+    println!(
+        "===> You are buying a new TV using your credit card. Price is {} euros",
+        tv_price
+    );
 
     let _credit_card_state: AggregateState<CreditCardState> = credit_card_aggregate
         .handle_command(credit_card_state, CreditCardCommand::Pay { amount: tv_price })
