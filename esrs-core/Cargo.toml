@@ -1,0 +1,30 @@
+[package]
+name = "esrs-core"
+version = "0.3.0"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+edition = "2018"
+description = "A Prima.it-opinionated library to achieve cqrs/es"
+repository = "https://github.com/primait/event_sourcing.rs"
+keywords = ["event_sourcing", "async", "postgres"]
+categories = ["event_sourcing"]
+authors = ["Simone Cottini <cottini.simone@gmail.com>"]
+
+[features]
+postgres = []
+
+[dependencies]
+# Serialization/Deserialization
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+# Uuid generation
+uuid = { version = "^0.8.1", features = ["serde", "v4"] }
+# Time esrs-core
+chrono = { version = "^0.4", features = ["serde"] }
+# Build async trait
+async-trait = "0.1.50"
+
+# Sql library for async impl
+sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+# To stream over sqlx results
+futures = { version = "0.3.13" }
