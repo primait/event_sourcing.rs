@@ -11,7 +11,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://examples:examples@postgres:5432/examples
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
       BUILD_ENV: DEV
     networks:
       - default
