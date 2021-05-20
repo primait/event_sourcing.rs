@@ -42,5 +42,5 @@ futures = { version = "0.3.13" }
 
 [dev-dependencies]
 payments = { path = "examples/payments" }
-actix-rt = "^1.0"
+actix-rt = "^2.2"
 
