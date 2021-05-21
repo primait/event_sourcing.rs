@@ -1,28 +1,33 @@
 [workspace]
 members = [
     ".",
-    "examples/payments"
+    "examples/postgres_payments",
+    "examples/sqlite_payments"
 ]
 
 [package]
 name = "esrs"
-version = "0.3.0"
+version = "0.3.1"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
 description = "A Prima.it-opinionated library to achieve cqrs/es"
 repository = "https://github.com/primait/event_sourcing.rs"
-keywords = ["event_sourcing", "async", "postgres"]
-categories = ["event_sourcing"]
+categories = ["rust-patterns", "web-programming", "asynchronous", "data-structures"]
+keywords = ["architecture", "ddd", "event-sourcing", "cqrs", "es"]
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 
 [[example]]
-name = "payments"
-path = "examples/payments/src/main.rs"
+name = "postgres-payments"
+path = "examples/postgres_payments/src/main.rs"
+
+[[example]]
+name = "sqlite-payments"
+path = "examples/sqlite_payments/src/main.rs"
 
 [features]
-default = ["postgres"]
-postgres = []
+postgres = ["sqlx/postgres"]
+sqlite = ["sqlx/sqlite"]
 
 [dependencies]
 # Serialization/Deserialization
@@ -36,11 +41,12 @@ chrono = { version = "^0.4", features = ["serde"] }
 async-trait = "0.1.50"
 
 # Sql library for async impl
-sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = { version = "0.4", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 # To stream over sqlx results
 futures = { version = "0.3.13" }
 
 [dev-dependencies]
-payments = { path = "examples/payments" }
-actix-rt = "^1.0"
+postgres-payments = { path = "examples/postgres_payments" }
+sqlite-payments = { path = "examples/sqlite_payments" }
+tokio = { version = "0.2", features = ["full"] }
 

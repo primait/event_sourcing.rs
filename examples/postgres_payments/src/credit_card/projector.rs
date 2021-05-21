@@ -71,13 +71,13 @@ impl CreditCard {
         sqlx::query_as::<_, Self>(
             "INSERT INTO credit_cards (payment_id, credit_card_id, credit_card_payment_type, amount) VALUES ($1, $2, $3, $4)",
         )
-        .bind(payment_id)
-        .bind(credit_card_id)
-        .bind(credit_card_payment_type)
-        .bind(amount)
-        .fetch_optional(executor)
-        .await
-        .map(|_| ())
+            .bind(payment_id)
+            .bind(credit_card_id)
+            .bind(credit_card_payment_type)
+            .bind(amount)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
     }
 
     pub async fn all<'a, 'b: 'a, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>

@@ -1,40 +1,40 @@
+use sqlx::sqlite::SqlitePoolOptions;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
 use esrs::sqlx;
-use esrs::sqlx::postgres::PgPoolOptions;
-use esrs::sqlx::{Pool, Postgres};
-use esrs::store::PgStore;
-use payments::bank_account::aggregate::BankAccountAggregate;
-use payments::bank_account::command::BankAccountCommand;
-use payments::bank_account::error::BankAccountError;
-use payments::bank_account::event::BankAccountEvent;
-use payments::bank_account::state::BankAccountState;
-use payments::bank_account::store::BankAccountStore;
-use payments::credit_card::aggregate::CreditCardAggregate;
-use payments::credit_card::command::CreditCardCommand;
-use payments::credit_card::error::CreditCardError;
-use payments::credit_card::event::CreditCardEvent;
-use payments::credit_card::projector::CreditCard;
-use payments::credit_card::state::CreditCardState;
-use payments::credit_card::store::CreditCardStore;
+use esrs::sqlx::{Pool, Sqlite};
+use esrs::store::SqliteStore;
+use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
+use sqlite_payments::bank_account::command::BankAccountCommand;
+use sqlite_payments::bank_account::error::BankAccountError;
+use sqlite_payments::bank_account::event::BankAccountEvent;
+use sqlite_payments::bank_account::state::BankAccountState;
+use sqlite_payments::bank_account::store::BankAccountStore;
+use sqlite_payments::credit_card::aggregate::CreditCardAggregate;
+use sqlite_payments::credit_card::command::CreditCardCommand;
+use sqlite_payments::credit_card::error::CreditCardError;
+use sqlite_payments::credit_card::event::CreditCardEvent;
+use sqlite_payments::credit_card::projector::CreditCard;
+use sqlite_payments::credit_card::state::CreditCardState;
+use sqlite_payments::credit_card::store::CreditCardStore;
 
-#[actix_rt::test]
+#[tokio::main(threaded_scheduler)]
 async fn credit_card_aggregate_and_projector_test() {
-    let connection_string: &str = "postgres://postgres:postgres@postgres:5432/postgres";
+    let connection_string: &str = "sqlite::memory:";
 
-    let pool: Pool<Postgres> = PgPoolOptions::new()
+    let pool: Pool<Sqlite> = SqlitePoolOptions::new()
         .connect(connection_string)
         .await
         .expect("Failed to create pool");
 
-    let () = sqlx::migrate!("examples/payments/migrations")
+    let () = sqlx::migrate!("examples/sqlite_payments/migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
 
     // CreditCard aggregate store
-    let credit_card_store: PgStore<CreditCardEvent, CreditCardError> = CreditCardStore::new(&pool).await.unwrap();
+    let credit_card_store: SqliteStore<CreditCardEvent, CreditCardError> = CreditCardStore::new(&pool).await.unwrap();
 
     // CreditCard aggregate
     let credit_card_aggregate: CreditCardAggregate = CreditCardAggregate::new(credit_card_store);
@@ -46,7 +46,8 @@ async fn credit_card_aggregate_and_projector_test() {
 
     let bank_account_state: AggregateState<BankAccountState> =
         AggregateState::new_with_state(bank_account_id, BankAccountState::default());
-    let bank_account_store: PgStore<BankAccountEvent, BankAccountError> = BankAccountStore::new(&pool).await.unwrap();
+    let bank_account_store: SqliteStore<BankAccountEvent, BankAccountError> =
+        BankAccountStore::new(&pool).await.unwrap();
     let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(bank_account_store);
 
     // Salary deposit (1000)

@@ -1,34 +1,43 @@
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::sqlx;
 use esrs::sqlx::postgres::PgPoolOptions;
 use esrs::sqlx::{Pool, Postgres};
 use esrs::store::PgStore;
-use payments::bank_account::aggregate::BankAccountAggregate;
-use payments::bank_account::command::BankAccountCommand;
-use payments::bank_account::error::BankAccountError;
-use payments::bank_account::event::BankAccountEvent;
-use payments::bank_account::state::BankAccountState;
-use payments::bank_account::store::BankAccountStore;
-use payments::credit_card::aggregate::CreditCardAggregate;
-use payments::credit_card::command::CreditCardCommand;
-use payments::credit_card::error::CreditCardError;
-use payments::credit_card::event::CreditCardEvent;
-use payments::credit_card::state::CreditCardState;
-use payments::credit_card::store::CreditCardStore;
+use postgres_payments::bank_account::aggregate::BankAccountAggregate;
+use postgres_payments::bank_account::command::BankAccountCommand;
+use postgres_payments::bank_account::error::BankAccountError;
+use postgres_payments::bank_account::event::BankAccountEvent;
+use postgres_payments::bank_account::state::BankAccountState;
+use postgres_payments::bank_account::store::BankAccountStore;
+use postgres_payments::credit_card::aggregate::CreditCardAggregate;
+use postgres_payments::credit_card::command::CreditCardCommand;
+use postgres_payments::credit_card::error::CreditCardError;
+use postgres_payments::credit_card::event::CreditCardEvent;
+use postgres_payments::credit_card::state::CreditCardState;
+use postgres_payments::credit_card::store::CreditCardStore;
 
-#[actix_rt::main]
+#[tokio::main]
 async fn main() {
     println!("\n======================================================== START\n");
 
-    let connection_string: &str = "postgres://postgres:postgres@postgres:5432/postgres";
+    let args: Vec<String> = std::env::args().collect();
+    println!("#### ARGS\n\n{}\n\n####\n", args.join("\n"));
+
+    // First arg is something like `target/debug/examples/sqlite-payments`
+    let connection_string: &str = &args[1..]
+        .first()
+        .map(|v| v.to_string())
+        .or_else(|| std::env::var("DATABASE_URL").ok())
+        .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
 
     let pool: Pool<Postgres> = PgPoolOptions::new()
         .connect(connection_string)
         .await
         .expect("Failed to create pool");
 
-    let () = sqlx::migrate!("examples/payments/migrations")
+    let () = sqlx::migrate!("examples/postgres_payments/migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");

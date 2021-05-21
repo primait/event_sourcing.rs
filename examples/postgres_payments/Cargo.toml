@@ -1,16 +1,16 @@
 [package]
-name = "payments"
+name = "postgres-payments"
 version = "0.1.0"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
-default-run = "payments"
+default-run = "postgres-payments"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 
 # async main
-actix-rt = "^1.0"
+tokio = { version = "0.2", features = ["full"] }
 
 esrs = { version = "0.3.0", path = "../../", features = ["postgres"] }
 

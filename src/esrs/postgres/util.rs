@@ -1,6 +1,7 @@
 use sqlx::postgres::PgDone;
 use sqlx::{Pool, Postgres};
 
+use crate::esrs::postgres::index;
 use crate::esrs::query;
 
 pub async fn run_preconditions(pool: &Pool<Postgres>, aggregate_name: &str) -> Result<(), sqlx::Error> {
@@ -10,11 +11,11 @@ pub async fn run_preconditions(pool: &Pool<Postgres>, aggregate_name: &str) -> R
         .await?;
 
     // Create 2 indexes if not exist
-    let _: PgDone = sqlx::query(query::create_id_index_statement(aggregate_name).as_str())
+    let _: PgDone = sqlx::query(index::create_id_index_statement(aggregate_name).as_str())
         .execute(pool)
         .await?;
 
-    let _: PgDone = sqlx::query(query::create_aggregate_id_index_statement(aggregate_name).as_str())
+    let _: PgDone = sqlx::query(index::create_aggregate_id_index_statement(aggregate_name).as_str())
         .execute(pool)
         .await?;
 

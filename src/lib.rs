@@ -1,4 +1,4 @@
-#[cfg(feature = "postgres")]
+#[cfg(any(feature = "postgres", feature = "sqlite"))]
 pub use sqlx;
 
 mod esrs;
@@ -10,23 +10,31 @@ pub mod aggregate {
 
 pub mod error {
     pub use serde_json::Error as JsonError;
-    #[cfg(feature = "postgres")]
+    #[cfg(any(feature = "postgres", feature = "sqlite"))]
     pub use sqlx::Error as SqlxError;
 }
 
-#[cfg(feature = "postgres")]
+#[cfg(any(feature = "postgres", feature = "sqlite"))]
 pub mod policy {
+    #[cfg(feature = "postgres")]
     pub use crate::esrs::postgres::policy::PgPolicy;
+    #[cfg(feature = "sqlite")]
+    pub use crate::esrs::sqlite::policy::SqlitePolicy;
 }
 
-#[cfg(feature = "postgres")]
+#[cfg(any(feature = "postgres", feature = "sqlite"))]
 pub mod projector {
+    #[cfg(feature = "postgres")]
     pub use crate::esrs::postgres::projector::PgProjector;
+    #[cfg(feature = "sqlite")]
+    pub use crate::esrs::sqlite::projector::SqliteProjector;
 }
 
 pub mod store {
     #[cfg(feature = "postgres")]
     pub use crate::esrs::postgres::PgStore;
+    #[cfg(feature = "sqlite")]
+    pub use crate::esrs::sqlite::SqliteStore;
     pub use crate::esrs::store::{EventStore, ProjectEvent, StoreEvent};
 }
 

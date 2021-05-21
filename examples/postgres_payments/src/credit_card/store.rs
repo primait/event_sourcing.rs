@@ -1,4 +1,5 @@
 use esrs::aggregate::AggregateName;
+use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::sqlx::{Pool, Postgres};
 use esrs::store::PgStore;
@@ -8,7 +9,6 @@ use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
 use crate::credit_card::policy::BankAccountPolicy;
 use crate::credit_card::projector::CreditCardsProjector;
-use esrs::policy::PgPolicy;
 
 pub struct CreditCardStore;
 
