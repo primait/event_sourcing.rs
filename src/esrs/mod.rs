@@ -1,8 +1,10 @@
 pub mod aggregate;
 pub mod event;
-pub mod query;
 pub mod state;
 pub mod store;
+
+#[cfg(any(feature = "postgres", feature = "sqlite"))]
+pub mod query;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
