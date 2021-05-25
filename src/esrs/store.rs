@@ -33,6 +33,16 @@ pub trait ProjectEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync
         Self: Sync + 'a;
 }
 
+pub trait DeleteAggregate<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
+    fn delete_aggregate<'a>(
+        &'a self,
+        id: Uuid,
+        executor: &'a mut Executor,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
+    where
+        Self: Sync + 'a;
+}
+
 #[derive(Clone)]
 pub struct StoreEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync> {
     pub id: Uuid,
