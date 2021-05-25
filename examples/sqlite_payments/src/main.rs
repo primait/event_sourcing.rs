@@ -1,9 +1,8 @@
+use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::sqlx;
-use esrs::sqlx::sqlite::SqlitePoolOptions;
-use esrs::sqlx::{Pool, Sqlite};
 use esrs::store::SqliteStore;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;

@@ -1,9 +1,8 @@
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::sqlx;
-use esrs::sqlx::postgres::PgPoolOptions;
-use esrs::sqlx::{Pool, Postgres};
 use esrs::store::PgStore;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
@@ -31,6 +30,8 @@ async fn main() {
         .map(|v| v.to_string())
         .or_else(|| std::env::var("DATABASE_URL").ok())
         .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
+
+    println!("Using: {}", connection_string);
 
     let pool: Pool<Postgres> = PgPoolOptions::new()
         .connect(connection_string)

@@ -1,7 +1,8 @@
+use sqlx::{Pool, Sqlite};
+
 use esrs::aggregate::AggregateName;
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
-use esrs::sqlx::{Pool, Sqlite};
 use esrs::store::SqliteStore;
 
 use crate::credit_card::aggregate::CreditCardAggregate;

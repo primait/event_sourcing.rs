@@ -1,9 +1,8 @@
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::sqlx;
-use esrs::sqlx::postgres::PgPoolOptions;
-use esrs::sqlx::{Pool, Postgres};
 use esrs::store::PgStore;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;

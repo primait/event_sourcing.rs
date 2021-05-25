@@ -2,12 +2,11 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use esrs::projector::PgProjector;
-use esrs::sqlx;
-use esrs::sqlx::{Executor, Postgres, Transaction};
 use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
+use sqlx::{Executor, Postgres, Transaction};
 
 pub struct CreditCardsProjector;
 

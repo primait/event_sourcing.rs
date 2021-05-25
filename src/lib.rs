@@ -1,6 +1,3 @@
-#[cfg(any(feature = "postgres", feature = "sqlite"))]
-pub use sqlx;
-
 mod esrs;
 
 pub mod aggregate {

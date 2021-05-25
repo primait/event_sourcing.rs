@@ -13,6 +13,8 @@ default-run = "postgres-payments"
 tokio = { version = "0.2", features = ["full"] }
 
 esrs = { version = "0.3.0", path = "../../", features = ["postgres"] }
+# Sql library for async impl
+sqlx = { version = "0.4", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 
 async-trait = "0.1.40"
 chrono = { version = "^0.4", features = ["serde"] }

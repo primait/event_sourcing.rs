@@ -1,9 +1,8 @@
 use async_trait::async_trait;
+use sqlx::{Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
 use esrs::projector::SqliteProjector;
-use esrs::sqlx;
-use esrs::sqlx::{Executor, Sqlite, Transaction};
 use esrs::store::StoreEvent;
 
 use crate::bank_account::error::BankAccountError;

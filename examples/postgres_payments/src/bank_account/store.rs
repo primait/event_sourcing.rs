@@ -1,6 +1,7 @@
+use sqlx::{Pool, Postgres};
+
 use esrs::aggregate::AggregateName;
 use esrs::projector::PgProjector;
-use esrs::sqlx::{Pool, Postgres};
 use esrs::store::PgStore;
 
 use crate::bank_account::aggregate::BankAccountAggregate;

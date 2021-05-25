@@ -14,20 +14,22 @@ Event Sourcing RS uses under the hood [`sqlx`].
 # Cargo.toml
 [dependencies]
 # postgres database
-esrs = { version = "0.3", features = [ "postgres" ] }
+esrs = { version = "0.3", features = ["postgres"] }
+sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 # sqlite database
-esrs = { version = "0.3", features = [ "sqlite" ] }
+esrs = { version = "0.3", features = ["sqlite"] }
+sqlx = { version = "0.4", features = ["sqlite", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
 ## Run examples and tests
 
 Payment examples simulate paying with credit card goods or services updating bank account (so its balance).
 
-To run examples and tests first you need to start new postgres instance. 
-You'll not be able to run postgres example and tests otherwise.
+To run examples and tests first you need to start new postgres instance. You'll not be able to run postgres example and
+tests otherwise.
 
 ```shell
-docker run --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
+docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
 ```
 
 Export DATABASE_URL environment variable with freshly new created database.
