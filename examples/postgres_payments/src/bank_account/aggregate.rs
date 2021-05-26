@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateName, AggregateState};
-use esrs::store::{EventStore, PgStore, StoreEvent};
+use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::store::{EraserStore, EventStore, PgStore, StoreEvent};
 
 use crate::bank_account::command::BankAccountCommand;
 use crate::bank_account::error::BankAccountError;
@@ -16,14 +16,21 @@ pub struct BankAccountAggregate {
 }
 
 impl BankAccountAggregate {
-    pub fn new(event_store: PgStore<BankAccountEvent, BankAccountError>) -> Self {
+    pub const fn new(event_store: PgStore<BankAccountEvent, BankAccountError>) -> Self {
         Self { event_store }
     }
 }
 
-impl AggregateName for BankAccountAggregate {
+impl Identifier for BankAccountAggregate {
     fn name() -> &'static str {
         BANK_ACCOUNT
+    }
+}
+
+#[async_trait]
+impl Eraser<BankAccountEvent, BankAccountError> for BankAccountAggregate {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), BankAccountError> {
+        self.event_store.delete(aggregate_id).await
     }
 }
 

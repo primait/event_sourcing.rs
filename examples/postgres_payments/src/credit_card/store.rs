@@ -1,6 +1,5 @@
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::AggregateName;
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::PgStore;
@@ -22,6 +21,6 @@ impl CreditCardStore {
         let policies: Vec<Box<dyn PgPolicy<CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(BankAccountPolicy)];
 
-        PgStore::new(pool, CreditCardAggregate::name(), projectors, policies).await
+        PgStore::new::<CreditCardAggregate>(pool, projectors, policies).await
     }
 }

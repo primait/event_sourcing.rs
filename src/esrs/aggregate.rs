@@ -9,14 +9,25 @@ use crate::esrs::state::AggregateState;
 use crate::esrs::store::{EventStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 
-pub trait AggregateName {
+pub trait Identifier {
     /// Returns the aggregate name
-    fn name() -> &'static str;
+    fn name() -> &'static str
+    where
+        Self: Sized;
+}
+
+#[async_trait]
+pub trait Eraser<
+    Event: Serialize + DeserializeOwned + Clone + Send + Sync,
+    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+>
+{
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
 #[async_trait]
-pub trait Aggregate: AggregateName {
+pub trait Aggregate: Identifier {
     type State: Default + Debug + Clone + Send + Sync;
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Clone + Send + Sync;
@@ -95,7 +106,7 @@ pub trait Aggregate: AggregateName {
             .persist(aggregate_state.id, event, next_sequence_number)
             .await
             .map(|event| AggregateState {
-                inner: Self::apply_event(&aggregate_state.id.to_owned(), aggregate_state.inner, &event),
+                inner: Self::apply_event(&aggregate_state.id, aggregate_state.inner, &event),
                 sequence_number: next_sequence_number,
                 ..aggregate_state
             })?)

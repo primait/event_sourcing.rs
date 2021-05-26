@@ -1,6 +1,5 @@
 use sqlx::{Pool, Sqlite};
 
-use esrs::aggregate::AggregateName;
 use esrs::projector::SqliteProjector;
 use esrs::store::SqliteStore;
 
@@ -17,6 +16,6 @@ impl BankAccountStore {
         let projectors: Vec<Box<dyn SqliteProjector<BankAccountEvent, BankAccountError> + Send + Sync>> =
             vec![Box::new(BankAccountProjector)];
 
-        SqliteStore::new(pool, BankAccountAggregate::name(), projectors, vec![]).await
+        SqliteStore::new::<BankAccountAggregate>(pool, projectors, vec![]).await
     }
 }

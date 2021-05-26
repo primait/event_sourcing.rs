@@ -23,7 +23,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, 
     async fn close(&self);
 }
 
-pub trait ProjectEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
+pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
     fn project_event<'a>(
         &'a self,
         store_event: &'a StoreEvent<Event>,
@@ -33,14 +33,9 @@ pub trait ProjectEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync
         Self: Sync + 'a;
 }
 
-pub trait DeleteAggregate<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
-    fn delete_aggregate<'a>(
-        &'a self,
-        id: Uuid,
-        executor: &'a mut Executor,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
-    where
-        Self: Sync + 'a;
+#[async_trait]
+pub trait EraserStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone)]

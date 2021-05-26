@@ -19,33 +19,35 @@ impl SqliteProjector<BankAccountEvent, BankAccountError> for BankAccountProjecto
     ) -> Result<(), BankAccountError> {
         match event.payload {
             BankAccountEvent::Withdrawn { amount } => {
-                let balance: Option<i32> = get_balance(event.aggregate_id, transaction).await?;
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
+                    .await?
+                    .map(|bank_account| bank_account.balance);
+
                 match balance {
                     Some(balance) => Ok(BankAccount::update(event.aggregate_id, balance - amount, transaction).await?),
-                    None => Ok(BankAccount::insert(event.aggregate_id, 0, transaction).await?),
+                    None => Ok(BankAccount::insert(event.aggregate_id, -amount, transaction).await?),
                 }
             }
             BankAccountEvent::Deposited { amount } => {
-                let balance: Option<i32> = get_balance(event.aggregate_id, transaction).await?;
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
+                    .await?
+                    .map(|bank_account| bank_account.balance);
+
                 match balance {
                     Some(balance) => Ok(BankAccount::update(event.aggregate_id, balance + amount, transaction).await?),
-                    None => Ok(BankAccount::insert(event.aggregate_id, 0, transaction).await?),
+                    None => Ok(BankAccount::insert(event.aggregate_id, amount, transaction).await?),
                 }
             }
         }
     }
-}
 
-// Moved value `transaction` if trying to directly do this in handle_event. It seems that,
-// using `E: Executor<'b, Database = Sqlite>`, compiler is not able to understand that `transaction`
-// is a mutable reference.
-async fn get_balance(
-    bank_account_id: Uuid,
-    transaction: &mut Transaction<'_, Sqlite>,
-) -> Result<Option<i32>, BankAccountError> {
-    Ok(BankAccount::by_bank_account_id(bank_account_id, transaction)
-        .await?
-        .map(|bank_account| bank_account.balance))
+    async fn delete<'c>(
+        &self,
+        aggregate_id: Uuid,
+        transaction: &mut Transaction<'c, Sqlite>,
+    ) -> Result<(), BankAccountError> {
+        Ok(BankAccount::delete(aggregate_id, transaction).await?)
+    }
 }
 
 #[derive(sqlx::FromRow, Debug)]
@@ -55,23 +57,21 @@ pub struct BankAccount {
 }
 
 impl BankAccount {
-    pub async fn by_bank_account_id<'a, 'b: 'a, E>(
+    pub async fn by_bank_account_id(
         bank_account_id: Uuid,
-        executor: E,
-    ) -> Result<Option<Self>, sqlx::Error>
-    where
-        E: Executor<'b, Database = Sqlite>,
-    {
+        executor: impl Executor<'_, Database = Sqlite>,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM bank_accounts WHERE bank_account_id = $1")
             .bind(bank_account_id)
             .fetch_optional(executor)
             .await
     }
 
-    pub async fn insert<'a, 'b: 'a, E>(bank_account_id: Uuid, balance: i32, executor: E) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'b, Database = Sqlite>,
-    {
+    pub async fn insert(
+        bank_account_id: Uuid,
+        balance: i32,
+        executor: impl Executor<'_, Database = Sqlite>,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("INSERT INTO bank_accounts (bank_account_id, balance) VALUES ($1, $2)")
             .bind(bank_account_id)
             .bind(balance)
@@ -80,10 +80,11 @@ impl BankAccount {
             .map(|_| ())
     }
 
-    pub async fn update<'a, 'b: 'a, E>(bank_account_id: Uuid, balance: i32, executor: E) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'b, Database = Sqlite>,
-    {
+    pub async fn update(
+        bank_account_id: Uuid,
+        balance: i32,
+        executor: impl Executor<'_, Database = Sqlite>,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("UPDATE bank_accounts SET balance = $2 WHERE bank_account_id = $1")
             .bind(bank_account_id)
             .bind(balance)
@@ -92,19 +93,24 @@ impl BankAccount {
             .map(|_| ())
     }
 
-    pub async fn all<'a, 'b: 'a, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
-    where
-        E: Executor<'b, Database = Sqlite>,
-    {
+    pub async fn delete(
+        bank_account_id: Uuid,
+        executor: impl Executor<'_, Database = Sqlite>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM bank_accounts WHERE bank_account_id = $1")
+            .bind(bank_account_id)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
+    }
+
+    pub async fn all(executor: impl Executor<'_, Database = Sqlite>) -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM bank_accounts")
             .fetch_all(executor)
             .await
     }
 
-    pub async fn truncate<'a, 'b: 'a, E>(executor: E) -> Result<u64, sqlx::Error>
-    where
-        E: Executor<'b, Database = Sqlite>,
-    {
+    pub async fn truncate(executor: impl Executor<'_, Database = Sqlite>) -> Result<u64, sqlx::Error> {
         use sqlx::Done;
         sqlx::query("TRUNCATE TABLE bank_accounts")
             .execute(executor)

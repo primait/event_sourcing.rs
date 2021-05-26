@@ -1,6 +1,5 @@
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::AggregateName;
 use esrs::projector::PgProjector;
 use esrs::store::PgStore;
 
@@ -17,6 +16,6 @@ impl BankAccountStore {
         let projectors: Vec<Box<dyn PgProjector<BankAccountEvent, BankAccountError> + Send + Sync>> =
             vec![Box::new(BankAccountProjector)];
 
-        PgStore::new(pool, BankAccountAggregate::name(), projectors, vec![]).await
+        PgStore::new::<BankAccountAggregate>(pool, projectors, vec![]).await
     }
 }

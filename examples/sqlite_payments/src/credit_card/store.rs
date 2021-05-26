@@ -1,6 +1,5 @@
 use sqlx::{Pool, Sqlite};
 
-use esrs::aggregate::AggregateName;
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
 use esrs::store::SqliteStore;
@@ -22,6 +21,6 @@ impl CreditCardStore {
         let policies: Vec<Box<dyn SqlitePolicy<CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(BankAccountPolicy)];
 
-        SqliteStore::new(pool, CreditCardAggregate::name(), projectors, policies).await
+        SqliteStore::new::<CreditCardAggregate>(pool, projectors, policies).await
     }
 }

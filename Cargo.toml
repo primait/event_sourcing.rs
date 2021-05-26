@@ -7,7 +7,7 @@ members = [
 
 [package]
 name = "esrs"
-version = "0.3.1"
+version = "0.4.0"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
@@ -19,11 +19,11 @@ authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 
 [[example]]
 name = "postgres-payments"
-path = "examples/postgres_payments/src/main.rs"
+path = "examples/postgres_payments.rs"
 
 [[example]]
 name = "sqlite-payments"
-path = "examples/sqlite_payments/src/main.rs"
+path = "examples/sqlite_payments.rs"
 
 [features]
 postgres = ["sqlx/postgres"]

@@ -10,13 +10,13 @@ impl Default for BankAccountState {
 }
 
 impl BankAccountState {
-    pub fn add_amount(self, amount: i32) -> Self {
+    pub const fn add_amount(self, amount: i32) -> Self {
         Self {
             balance: self.balance + amount,
         }
     }
 
-    pub fn sub_amount(self, amount: i32) -> Self {
+    pub const fn sub_amount(self, amount: i32) -> Self {
         Self {
             balance: self.balance - amount,
         }

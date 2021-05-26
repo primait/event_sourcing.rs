@@ -22,6 +22,7 @@ impl<S: Default + Debug + Clone> Default for AggregateState<S> {
 }
 
 impl<S: Default + Debug + Clone> AggregateState<S> {
+    #[must_use]
     pub fn new(id: Uuid) -> Self {
         Self {
             id,

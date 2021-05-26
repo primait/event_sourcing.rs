@@ -18,8 +18,8 @@ use sqlite_payments::credit_card::projector::CreditCard;
 use sqlite_payments::credit_card::state::CreditCardState;
 use sqlite_payments::credit_card::store::CreditCardStore;
 
-#[tokio::main(threaded_scheduler)]
-async fn credit_card_aggregate_and_projector_test() {
+#[tokio::test(threaded_scheduler)]
+async fn sqlite_credit_card_aggregate_and_projector_test() {
     let connection_string: &str = "sqlite::memory:";
 
     let pool: Pool<Sqlite> = SqlitePoolOptions::new()
@@ -27,7 +27,7 @@ async fn credit_card_aggregate_and_projector_test() {
         .await
         .expect("Failed to create pool");
 
-    let () = sqlx::migrate!("examples/sqlite_payments/migrations")
+    let () = sqlx::migrate!("../migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
@@ -93,7 +93,7 @@ async fn credit_card_aggregate_and_projector_test() {
 
     assert_eq!(credit_card_state.inner().total_amount, 1000);
 
-    // Tryin to pay 250 euros. Not enough money in bank account
+    // Trying to pay 250 euros. Not enough money in bank account
     let result = credit_card_aggregate
         .handle_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 250 })
         .await;

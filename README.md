@@ -14,14 +14,14 @@ Event Sourcing RS uses under the hood [`sqlx`].
 # Cargo.toml
 [dependencies]
 # postgres database
-esrs = { version = "0.3", features = ["postgres"] }
+esrs = { version = "0.4", features = ["postgres"] }
 sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 # sqlite database
-esrs = { version = "0.3", features = ["sqlite"] }
+esrs = { version = "0.4", features = ["sqlite"] }
 sqlx = { version = "0.4", features = ["sqlite", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
-## Run examples and tests
+## Run examples, tests and linting
 
 Payment examples simulate paying with credit card goods or services updating bank account (so its balance).
 
@@ -38,18 +38,26 @@ Export DATABASE_URL environment variable with freshly new created database.
 export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 ```
 
-Run both examples, all tests and linting.
+Run examples.
 
 ```shell
-cargo run --example postgres-payments && \
-cargo run --example sqlite-payments && \
-cargo test --all-targets --all-features && \
-cargo clippy --all-targets --all-features
+# Run payments example using postgres database
+cargo run --example postgres-payments
+# Run payments example using sqlite database
+cargo run --example sqlite-payments
 ```
 
-Then eventually unset database_url variable.
+Run tests and linting.
+
+```shell
+# Run tests
+cargo test --workspace --all-targets --all-features
+# Run linting
+cargo clippy --workspace --all-targets --all-features -- -W clippy::nursery
+```
+
+Finally eventually unset `DATABASE_URL` environment variable.
 
 ```shell
 unset DATABASE_URL
 ```
-

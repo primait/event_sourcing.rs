@@ -1,9 +1,9 @@
 [package]
 name = "postgres-payments"
 version = "0.1.0"
+license = "MIT OR Apache-2.0"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
-default-run = "postgres-payments"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,7 +12,7 @@ default-run = "postgres-payments"
 # async main
 tokio = { version = "0.2", features = ["full"] }
 
-esrs = { version = "0.3.0", path = "../../", features = ["postgres"] }
+esrs = { version = "0.4.0", path = "../../", features = ["postgres"] }
 # Sql library for async impl
 sqlx = { version = "0.4", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 

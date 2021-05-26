@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateName, AggregateState};
+use esrs::aggregate::{Aggregate, AggregateState, Identifier};
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::credit_card::command::CreditCardCommand;
@@ -16,12 +16,12 @@ pub struct CreditCardAggregate {
 }
 
 impl CreditCardAggregate {
-    pub fn new(event_store: SqliteStore<CreditCardEvent, CreditCardError>) -> Self {
+    pub const fn new(event_store: SqliteStore<CreditCardEvent, CreditCardError>) -> Self {
         Self { event_store }
     }
 }
 
-impl AggregateName for CreditCardAggregate {
+impl Identifier for CreditCardAggregate {
     fn name() -> &'static str {
         PAYMENT
     }

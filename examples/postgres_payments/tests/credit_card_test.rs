@@ -19,7 +19,7 @@ use postgres_payments::credit_card::state::CreditCardState;
 use postgres_payments::credit_card::store::CreditCardStore;
 
 #[tokio::test]
-async fn credit_card_aggregate_and_projector_test() {
+async fn postgres_credit_card_aggregate_and_projector_test() {
     let connection_string: String = std::env::var("DATABASE_URL")
         .ok()
         .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
@@ -29,7 +29,7 @@ async fn credit_card_aggregate_and_projector_test() {
         .await
         .expect("Failed to create pool");
 
-    let () = sqlx::migrate!("examples/postgres_payments/migrations")
+    let () = sqlx::migrate!("../migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
@@ -94,7 +94,7 @@ async fn credit_card_aggregate_and_projector_test() {
 
     assert_eq!(credit_card_state.inner().total_amount, 1000);
 
-    // Tryin to pay 250 euros. Not enough money in bank account
+    // Trying to pay 250 euros. Not enough money in bank account
     let result = credit_card_aggregate
         .handle_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 250 })
         .await;

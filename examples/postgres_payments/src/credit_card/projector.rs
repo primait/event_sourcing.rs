@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
 use esrs::projector::PgProjector;
@@ -6,7 +7,6 @@ use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
-use sqlx::{Executor, Postgres, Transaction};
 
 pub struct CreditCardsProjector;
 
@@ -26,6 +26,14 @@ impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
             }
         }
     }
+
+    async fn delete<'c>(
+        &self,
+        aggregate_id: Uuid,
+        transaction: &mut Transaction<'c, Postgres>,
+    ) -> Result<(), CreditCardError> {
+        Ok(CreditCard::delete(aggregate_id, transaction).await?)
+    }
 }
 
 #[derive(sqlx::FromRow, Debug)]
@@ -37,36 +45,33 @@ pub struct CreditCard {
 }
 
 impl CreditCard {
-    pub async fn by_payment_id<'a, 'b: 'a, E>(payment_id: Uuid, executor: E) -> Result<Option<Self>, sqlx::Error>
-    where
-        E: Executor<'b, Database = Postgres>,
-    {
+    pub async fn by_payment_id(
+        payment_id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM credit_cards WHERE payment_id = $1")
             .bind(payment_id)
             .fetch_optional(executor)
             .await
     }
 
-    pub async fn by_credit_card_id<'a, 'b: 'a, E>(credit_card_id: Uuid, executor: E) -> Result<Vec<Self>, sqlx::Error>
-    where
-        E: Executor<'b, Database = Postgres>,
-    {
+    pub async fn by_credit_card_id(
+        credit_card_id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM credit_cards WHERE credit_card_id = $1")
             .bind(credit_card_id)
             .fetch_all(executor)
             .await
     }
 
-    pub async fn insert<'a, 'b: 'a, E>(
+    pub async fn insert(
         payment_id: Uuid,
         credit_card_id: Uuid,
         credit_card_payment_type: String,
         amount: i32,
-        executor: E,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'b, Database = Postgres>,
-    {
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>(
             "INSERT INTO credit_cards (payment_id, credit_card_id, credit_card_payment_type, amount) VALUES ($1, $2, $3, $4)",
         )
@@ -79,19 +84,24 @@ impl CreditCard {
             .map(|_| ())
     }
 
-    pub async fn all<'a, 'b: 'a, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
-    where
-        E: Executor<'b, Database = Postgres>,
-    {
+    pub async fn delete(
+        credit_card_id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM credit_cards WHERE credit_card_id = $1")
+            .bind(credit_card_id)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
+    }
+
+    pub async fn all(executor: impl Executor<'_, Database = Postgres>) -> Result<Vec<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM credit_cards")
             .fetch_all(executor)
             .await
     }
 
-    pub async fn truncate<'a, 'b: 'a, E>(executor: E) -> Result<u64, sqlx::Error>
-    where
-        E: Executor<'b, Database = Postgres>,
-    {
+    pub async fn truncate(executor: impl Executor<'_, Database = Postgres>) -> Result<u64, sqlx::Error> {
         use sqlx::Done;
         sqlx::query("TRUNCATE TABLE credit_cards")
             .execute(executor)

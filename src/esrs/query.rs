@@ -1,3 +1,34 @@
+pub struct Queries {
+    select: String,
+    select_all: String,
+    insert: String,
+    delete: String,
+}
+
+impl Queries {
+    pub fn new(name: &str) -> Self {
+        Self {
+            select: select_statement(name),
+            select_all: select_all_statement(name),
+            insert: insert_statement(name),
+            delete: delete_statement(name),
+        }
+    }
+
+    pub fn select(&self) -> &str {
+        &self.select
+    }
+    pub fn select_all(&self) -> &str {
+        &self.select_all
+    }
+    pub fn insert(&self) -> &str {
+        &self.insert
+    }
+    pub fn delete(&self) -> &str {
+        &self.delete
+    }
+}
+
 pub fn create_table_statement(aggregate_name: &str) -> String {
     format!(
         "
@@ -15,15 +46,15 @@ pub fn create_table_statement(aggregate_name: &str) -> String {
     )
 }
 
-pub fn select_all_statement(aggregate_name: &str) -> String {
+fn select_all_statement(aggregate_name: &str) -> String {
     format!("SELECT * FROM {}_events", aggregate_name)
 }
 
-pub fn select_statement(aggregate_name: &str) -> String {
+fn select_statement(aggregate_name: &str) -> String {
     format!("SELECT * FROM {}_events WHERE aggregate_id = $1", aggregate_name)
 }
 
-pub fn insert_statement(aggregate_name: &str) -> String {
+fn insert_statement(aggregate_name: &str) -> String {
     format!(
         "
     INSERT INTO {}_events
@@ -32,4 +63,8 @@ pub fn insert_statement(aggregate_name: &str) -> String {
     ",
         aggregate_name
     )
+}
+
+fn delete_statement(aggregate_name: &str) -> String {
+    format!("DELETE FROM {}_events WHERE aggregate_id = $1", aggregate_name)
 }

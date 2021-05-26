@@ -14,14 +14,14 @@ impl Default for CreditCardState {
 }
 
 impl CreditCardState {
-    pub fn add_amount(self, amount: i32) -> Self {
+    pub const fn add_amount(self, amount: i32) -> Self {
         Self {
             total_amount: self.total_amount + amount,
             plafond: self.plafond,
         }
     }
 
-    pub fn sub_amount(self, amount: i32) -> Self {
+    pub const fn sub_amount(self, amount: i32) -> Self {
         Self {
             total_amount: self.total_amount - amount,
             plafond: self.plafond,

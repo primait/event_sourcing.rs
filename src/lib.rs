@@ -1,7 +1,7 @@
 mod esrs;
 
 pub mod aggregate {
-    pub use crate::esrs::aggregate::{Aggregate, AggregateName};
+    pub use crate::esrs::aggregate::{Aggregate, Eraser, Identifier};
     pub use crate::esrs::state::AggregateState;
 }
 
@@ -32,7 +32,7 @@ pub mod store {
     pub use crate::esrs::postgres::PgStore;
     #[cfg(feature = "sqlite")]
     pub use crate::esrs::sqlite::SqliteStore;
-    pub use crate::esrs::store::{EventStore, ProjectEvent, StoreEvent};
+    pub use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 }
 
 pub mod types {
