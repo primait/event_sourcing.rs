@@ -3,19 +3,12 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::store::PgStore;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
-use postgres_payments::bank_account::error::BankAccountError;
-use postgres_payments::bank_account::event::BankAccountEvent;
 use postgres_payments::bank_account::state::BankAccountState;
-use postgres_payments::bank_account::store::BankAccountStore;
 use postgres_payments::credit_card::aggregate::CreditCardAggregate;
 use postgres_payments::credit_card::command::CreditCardCommand;
-use postgres_payments::credit_card::error::CreditCardError;
-use postgres_payments::credit_card::event::CreditCardEvent;
 use postgres_payments::credit_card::state::CreditCardState;
-use postgres_payments::credit_card::store::CreditCardStore;
 
 #[tokio::main]
 async fn main() {
@@ -44,12 +37,14 @@ async fn main() {
     let bank_account_id: Uuid = Uuid::new_v4();
 
     // Credit card
-    let credit_card_store: PgStore<CreditCardEvent, CreditCardError> = CreditCardStore::new(&pool).await.unwrap();
-    let credit_card_aggregate: CreditCardAggregate = CreditCardAggregate::new(credit_card_store);
+    let credit_card_aggregate: CreditCardAggregate = CreditCardAggregate::new(&pool)
+        .await
+        .expect("Failed to create aggregate");
     let credit_card_state: AggregateState<CreditCardState> = AggregateState::new(bank_account_id);
 
-    let bank_account_store: PgStore<BankAccountEvent, BankAccountError> = BankAccountStore::new(&pool).await.unwrap();
-    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(bank_account_store);
+    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(&pool)
+        .await
+        .expect("Failed to create aggregate");
     let bank_account_state: AggregateState<BankAccountState> =
         AggregateState::new_with_state(bank_account_id, BankAccountState::default());
 

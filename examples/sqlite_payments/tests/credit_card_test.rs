@@ -3,20 +3,15 @@ use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::store::SqliteStore;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::error::BankAccountError;
-use sqlite_payments::bank_account::event::BankAccountEvent;
 use sqlite_payments::bank_account::state::BankAccountState;
-use sqlite_payments::bank_account::store::BankAccountStore;
 use sqlite_payments::credit_card::aggregate::CreditCardAggregate;
 use sqlite_payments::credit_card::command::CreditCardCommand;
 use sqlite_payments::credit_card::error::CreditCardError;
-use sqlite_payments::credit_card::event::CreditCardEvent;
 use sqlite_payments::credit_card::projector::CreditCard;
 use sqlite_payments::credit_card::state::CreditCardState;
-use sqlite_payments::credit_card::store::CreditCardStore;
 
 #[tokio::test(threaded_scheduler)]
 async fn sqlite_credit_card_aggregate_and_projector_test() {
@@ -32,11 +27,8 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
         .await
         .expect("Failed to run migrations");
 
-    // CreditCard aggregate store
-    let credit_card_store: SqliteStore<CreditCardEvent, CreditCardError> = CreditCardStore::new(&pool).await.unwrap();
-
     // CreditCard aggregate
-    let credit_card_aggregate: CreditCardAggregate = CreditCardAggregate::new(credit_card_store);
+    let credit_card_aggregate: CreditCardAggregate = CreditCardAggregate::new(&pool).await.unwrap();
 
     let bank_account_id: Uuid = Uuid::new_v4();
     // Bank account and credit card share the same aggregate_id
@@ -45,9 +37,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     let bank_account_state: AggregateState<BankAccountState> =
         AggregateState::new_with_state(bank_account_id, BankAccountState::default());
-    let bank_account_store: SqliteStore<BankAccountEvent, BankAccountError> =
-        BankAccountStore::new(&pool).await.unwrap();
-    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(bank_account_store);
+    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(&pool).await.unwrap();
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate

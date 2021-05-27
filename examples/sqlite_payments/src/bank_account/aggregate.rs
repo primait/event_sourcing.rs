@@ -1,23 +1,41 @@
 use async_trait::async_trait;
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::projector::SqliteProjectorEraser;
 use esrs::store::{EraserStore, EventStore, SqliteStore, StoreEvent};
 
 use crate::bank_account::command::BankAccountCommand;
 use crate::bank_account::error::BankAccountError;
 use crate::bank_account::event::BankAccountEvent;
+use crate::bank_account::projector::BankAccountProjector;
 use crate::bank_account::state::BankAccountState;
 
 const BANK_ACCOUNT: &str = "bank_account";
 
+pub type BankAccountStore = SqliteStore<
+    BankAccountEvent,
+    BankAccountError,
+    dyn SqliteProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync,
+>;
+
 pub struct BankAccountAggregate {
-    event_store: SqliteStore<BankAccountEvent, BankAccountError>,
+    event_store: BankAccountStore,
 }
 
 impl BankAccountAggregate {
-    pub const fn new(event_store: SqliteStore<BankAccountEvent, BankAccountError>) -> Self {
-        Self { event_store }
+    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, BankAccountError> {
+        Ok(Self {
+            event_store: Self::new_store(pool).await?,
+        })
+    }
+
+    pub async fn new_store(pool: &Pool<Sqlite>) -> Result<BankAccountStore, BankAccountError> {
+        let projectors: Vec<Box<dyn SqliteProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync>> =
+            vec![Box::new(BankAccountProjector)];
+
+        SqliteStore::new::<Self>(pool, projectors, vec![]).await
     }
 }
 

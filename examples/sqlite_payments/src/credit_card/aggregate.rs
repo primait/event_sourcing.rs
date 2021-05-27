@@ -1,12 +1,17 @@
 use async_trait::async_trait;
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Identifier};
+use esrs::policy::SqlitePolicy;
+use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::credit_card::command::CreditCardCommand;
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
+use crate::credit_card::policy::BankAccountPolicy;
+use crate::credit_card::projector::CreditCardsProjector;
 use crate::credit_card::state::CreditCardState;
 
 const PAYMENT: &str = "credit_card";
@@ -16,8 +21,22 @@ pub struct CreditCardAggregate {
 }
 
 impl CreditCardAggregate {
-    pub const fn new(event_store: SqliteStore<CreditCardEvent, CreditCardError>) -> Self {
-        Self { event_store }
+    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, CreditCardError> {
+        Ok(Self {
+            event_store: Self::new_store(pool).await?,
+        })
+    }
+
+    pub async fn new_store(
+        pool: &Pool<Sqlite>,
+    ) -> Result<SqliteStore<CreditCardEvent, CreditCardError>, CreditCardError> {
+        let projectors: Vec<Box<dyn SqliteProjector<CreditCardEvent, CreditCardError> + Send + Sync>> =
+            vec![Box::new(CreditCardsProjector)];
+
+        let policies: Vec<Box<dyn SqlitePolicy<CreditCardEvent, CreditCardError> + Send + Sync>> =
+            vec![Box::new(BankAccountPolicy)];
+
+        SqliteStore::new::<Self>(pool, projectors, policies).await
     }
 }
 

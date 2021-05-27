@@ -4,4 +4,3 @@ pub mod error;
 pub mod event;
 pub mod projector;
 pub mod state;
-pub mod store;

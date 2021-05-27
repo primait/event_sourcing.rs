@@ -20,34 +20,54 @@ use crate::esrs::event::Event;
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
+use crate::projector::PgProjectorEraser;
+use std::marker::PhantomData;
 
 mod index;
 pub mod policy;
 pub mod projector;
 mod util;
 
+/// Convenient alias. It needs 4 generics to instantiate `InnerSqliteStore`:
+/// - Event
+/// - Error
+/// - Projector: Default to `dyn SqliteProjector<Evt, Err>`
+/// - Policy: Default to `dyn SqlitePolicy<Evt, Err>`
+pub type PgStore<
+    Evt,
+    Err,
+    Projector = dyn PgProjector<Evt, Err> + Send + Sync,
+    Policy = dyn PgPolicy<Evt, Err> + Send + Sync,
+> = InnerPgStore<Evt, Err, Projector, Policy>;
+
 /// TODO: some doc here
-pub struct PgStore<
+pub struct InnerPgStore<
     Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
+    Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
+    Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
 > {
     pool: Pool<Postgres>,
-    projectors: Vec<Box<dyn PgProjector<Evt, Err> + Send + Sync>>,
-    policies: Vec<Box<dyn PgPolicy<Evt, Err> + Send + Sync>>,
+    projectors: Vec<Box<Projector>>,
+    policies: Vec<Box<Policy>>,
     queries: Queries,
+    evt: PhantomData<Evt>,
+    err: PhantomData<Err>,
 }
 
 impl<
         'a,
         Evt: 'a + Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-    > PgStore<Evt, Err>
+        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
+    > InnerPgStore<Evt, Err, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
     pub async fn new<T: Identifier + Sized>(
         pool: &'a Pool<Postgres>,
-        projectors: Vec<Box<dyn PgProjector<Evt, Err> + Send + Sync>>,
-        policies: Vec<Box<dyn PgPolicy<Evt, Err> + Send + Sync>>,
+        projectors: Vec<Box<Projector>>,
+        policies: Vec<Box<Policy>>,
     ) -> Result<Self, Err> {
         let aggregate_name: &str = <T as Identifier>::name();
         // Check if table and indexes exist and eventually create them
@@ -58,24 +78,26 @@ impl<
             projectors,
             policies,
             queries: Queries::new(aggregate_name),
+            evt: PhantomData::default(),
+            err: PhantomData::default(),
         })
     }
 
     pub async fn new_from_url<T: Identifier + Sized>(
         database_url: &'a str,
-        projectors: Vec<Box<dyn PgProjector<Evt, Err> + Send + Sync>>,
-        policies: Vec<Box<dyn PgPolicy<Evt, Err> + Send + Sync>>,
+        projectors: Vec<Box<Projector>>,
+        policies: Vec<Box<Policy>>,
     ) -> Result<Self, Err> {
         let pool: Pool<Postgres> = PgPoolOptions::new().connect(database_url).await?;
         Self::new::<T>(&pool, projectors, policies).await
     }
 
-    pub fn add_projector(&mut self, projector: Box<dyn PgProjector<Evt, Err> + Send + Sync>) -> &mut Self {
+    pub fn add_projector(&mut self, projector: Box<Projector>) -> &mut Self {
         self.projectors.push(projector);
         self
     }
 
-    pub fn add_policy(&mut self, policy: Box<dyn PgPolicy<Evt, Err> + Send + Sync>) -> &mut Self {
+    pub fn add_policy(&mut self, policy: Box<Policy>) -> &mut Self {
         self.policies.push(policy);
         self
     }
@@ -104,7 +126,9 @@ impl<
 impl<
         Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-    > EventStore<Evt, Err> for PgStore<Evt, Err>
+        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
+    > EventStore<Evt, Err> for InnerPgStore<Evt, Err, Projector, Policy>
 {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
         Ok(sqlx::query_as::<_, Event>(self.queries.select())
@@ -179,7 +203,9 @@ impl<
         'c,
         Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-    > ProjectorStore<Evt, Transaction<'c, Postgres>, Err> for PgStore<Evt, Err>
+        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
+    > ProjectorStore<Evt, Transaction<'c, Postgres>, Err> for InnerPgStore<Evt, Err, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
@@ -192,8 +218,10 @@ impl<
         async fn run<
             Ev: Serialize + DeserializeOwned + Clone + Send + Sync,
             Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+            Prj: PgProjector<Ev, Er> + Send + Sync + ?Sized,
+            Plc: PgPolicy<Ev, Er> + Send + Sync + ?Sized,
         >(
-            me: &PgStore<Ev, Er>,
+            me: &InnerPgStore<Ev, Er, Prj, Plc>,
             store_event: &StoreEvent<Ev>,
             executor: &mut Transaction<'_, Postgres>,
         ) -> Result<(), Er> {
@@ -204,7 +232,7 @@ impl<
             Ok(())
         }
 
-        Box::pin(run::<Evt, Err>(self, store_event, executor))
+        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, executor))
     }
 }
 
@@ -212,11 +240,17 @@ impl<
 impl<
         Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-    > EraserStore<Evt, Err> for PgStore<Evt, Err>
+        Projector: PgProjectorEraser<Evt, Err> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
+    > EraserStore<Evt, Err> for InnerPgStore<Evt, Err, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Err> {
         let mut transaction: Transaction<Postgres> = self.begin().await?;
-        let () = delete_event(self.queries.delete(), aggregate_id, &mut transaction).await?;
+        let _ = sqlx::query(self.queries.delete())
+            .bind(aggregate_id)
+            .execute(&mut *transaction)
+            .await
+            .map(|_| ());
 
         for projector in &self.projectors {
             projector.delete(aggregate_id, &mut transaction).await?
@@ -224,16 +258,4 @@ impl<
 
         Ok(transaction.commit().await?)
     }
-}
-
-async fn delete_event(
-    delete: &str,
-    aggregate_id: Uuid,
-    transaction: &mut Transaction<'_, Postgres>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(delete)
-        .bind(aggregate_id)
-        .execute(transaction)
-        .await
-        .map(|_| ())
 }

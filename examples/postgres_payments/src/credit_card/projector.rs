@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
-use esrs::projector::PgProjector;
+use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
@@ -26,7 +26,10 @@ impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
             }
         }
     }
+}
 
+#[async_trait]
+impl PgProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjector {
     async fn delete<'c>(
         &self,
         aggregate_id: Uuid,

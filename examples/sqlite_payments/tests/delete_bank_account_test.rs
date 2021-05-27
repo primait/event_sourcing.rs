@@ -3,14 +3,10 @@ use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser};
-use esrs::store::SqliteStore;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
-use sqlite_payments::bank_account::error::BankAccountError;
-use sqlite_payments::bank_account::event::BankAccountEvent;
 use sqlite_payments::bank_account::projector::BankAccount;
 use sqlite_payments::bank_account::state::BankAccountState;
-use sqlite_payments::bank_account::store::BankAccountStore;
 
 #[tokio::test(threaded_scheduler)]
 async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
@@ -29,9 +25,7 @@ async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
     let bank_account_id: Uuid = Uuid::new_v4();
     let bank_account_state: AggregateState<BankAccountState> =
         AggregateState::new_with_state(bank_account_id, BankAccountState::default());
-    let bank_account_store: SqliteStore<BankAccountEvent, BankAccountError> =
-        BankAccountStore::new(&pool).await.unwrap();
-    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(bank_account_store);
+    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(&pool).await.unwrap();
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate

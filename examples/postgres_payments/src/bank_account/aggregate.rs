@@ -1,23 +1,41 @@
 use async_trait::async_trait;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::projector::PgProjectorEraser;
 use esrs::store::{EraserStore, EventStore, PgStore, StoreEvent};
 
 use crate::bank_account::command::BankAccountCommand;
 use crate::bank_account::error::BankAccountError;
 use crate::bank_account::event::BankAccountEvent;
+use crate::bank_account::projector::BankAccountProjector;
 use crate::bank_account::state::BankAccountState;
 
 const BANK_ACCOUNT: &str = "bank_account";
 
+pub type BankAccountStore = PgStore<
+    BankAccountEvent,
+    BankAccountError,
+    dyn PgProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync,
+>;
+
 pub struct BankAccountAggregate {
-    event_store: PgStore<BankAccountEvent, BankAccountError>,
+    event_store: BankAccountStore,
 }
 
 impl BankAccountAggregate {
-    pub const fn new(event_store: PgStore<BankAccountEvent, BankAccountError>) -> Self {
-        Self { event_store }
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, BankAccountError> {
+        Ok(Self {
+            event_store: Self::new_store(pool).await?,
+        })
+    }
+
+    pub async fn new_store(pool: &Pool<Postgres>) -> Result<BankAccountStore, BankAccountError> {
+        let projectors: Vec<Box<dyn PgProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync>> =
+            vec![Box::new(BankAccountProjector)];
+
+        PgStore::new::<Self>(pool, projectors, vec![]).await
     }
 }
 

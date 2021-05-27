@@ -22,9 +22,9 @@ pub mod policy {
 #[cfg(any(feature = "postgres", feature = "sqlite"))]
 pub mod projector {
     #[cfg(feature = "postgres")]
-    pub use crate::esrs::postgres::projector::PgProjector;
+    pub use crate::esrs::postgres::projector::{PgProjector, PgProjectorEraser};
     #[cfg(feature = "sqlite")]
-    pub use crate::esrs::sqlite::projector::SqliteProjector;
+    pub use crate::esrs::sqlite::projector::{SqliteProjector, SqliteProjectorEraser};
 }
 
 pub mod store {

@@ -3,14 +3,10 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser};
-use esrs::store::PgStore;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
-use postgres_payments::bank_account::error::BankAccountError;
-use postgres_payments::bank_account::event::BankAccountEvent;
 use postgres_payments::bank_account::projector::BankAccount;
 use postgres_payments::bank_account::state::BankAccountState;
-use postgres_payments::bank_account::store::BankAccountStore;
 
 #[tokio::test]
 async fn postgres_delete_bank_account_aggregate_and_read_model_test() {
@@ -31,8 +27,7 @@ async fn postgres_delete_bank_account_aggregate_and_read_model_test() {
     let bank_account_id: Uuid = Uuid::new_v4();
     let bank_account_state: AggregateState<BankAccountState> =
         AggregateState::new_with_state(bank_account_id, BankAccountState::default());
-    let bank_account_store: PgStore<BankAccountEvent, BankAccountError> = BankAccountStore::new(&pool).await.unwrap();
-    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(bank_account_store);
+    let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(&pool).await.unwrap();
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate

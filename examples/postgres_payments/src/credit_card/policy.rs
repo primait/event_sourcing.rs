@@ -8,7 +8,6 @@ use esrs::store::StoreEvent;
 use crate::bank_account::aggregate::BankAccountAggregate;
 use crate::bank_account::command::BankAccountCommand;
 use crate::bank_account::state::BankAccountState;
-use crate::bank_account::store::BankAccountStore;
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
 
@@ -22,7 +21,7 @@ impl PgPolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
         event: &StoreEvent<CreditCardEvent>,
         pool: &Pool<Postgres>,
     ) -> Result<(), CreditCardError> {
-        let bank_account: BankAccountAggregate = BankAccountAggregate::new(BankAccountStore::new(pool).await?);
+        let bank_account: BankAccountAggregate = BankAccountAggregate::new(pool).await?;
 
         let state: AggregateState<BankAccountState> = bank_account
             .load(event.aggregate_id)

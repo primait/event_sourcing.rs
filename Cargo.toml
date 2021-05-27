@@ -7,7 +7,7 @@ members = [
 
 [package]
 name = "esrs"
-version = "0.4.0"
+version = "0.4.1"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
