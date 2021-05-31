@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 
 # async main
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1.6", features = ["full"] }
 
 esrs = { version = "0.4.0", path = "../../", features = ["postgres"] }
 # Sql library for async impl
