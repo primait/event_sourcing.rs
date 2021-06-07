@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Postgres, Transaction};
+use sqlx::Postgres;
 use uuid::Uuid;
 
 use crate::esrs::store::StoreEvent;
+use crate::pool::Transaction;
 
 /// Projector trait that takes a Postgres transaction in order to create a read model
 #[async_trait]

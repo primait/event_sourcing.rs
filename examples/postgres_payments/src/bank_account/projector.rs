@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use sqlx::{Executor, Postgres, Transaction};
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
+use esrs::pool::Transaction;
 use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
@@ -19,23 +20,27 @@ impl PgProjector<BankAccountEvent, BankAccountError> for BankAccountProjector {
     ) -> Result<(), BankAccountError> {
         match event.payload {
             BankAccountEvent::Withdrawn { amount } => {
-                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut **transaction)
                     .await?
                     .map(|bank_account| bank_account.balance);
 
                 match balance {
-                    Some(balance) => Ok(BankAccount::update(event.aggregate_id, balance - amount, transaction).await?),
-                    None => Ok(BankAccount::insert(event.aggregate_id, -amount, transaction).await?),
+                    Some(balance) => {
+                        Ok(BankAccount::update(event.aggregate_id, balance - amount, &mut **transaction).await?)
+                    }
+                    None => Ok(BankAccount::insert(event.aggregate_id, -amount, &mut **transaction).await?),
                 }
             }
             BankAccountEvent::Deposited { amount } => {
-                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut **transaction)
                     .await?
                     .map(|bank_account| bank_account.balance);
 
                 match balance {
-                    Some(balance) => Ok(BankAccount::update(event.aggregate_id, balance + amount, transaction).await?),
-                    None => Ok(BankAccount::insert(event.aggregate_id, amount, transaction).await?),
+                    Some(balance) => {
+                        Ok(BankAccount::update(event.aggregate_id, balance + amount, &mut **transaction).await?)
+                    }
+                    None => Ok(BankAccount::insert(event.aggregate_id, amount, &mut **transaction).await?),
                 }
             }
         }
@@ -49,7 +54,7 @@ impl PgProjectorEraser<BankAccountEvent, BankAccountError> for BankAccountProjec
         aggregate_id: Uuid,
         transaction: &mut Transaction<'c, Postgres>,
     ) -> Result<(), BankAccountError> {
-        Ok(BankAccount::delete(aggregate_id, transaction).await?)
+        Ok(BankAccount::delete(aggregate_id, &mut **transaction).await?)
     }
 }
 

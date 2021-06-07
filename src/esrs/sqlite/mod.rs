@@ -8,7 +8,7 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::sqlite::{SqliteDone, SqlitePoolOptions};
+use sqlx::sqlite::SqliteDone;
 use sqlx::{Pool, Sqlite, Transaction};
 use uuid::Uuid;
 
@@ -80,15 +80,6 @@ impl<
             evt: PhantomData::default(),
             err: PhantomData::default(),
         })
-    }
-
-    pub async fn new_from_url<T: Identifier + Sized>(
-        database_url: &'a str,
-        projectors: Vec<Box<Projector>>,
-        policies: Vec<Box<Policy>>,
-    ) -> Result<Self, Err> {
-        let pool: Pool<Sqlite> = SqlitePoolOptions::new().connect(database_url).await?;
-        Self::new::<T>(&pool, projectors, policies).await
     }
 
     pub fn add_projector(&mut self, projector: Box<Projector>) -> &mut Self {

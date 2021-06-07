@@ -1,7 +1,11 @@
 use async_trait::async_trait;
+use sqlx::Postgres;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Identifier};
+use esrs::policy::PgPolicy;
+use esrs::pool::Pool;
+use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore, StoreEvent};
 
 use crate::credit_card::command::CreditCardCommand;
@@ -10,9 +14,6 @@ use crate::credit_card::event::CreditCardEvent;
 use crate::credit_card::policy::BankAccountPolicy;
 use crate::credit_card::projector::CreditCardsProjector;
 use crate::credit_card::state::CreditCardState;
-use esrs::policy::PgPolicy;
-use esrs::projector::PgProjector;
-use sqlx::{Pool, Postgres};
 
 const PAYMENT: &str = "credit_card";
 
