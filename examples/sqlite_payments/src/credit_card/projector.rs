@@ -1,7 +1,10 @@
+use std::ops::DerefMut;
+
 use async_trait::async_trait;
-use sqlx::{Executor, Sqlite, Transaction};
+use sqlx::{Executor, Sqlite};
 use uuid::Uuid;
 
+use esrs::pool::Transaction;
 use esrs::projector::{SqliteProjector, SqliteProjectorEraser};
 use esrs::store::StoreEvent;
 
@@ -18,12 +21,22 @@ impl SqliteProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector 
         transaction: &mut Transaction<'c, Sqlite>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
-            CreditCardEvent::Payed { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, transaction).await?)
-            }
-            CreditCardEvent::Refunded { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, transaction).await?)
-            }
+            CreditCardEvent::Payed { amount } => Ok(CreditCard::insert(
+                event.id,
+                event.aggregate_id,
+                "pay".to_string(),
+                amount,
+                transaction.deref_mut(),
+            )
+            .await?),
+            CreditCardEvent::Refunded { amount } => Ok(CreditCard::insert(
+                event.id,
+                event.aggregate_id,
+                "refund".to_string(),
+                amount,
+                transaction.deref_mut(),
+            )
+            .await?),
         }
     }
 }
@@ -35,7 +48,7 @@ impl SqliteProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProj
         aggregate_id: Uuid,
         transaction: &mut Transaction<'c, Sqlite>,
     ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, transaction).await?)
+        Ok(CreditCard::delete(aggregate_id, transaction.deref_mut()).await?)
     }
 }
 

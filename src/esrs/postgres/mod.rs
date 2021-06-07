@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::future::Future;
+use std::marker::PhantomData;
 use std::pin::Pin;
 
 use async_trait::async_trait;
@@ -22,7 +23,6 @@ use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 use crate::projector::PgProjectorEraser;
-use std::marker::PhantomData;
 
 mod index;
 pub mod policy;

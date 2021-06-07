@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use sqlx::pool::PoolOptions;
 use sqlx::Database;
 
@@ -46,7 +48,7 @@ impl Pool<sqlx::Sqlite> {
     }
 }
 
-impl<T: Database> std::ops::Deref for Pool<T> {
+impl<T: Database> Deref for Pool<T> {
     type Target = sqlx::Pool<T>;
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -82,21 +84,21 @@ impl<'a, T: Database> Transaction<'a, T> {
     }
 }
 
-impl<'a, T: Database> std::ops::Deref for Transaction<'a, T> {
-    type Target = sqlx::Transaction<'a, T>;
+impl<'a, T: Database> Deref for Transaction<'a, T> {
+    type Target = T::Connection;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.transaction
+        &*self.transaction
     }
 }
 
-impl<'c, DB> std::ops::DerefMut for Transaction<'c, DB>
+impl<'c, DB> DerefMut for Transaction<'c, DB>
 where
     DB: Database,
 {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.transaction
+        &mut *self.transaction
     }
 }

@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::future::Future;
+use std::marker::PhantomData;
 use std::pin::Pin;
 
 use async_trait::async_trait;
@@ -9,7 +10,7 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::sqlite::SqliteDone;
-use sqlx::{Pool, Sqlite, Transaction};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
 use policy::SqlitePolicy;
@@ -17,11 +18,11 @@ use projector::SqliteProjector;
 
 use crate::esrs::aggregate::Identifier;
 use crate::esrs::event::Event;
+use crate::esrs::pool::{Pool, Transaction};
 use crate::esrs::query::Queries;
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
-use std::marker::PhantomData;
 
 pub mod policy;
 pub mod projector;
@@ -93,13 +94,13 @@ impl<
     }
 
     /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
-    pub async fn begin<'b>(&self) -> Result<Transaction<'b, Sqlite>, sqlx::Error> {
+    pub async fn begin(&self) -> Result<Transaction<'_, Sqlite>, sqlx::Error> {
         self.pool.begin().await
     }
 
     pub async fn rebuild_events(&self) -> Result<(), Err> {
         let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
+            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&*self.pool);
 
         let mut transaction: Transaction<Sqlite> = self.pool.begin().await?;
 
@@ -123,7 +124,7 @@ impl<
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
         Ok(sqlx::query_as::<_, Event>(self.queries.select())
             .bind(id)
-            .fetch_all(&self.pool)
+            .fetch_all(&*self.pool)
             .await?
             .into_iter()
             .map(|event| Ok(event.try_into()?))
@@ -146,7 +147,7 @@ impl<
             .bind(serde_json::to_value(event.clone()).unwrap())
             .bind(Utc::now())
             .bind(sequence_number)
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await
             .map_err(|error| error.into());
 

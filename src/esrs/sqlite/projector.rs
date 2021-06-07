@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Sqlite, Transaction};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
+use crate::esrs::pool::Transaction;
 use crate::esrs::store::StoreEvent;
 
 /// Projector trait that takes a Sqlite transaction in order to create a read model

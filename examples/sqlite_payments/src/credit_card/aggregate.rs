@@ -1,9 +1,10 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Identifier};
 use esrs::policy::SqlitePolicy;
+use esrs::pool::Pool;
 use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 

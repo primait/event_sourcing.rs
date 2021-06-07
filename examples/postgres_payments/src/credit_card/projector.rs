@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
 use uuid::Uuid;
@@ -24,7 +26,7 @@ impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
                 event.aggregate_id,
                 "pay".to_string(),
                 amount,
-                &mut **transaction,
+                transaction.deref_mut(),
             )
             .await?),
             CreditCardEvent::Refunded { amount } => Ok(CreditCard::insert(
@@ -32,7 +34,7 @@ impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
                 event.aggregate_id,
                 "refund".to_string(),
                 amount,
-                &mut **transaction,
+                transaction.deref_mut(),
             )
             .await?),
         }
@@ -46,7 +48,7 @@ impl PgProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjecto
         aggregate_id: Uuid,
         transaction: &mut Transaction<'c, Postgres>,
     ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, &mut **transaction).await?)
+        Ok(CreditCard::delete(aggregate_id, transaction.deref_mut()).await?)
     }
 }
 
