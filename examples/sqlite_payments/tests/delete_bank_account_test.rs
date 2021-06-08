@@ -1,24 +1,21 @@
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser};
+use esrs::pool::Pool;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::projector::BankAccount;
 use sqlite_payments::bank_account::state::BankAccountState;
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
     let connection_string: &str = "sqlite::memory:";
 
-    let pool: Pool<Sqlite> = SqlitePoolOptions::new()
-        .connect(connection_string)
-        .await
-        .expect("Failed to create pool");
+    let pool: Pool<Sqlite> = Pool::from_url(connection_string).await.expect("Failed to create pool");
 
     let () = sqlx::migrate!("../migrations")
-        .run(&pool)
+        .run(&*pool)
         .await
         .expect("Failed to run migrations");
 
@@ -43,7 +40,7 @@ async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
             .balance
     );
 
-    let bank_account: BankAccount = BankAccount::by_bank_account_id(bank_account_id, &pool)
+    let bank_account: BankAccount = BankAccount::by_bank_account_id(bank_account_id, &*pool)
         .await
         .unwrap()
         .unwrap();
@@ -54,6 +51,6 @@ async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
         .await
         .expect("Failed to delete aggregate and its read models");
 
-    let bank_account_opt: Option<BankAccount> = BankAccount::by_bank_account_id(bank_account_id, &pool).await.unwrap();
+    let bank_account_opt: Option<BankAccount> = BankAccount::by_bank_account_id(bank_account_id, &*pool).await.unwrap();
     assert!(bank_account_opt.is_none());
 }

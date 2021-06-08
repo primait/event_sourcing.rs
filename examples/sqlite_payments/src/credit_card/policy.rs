@@ -1,8 +1,9 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 
 use esrs::aggregate::{Aggregate, AggregateState};
 use esrs::policy::SqlitePolicy;
+use esrs::pool::Pool;
 use esrs::store::StoreEvent;
 
 use crate::bank_account::aggregate::BankAccountAggregate;

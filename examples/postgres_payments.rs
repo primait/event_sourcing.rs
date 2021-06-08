@@ -1,8 +1,8 @@
-use sqlx::postgres::PgPoolOptions;
-use sqlx::{Pool, Postgres};
+use sqlx::Postgres;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::pool::Pool;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
 use postgres_payments::bank_account::state::BankAccountState;
@@ -24,13 +24,10 @@ async fn main() {
         .or_else(|| std::env::var("DATABASE_URL").ok())
         .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
 
-    let pool: Pool<Postgres> = PgPoolOptions::new()
-        .connect(connection_string)
-        .await
-        .expect("Failed to create pool");
+    let pool: Pool<Postgres> = Pool::from_url(connection_string).await.expect("Failed to create pool");
 
     let () = sqlx::migrate!("examples/migrations")
-        .run(&pool)
+        .run(&*pool)
         .await
         .expect("Failed to run migrations");
 

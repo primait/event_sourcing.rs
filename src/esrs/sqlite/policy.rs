@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 
+use crate::esrs::pool::Pool;
 use crate::esrs::store::StoreEvent;
 
 #[async_trait]

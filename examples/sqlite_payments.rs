@@ -1,8 +1,8 @@
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::pool::Pool;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::state::BankAccountState;
@@ -10,7 +10,7 @@ use sqlite_payments::credit_card::aggregate::CreditCardAggregate;
 use sqlite_payments::credit_card::command::CreditCardCommand;
 use sqlite_payments::credit_card::state::CreditCardState;
 
-#[tokio::main(threaded_scheduler)]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     println!("\n======================================================== START\n");
 
@@ -20,13 +20,10 @@ async fn main() {
     // First arg is something like `target/debug/examples/sqlite-payments`
     let connection_string: &str = args[1..].first().map(|v| v.as_str()).unwrap_or("sqlite::memory:");
 
-    let pool: Pool<Sqlite> = SqlitePoolOptions::new()
-        .connect(connection_string)
-        .await
-        .expect("Failed to create pool");
+    let pool: Pool<Sqlite> = Pool::from_url(connection_string).await.expect("Failed to create pool");
 
     let () = sqlx::migrate!("examples/migrations")
-        .run(&pool)
+        .run(&*pool)
         .await
         .expect("Failed to run migrations");
 

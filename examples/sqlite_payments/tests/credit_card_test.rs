@@ -1,8 +1,8 @@
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::{Pool, Sqlite};
+use sqlx::Sqlite;
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::pool::Pool;
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::error::BankAccountError;
@@ -13,17 +13,14 @@ use sqlite_payments::credit_card::error::CreditCardError;
 use sqlite_payments::credit_card::projector::CreditCard;
 use sqlite_payments::credit_card::state::CreditCardState;
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn sqlite_credit_card_aggregate_and_projector_test() {
     let connection_string: &str = "sqlite::memory:";
 
-    let pool: Pool<Sqlite> = SqlitePoolOptions::new()
-        .connect(connection_string)
-        .await
-        .expect("Failed to create pool");
+    let pool: Pool<Sqlite> = Pool::from_url(connection_string).await.expect("Failed to create pool");
 
     let () = sqlx::migrate!("../migrations")
-        .run(&pool)
+        .run(&*pool)
         .await
         .expect("Failed to run migrations");
 
@@ -141,7 +138,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
     );
 
     // 3 credit_card payments have been done
-    let credit_card_payments: Vec<CreditCard> = CreditCard::by_credit_card_id(bank_account_id, &pool).await.unwrap();
+    let credit_card_payments: Vec<CreditCard> = CreditCard::by_credit_card_id(bank_account_id, &*pool).await.unwrap();
 
     assert_eq!(credit_card_payments.len(), 4);
     assert!(credit_card_payments

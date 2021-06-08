@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 use std::future::Future;
+use std::marker::PhantomData;
 use std::pin::Pin;
 
 use async_trait::async_trait;
@@ -8,8 +9,8 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::postgres::PgDone;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
+use sqlx::postgres::PgQueryResult;
+use sqlx::Postgres;
 use uuid::Uuid;
 
 use policy::PgPolicy;
@@ -17,11 +18,11 @@ use projector::PgProjector;
 
 use crate::esrs::aggregate::Identifier;
 use crate::esrs::event::Event;
+use crate::esrs::pool::{Pool, Transaction};
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 use crate::projector::PgProjectorEraser;
-use std::marker::PhantomData;
 
 mod index;
 pub mod policy;
@@ -83,15 +84,6 @@ impl<
         })
     }
 
-    pub async fn new_from_url<T: Identifier + Sized>(
-        database_url: &'a str,
-        projectors: Vec<Box<Projector>>,
-        policies: Vec<Box<Policy>>,
-    ) -> Result<Self, Err> {
-        let pool: Pool<Postgres> = PgPoolOptions::new().connect(database_url).await?;
-        Self::new::<T>(&pool, projectors, policies).await
-    }
-
     pub fn add_projector(&mut self, projector: Box<Projector>) -> &mut Self {
         self.projectors.push(projector);
         self
@@ -103,13 +95,13 @@ impl<
     }
 
     /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
-    pub async fn begin<'b>(&self) -> Result<Transaction<'b, Postgres>, sqlx::Error> {
+    pub async fn begin(&self) -> Result<Transaction<'_, Postgres>, sqlx::Error> {
         self.pool.begin().await
     }
 
     pub async fn rebuild_events(&self) -> Result<(), Err> {
         let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
+            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&*self.pool);
 
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
@@ -133,7 +125,7 @@ impl<
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
         Ok(sqlx::query_as::<_, Event>(self.queries.select())
             .bind(id)
-            .fetch_all(&self.pool)
+            .fetch_all(&*self.pool)
             .await?
             .into_iter()
             .map(|event| Ok(event.try_into()?))
@@ -150,13 +142,13 @@ impl<
 
         let event_id: Uuid = Uuid::new_v4();
         let occurred_on: DateTime<Utc> = Utc::now();
-        let store_event_result: Result<PgDone, Err> = sqlx::query(self.queries.insert())
+        let store_event_result: Result<PgQueryResult, Err> = sqlx::query(self.queries.insert())
             .bind(event_id)
             .bind(aggregate_id)
             .bind(serde_json::to_value(event.clone()).unwrap())
             .bind(Utc::now())
             .bind(sequence_number)
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await
             .map_err(|error| error.into());
 

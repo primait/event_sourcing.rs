@@ -1,7 +1,10 @@
+use std::ops::DerefMut;
+
 use async_trait::async_trait;
-use sqlx::{Executor, Postgres, Transaction};
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
+use esrs::pool::Transaction;
 use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
@@ -18,12 +21,22 @@ impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
         transaction: &mut Transaction<'c, Postgres>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
-            CreditCardEvent::Payed { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, transaction).await?)
-            }
-            CreditCardEvent::Refunded { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, transaction).await?)
-            }
+            CreditCardEvent::Payed { amount } => Ok(CreditCard::insert(
+                event.id,
+                event.aggregate_id,
+                "pay".to_string(),
+                amount,
+                transaction.deref_mut(),
+            )
+            .await?),
+            CreditCardEvent::Refunded { amount } => Ok(CreditCard::insert(
+                event.id,
+                event.aggregate_id,
+                "refund".to_string(),
+                amount,
+                transaction.deref_mut(),
+            )
+            .await?),
         }
     }
 }
@@ -35,7 +48,7 @@ impl PgProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjecto
         aggregate_id: Uuid,
         transaction: &mut Transaction<'c, Postgres>,
     ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, transaction).await?)
+        Ok(CreditCard::delete(aggregate_id, transaction.deref_mut()).await?)
     }
 }
 
@@ -105,7 +118,6 @@ impl CreditCard {
     }
 
     pub async fn truncate(executor: impl Executor<'_, Database = Postgres>) -> Result<u64, sqlx::Error> {
-        use sqlx::Done;
         sqlx::query("TRUNCATE TABLE credit_cards")
             .execute(executor)
             .await
