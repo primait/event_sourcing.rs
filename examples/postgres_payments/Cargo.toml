@@ -2,6 +2,7 @@
 name = "postgres-payments"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
+description = "Example of an esrs implementation for postgres"
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 edition = "2018"
 
@@ -16,7 +17,7 @@ esrs = { version = "0.5", path = "../../", features = ["postgres"] }
 # Sql library for async impl
 sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 
-async-trait = "0.1.40"
+async-trait = "0.1.50"
 chrono = { version = "^0.4", features = ["serde"] }
 serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
