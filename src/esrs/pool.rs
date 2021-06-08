@@ -32,16 +32,18 @@ impl<T: Database> Pool<T> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl Pool<sqlx::Postgres> {
-    pub async fn test_pool(url: &str) -> Result<Self, sqlx::Error> {
+    pub async fn pg_test_pool(url: &str) -> Result<Self, sqlx::Error> {
         let pool: sqlx::Pool<sqlx::Postgres> = PoolOptions::new().max_connections(1).connect(url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
         Ok(Self { pool, test: true })
     }
 }
 
+#[cfg(feature = "sqlite")]
 impl Pool<sqlx::Sqlite> {
-    pub async fn test_pool(url: &str) -> Result<Self, sqlx::Error> {
+    pub async fn sqlite_test_pool(url: &str) -> Result<Self, sqlx::Error> {
         let pool: sqlx::Pool<sqlx::Sqlite> = PoolOptions::new().max_connections(1).connect(url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
         Ok(Self { pool, test: true })
@@ -100,5 +102,50 @@ where
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.transaction
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::postgres::PgRow;
+    use sqlx::Postgres;
+
+    #[tokio::test]
+    async fn test_pool_test() {
+        let database_url = std::env::var("DATABASE_URL").unwrap();
+        let transaction_pool: Pool<Postgres> = Pool::pg_test_pool(database_url.as_str()).await.unwrap();
+        let another_pool: Pool<Postgres> = Pool::from_url(database_url.as_str()).await.unwrap();
+
+        sqlx::query("CREATE TABLE IF NOT EXISTS users (name TEXT NOT NULL)")
+            .execute(&*another_pool)
+            .await
+            .unwrap();
+
+        sqlx::query("INSERT INTO users (name) VALUES ($1)")
+            .bind("Pippo")
+            .execute(&*transaction_pool)
+            .await
+            .unwrap();
+
+        let mut transaction = transaction_pool.begin().await.unwrap();
+
+        sqlx::query("INSERT INTO users (name) VALUES ($1)")
+            .bind("Gino")
+            .execute(&mut *transaction)
+            .await
+            .unwrap();
+
+        // Commit nothing
+        transaction.commit().await.unwrap();
+
+        let rows: Vec<PgRow> = sqlx::query("SELECT * FROM users")
+            .fetch_all(&*another_pool)
+            .await
+            .unwrap();
+
+        assert_eq!(rows.len(), 0);
+
+        let _ = sqlx::query("DROP TABLE users").execute(&*another_pool).await.unwrap();
     }
 }
