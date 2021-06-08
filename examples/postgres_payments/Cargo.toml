@@ -10,11 +10,11 @@ edition = "2018"
 [dependencies]
 
 # async main
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1.6", features = ["full"] }
 
-esrs = { version = "0.4.0", path = "../../", features = ["postgres"] }
+esrs = { version = "0.5", path = "../../", features = ["postgres"] }
 # Sql library for async impl
-sqlx = { version = "0.4", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 
 async-trait = "0.1.40"
 chrono = { version = "^0.4", features = ["serde"] }

@@ -118,7 +118,6 @@ impl CreditCard {
     }
 
     pub async fn truncate(executor: impl Executor<'_, Database = Sqlite>) -> Result<u64, sqlx::Error> {
-        use sqlx::Done;
         sqlx::query("TRUNCATE TABLE credit_cards")
             .execute(executor)
             .await

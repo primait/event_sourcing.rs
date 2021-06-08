@@ -14,11 +14,11 @@ Event Sourcing RS uses under the hood [`sqlx`].
 # Cargo.toml
 [dependencies]
 # postgres database
-esrs = { version = "0.4", features = ["postgres"] }
-sqlx = { version = "0.4", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+esrs = { version = "0.5", features = ["postgres"] }
+sqlx = { version = "0.5", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 # sqlite database
-esrs = { version = "0.4", features = ["sqlite"] }
-sqlx = { version = "0.4", features = ["sqlite", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+esrs = { version = "0.5", features = ["sqlite"] }
+sqlx = { version = "0.5", features = ["sqlite", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
 ## Run examples, tests and linting

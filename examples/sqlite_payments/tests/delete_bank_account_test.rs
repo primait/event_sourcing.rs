@@ -8,7 +8,7 @@ use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::projector::BankAccount;
 use sqlite_payments::bank_account::state::BankAccountState;
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
     let connection_string: &str = "sqlite::memory:";
 

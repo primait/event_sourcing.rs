@@ -10,7 +10,7 @@ use sqlite_payments::credit_card::aggregate::CreditCardAggregate;
 use sqlite_payments::credit_card::command::CreditCardCommand;
 use sqlite_payments::credit_card::state::CreditCardState;
 
-#[tokio::main(threaded_scheduler)]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     println!("\n======================================================== START\n");
 

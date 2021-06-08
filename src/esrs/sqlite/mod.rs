@@ -9,7 +9,7 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::sqlite::SqliteDone;
+use sqlx::sqlite::SqliteQueryResult;
 use sqlx::Sqlite;
 use uuid::Uuid;
 
@@ -141,7 +141,7 @@ impl<
 
         let event_id: Uuid = Uuid::new_v4();
         let occurred_on: DateTime<Utc> = Utc::now();
-        let store_event_result: Result<SqliteDone, Err> = sqlx::query(self.queries.insert())
+        let store_event_result: Result<SqliteQueryResult, Err> = sqlx::query(self.queries.insert())
             .bind(event_id)
             .bind(aggregate_id)
             .bind(serde_json::to_value(event.clone()).unwrap())

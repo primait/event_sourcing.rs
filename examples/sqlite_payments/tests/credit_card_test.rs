@@ -13,7 +13,7 @@ use sqlite_payments::credit_card::error::CreditCardError;
 use sqlite_payments::credit_card::projector::CreditCard;
 use sqlite_payments::credit_card::state::CreditCardState;
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn sqlite_credit_card_aggregate_and_projector_test() {
     let connection_string: &str = "sqlite::memory:";
 

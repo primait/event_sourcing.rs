@@ -9,7 +9,7 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::postgres::PgDone;
+use sqlx::postgres::PgQueryResult;
 use sqlx::Postgres;
 use uuid::Uuid;
 
@@ -142,7 +142,7 @@ impl<
 
         let event_id: Uuid = Uuid::new_v4();
         let occurred_on: DateTime<Utc> = Utc::now();
-        let store_event_result: Result<PgDone, Err> = sqlx::query(self.queries.insert())
+        let store_event_result: Result<PgQueryResult, Err> = sqlx::query(self.queries.insert())
             .bind(event_id)
             .bind(aggregate_id)
             .bind(serde_json::to_value(event.clone()).unwrap())
