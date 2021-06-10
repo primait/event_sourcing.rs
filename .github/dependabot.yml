@@ -1,0 +1,15 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: async-trait
+    versions:
+    - 0.1.48
+    - 0.1.49
+  - dependency-name: sqlx
+    versions:
+    - 0.5.1
