@@ -1,54 +1,38 @@
-use std::ops::DerefMut;
-
 use async_trait::async_trait;
 use sqlx::{Executor, Sqlite};
 use uuid::Uuid;
 
-use esrs::pool::Transaction;
 use esrs::projector::{SqliteProjector, SqliteProjectorEraser};
 use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
+use sqlx::pool::PoolConnection;
 
 pub struct CreditCardsProjector;
 
 #[async_trait]
 impl SqliteProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn project<'c>(
+    async fn project(
         &self,
         event: &StoreEvent<CreditCardEvent>,
-        transaction: &mut Transaction<'c, Sqlite>,
+        connection: &mut PoolConnection<Sqlite>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
-            CreditCardEvent::Payed { amount } => Ok(CreditCard::insert(
-                event.id,
-                event.aggregate_id,
-                "pay".to_string(),
-                amount,
-                transaction.deref_mut(),
-            )
-            .await?),
-            CreditCardEvent::Refunded { amount } => Ok(CreditCard::insert(
-                event.id,
-                event.aggregate_id,
-                "refund".to_string(),
-                amount,
-                transaction.deref_mut(),
-            )
-            .await?),
+            CreditCardEvent::Payed { amount } => {
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, connection).await?)
+            }
+            CreditCardEvent::Refunded { amount } => {
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, connection).await?)
+            }
         }
     }
 }
 
 #[async_trait]
 impl SqliteProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn delete<'c>(
-        &self,
-        aggregate_id: Uuid,
-        transaction: &mut Transaction<'c, Sqlite>,
-    ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, transaction.deref_mut()).await?)
+    async fn delete(&self, aggregate_id: Uuid, connection: &mut PoolConnection<Sqlite>) -> Result<(), CreditCardError> {
+        Ok(CreditCard::delete(aggregate_id, connection).await?)
     }
 }
 

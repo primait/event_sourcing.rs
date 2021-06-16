@@ -1,10 +1,8 @@
-use std::ops::DerefMut;
-
 use async_trait::async_trait;
+use sqlx::pool::PoolConnection;
 use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use esrs::pool::Transaction;
 use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
@@ -15,40 +13,30 @@ pub struct CreditCardsProjector;
 
 #[async_trait]
 impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn project<'c>(
+    async fn project(
         &self,
         event: &StoreEvent<CreditCardEvent>,
-        transaction: &mut Transaction<'c, Postgres>,
+        connection: &mut PoolConnection<Postgres>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
-            CreditCardEvent::Payed { amount } => Ok(CreditCard::insert(
-                event.id,
-                event.aggregate_id,
-                "pay".to_string(),
-                amount,
-                transaction.deref_mut(),
-            )
-            .await?),
-            CreditCardEvent::Refunded { amount } => Ok(CreditCard::insert(
-                event.id,
-                event.aggregate_id,
-                "refund".to_string(),
-                amount,
-                transaction.deref_mut(),
-            )
-            .await?),
+            CreditCardEvent::Payed { amount } => {
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, connection).await?)
+            }
+            CreditCardEvent::Refunded { amount } => {
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, connection).await?)
+            }
         }
     }
 }
 
 #[async_trait]
 impl PgProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn delete<'c>(
+    async fn delete(
         &self,
         aggregate_id: Uuid,
-        transaction: &mut Transaction<'c, Postgres>,
+        connection: &mut PoolConnection<Postgres>,
     ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, transaction.deref_mut()).await?)
+        Ok(CreditCard::delete(aggregate_id, connection).await?)
     }
 }
 
@@ -91,13 +79,13 @@ impl CreditCard {
         sqlx::query_as::<_, Self>(
             "INSERT INTO credit_cards (payment_id, credit_card_id, credit_card_payment_type, amount) VALUES ($1, $2, $3, $4)",
         )
-            .bind(payment_id)
-            .bind(credit_card_id)
-            .bind(credit_card_payment_type)
-            .bind(amount)
-            .fetch_optional(executor)
-            .await
-            .map(|_| ())
+        .bind(payment_id)
+        .bind(credit_card_id)
+        .bind(credit_card_payment_type)
+        .bind(amount)
+        .fetch_optional(executor)
+        .await
+        .map(|_| ())
     }
 
     pub async fn delete(

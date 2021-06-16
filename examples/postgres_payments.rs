@@ -1,14 +1,14 @@
-use sqlx::Postgres;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::pool::Pool;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
 use postgres_payments::bank_account::state::BankAccountState;
 use postgres_payments::credit_card::aggregate::CreditCardAggregate;
 use postgres_payments::credit_card::command::CreditCardCommand;
 use postgres_payments::credit_card::state::CreditCardState;
+use sqlx::pool::PoolOptions;
 
 #[tokio::main]
 async fn main() {
@@ -24,10 +24,13 @@ async fn main() {
         .or_else(|| std::env::var("DATABASE_URL").ok())
         .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
 
-    let pool: Pool<Postgres> = Pool::from_url(connection_string).await.expect("Failed to create pool");
+    let pool: Pool<Postgres> = PoolOptions::new()
+        .connect(connection_string)
+        .await
+        .expect("Failed to create pool");
 
     let () = sqlx::migrate!("examples/migrations")
-        .run(&*pool)
+        .run(&pool)
         .await
         .expect("Failed to run migrations");
 

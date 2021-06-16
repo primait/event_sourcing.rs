@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use sqlx::Postgres;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
-use esrs::pool::Pool;
 use esrs::projector::PgProjectorEraser;
 use esrs::store::{EraserStore, EventStore, PgStore, StoreEvent};
 
