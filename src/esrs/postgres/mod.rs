@@ -86,7 +86,7 @@ impl<
         })
     }
 
-    pub async fn test_store<T: Identifier + Sized>(
+    pub async fn test<T: Identifier + Sized>(
         connection_url: &'a str,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
@@ -107,6 +107,10 @@ impl<
             err: PhantomData::default(),
             test: true,
         })
+    }
+
+    pub fn pool(&self) -> &Pool<Postgres> {
+        &self.pool
     }
 
     pub fn add_projector(&mut self, projector: Box<Projector>) -> &mut Self {
@@ -352,7 +356,7 @@ mod tests {
 
     async fn persist(database_url: &str) {
         let aggregate_id: Uuid = Uuid::new_v4();
-        let test_store: PgStore<String, Error> = PgStore::test_store::<Hello>(database_url, vec![], vec![])
+        let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![])
             .await
             .unwrap();
         let _ = test_store.persist(aggregate_id, "hello".to_string(), 0).await.unwrap();
