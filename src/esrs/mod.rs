@@ -1,6 +1,5 @@
 pub mod aggregate;
 pub mod event;
-pub mod pool;
 pub mod state;
 pub mod store;
 

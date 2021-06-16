@@ -9,8 +9,9 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sqlx::pool::{PoolConnection, PoolOptions};
 use sqlx::sqlite::SqliteQueryResult;
-use sqlx::Sqlite;
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use policy::SqlitePolicy;
@@ -18,7 +19,6 @@ use projector::SqliteProjector;
 
 use crate::esrs::aggregate::Identifier;
 use crate::esrs::event::Event;
-use crate::esrs::pool::{Pool, Transaction};
 use crate::esrs::query::Queries;
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
@@ -53,6 +53,7 @@ pub struct InnerSqliteStore<
     queries: Queries,
     evt: PhantomData<Evt>,
     err: PhantomData<Err>,
+    test: bool,
 }
 
 impl<
@@ -80,6 +81,30 @@ impl<
             queries: Queries::new(aggregate_name),
             evt: PhantomData::default(),
             err: PhantomData::default(),
+            test: false,
+        })
+    }
+
+    pub async fn test_store<T: Identifier + Sized>(
+        connection_url: &'a str,
+        projectors: Vec<Box<Projector>>,
+        policies: Vec<Box<Policy>>,
+    ) -> Result<Self, Err> {
+        let pool: sqlx::Pool<sqlx::Sqlite> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
+        sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
+
+        let aggregate_name: &str = <T as Identifier>::name();
+        // Check if table and indexes exist and eventually create them
+        util::run_preconditions(&pool, aggregate_name).await?;
+
+        Ok(Self {
+            pool,
+            projectors,
+            policies,
+            queries: Queries::new(aggregate_name),
+            evt: PhantomData::default(),
+            err: PhantomData::default(),
+            test: true,
         })
     }
 
@@ -94,19 +119,33 @@ impl<
     }
 
     /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
-    pub async fn begin(&self) -> Result<Transaction<'_, Sqlite>, sqlx::Error> {
-        self.pool.begin().await
+    pub async fn begin(&self) -> Result<PoolConnection<Sqlite>, sqlx::Error> {
+        let mut connection = self.pool.acquire().await?;
+        let _ = sqlx::query("BEGIN").execute(&mut connection).await;
+        Ok(connection)
+    }
+
+    async fn commit(&self, mut connection: PoolConnection<Sqlite>) -> Result<(), sqlx::Error> {
+        if !self.test {
+            let _ = sqlx::query("COMMIT").execute(&mut connection).await?;
+        }
+        Ok(())
+    }
+
+    async fn rollback(&self, mut connection: PoolConnection<Sqlite>) -> Result<(), sqlx::Error> {
+        let _ = sqlx::query("ROLLBACK").execute(&mut connection).await?;
+        Ok(())
     }
 
     pub async fn rebuild_events(&self) -> Result<(), Err> {
         let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&*self.pool);
+            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
 
-        let mut transaction: Transaction<Sqlite> = self.pool.begin().await?;
+        let mut connection: PoolConnection<Sqlite> = self.begin().await?;
 
         while let Some(event) = events.try_next().await? {
             let evt: StoreEvent<Evt> = event.try_into()?;
-            self.project_event(&evt, &mut transaction).await?;
+            self.project_event(&evt, &mut connection).await?;
         }
 
         Ok(())
@@ -124,7 +163,7 @@ impl<
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
         Ok(sqlx::query_as::<_, Event>(self.queries.select())
             .bind(id)
-            .fetch_all(&*self.pool)
+            .fetch_all(&self.pool)
             .await?
             .into_iter()
             .map(|event| Ok(event.try_into()?))
@@ -137,7 +176,7 @@ impl<
         event: Evt,
         sequence_number: SequenceNumber,
     ) -> Result<StoreEvent<Evt>, Err> {
-        let mut transaction: Transaction<Sqlite> = self.pool.begin().await?;
+        let mut connection: PoolConnection<Sqlite> = self.begin().await?;
 
         let event_id: Uuid = Uuid::new_v4();
         let occurred_on: DateTime<Utc> = Utc::now();
@@ -147,7 +186,7 @@ impl<
             .bind(serde_json::to_value(event.clone()).unwrap())
             .bind(Utc::now())
             .bind(sequence_number)
-            .execute(&mut *transaction)
+            .execute(&mut *connection)
             .await
             .map_err(|error| error.into());
 
@@ -161,7 +200,7 @@ impl<
                     sequence_number,
                 };
 
-                self.project_event(&store_event, &mut transaction)
+                self.project_event(&store_event, &mut connection)
                     .await
                     .map(|()| store_event)
             }
@@ -170,7 +209,7 @@ impl<
 
         match rebuild_result {
             Ok(event) => {
-                transaction.commit().await?;
+                self.commit(connection).await?;
 
                 for policy in &self.policies {
                     policy.handle_event(&event, &self.pool).await?
@@ -179,7 +218,7 @@ impl<
                 Ok(event)
             }
             Err(err) => {
-                transaction.rollback().await?;
+                self.rollback(connection).await?;
                 Err(err)
             }
         }
@@ -191,17 +230,16 @@ impl<
 }
 
 impl<
-        'c,
         Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: SqliteProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
-    > ProjectorStore<Evt, Transaction<'c, Sqlite>, Err> for InnerSqliteStore<Evt, Err, Projector, Policy>
+    > ProjectorStore<Evt, PoolConnection<Sqlite>, Err> for InnerSqliteStore<Evt, Err, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
         store_event: &'a StoreEvent<Evt>,
-        executor: &'a mut Transaction<'c, Sqlite>,
+        executor: &'a mut PoolConnection<Sqlite>,
     ) -> Pin<Box<dyn Future<Output = Result<(), Err>> + Send + 'a>>
     where
         Self: Sync + 'a,
@@ -214,7 +252,7 @@ impl<
         >(
             me: &InnerSqliteStore<Ev, Er, Prj, Plc>,
             store_event: &StoreEvent<Ev>,
-            executor: &mut Transaction<'_, Sqlite>,
+            executor: &mut PoolConnection<Sqlite>,
         ) -> Result<(), Er> {
             for projector in &me.projectors {
                 projector.project(store_event, executor).await?
@@ -236,17 +274,17 @@ impl<
     > EraserStore<Evt, Err> for InnerSqliteStore<Evt, Err, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Err> {
-        let mut transaction: Transaction<Sqlite> = self.begin().await?;
+        let mut connection: PoolConnection<Sqlite> = self.begin().await?;
         let _ = sqlx::query(self.queries.delete())
             .bind(aggregate_id)
-            .execute(&mut *transaction)
+            .execute(&mut *connection)
             .await
             .map(|_| ());
 
         for projector in &self.projectors {
-            projector.delete(aggregate_id, &mut transaction).await?
+            projector.delete(aggregate_id, &mut connection).await?
         }
 
-        Ok(transaction.commit().await?)
+        Ok(self.commit(connection).await?)
     }
 }

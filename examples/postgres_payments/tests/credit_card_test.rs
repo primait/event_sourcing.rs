@@ -1,8 +1,8 @@
-use sqlx::Postgres;
+use sqlx::pool::PoolOptions;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState};
-use esrs::pool::Pool;
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
 use postgres_payments::bank_account::error::BankAccountError;
@@ -19,12 +19,13 @@ async fn postgres_credit_card_aggregate_and_projector_test() {
         .ok()
         .unwrap_or_else(|| "postgres://postgres:postgres@postgres:5432/postgres".to_string());
 
-    let pool: Pool<Postgres> = Pool::from_url(connection_string.as_str())
+    let pool: Pool<Postgres> = PoolOptions::new()
+        .connect(connection_string.as_str())
         .await
         .expect("Failed to create pool");
 
     let () = sqlx::migrate!("../migrations")
-        .run(&*pool)
+        .run(&pool)
         .await
         .expect("Failed to run migrations");
 
@@ -142,7 +143,7 @@ async fn postgres_credit_card_aggregate_and_projector_test() {
     );
 
     // 3 credit_card payments have been done
-    let credit_card_payments: Vec<CreditCard> = CreditCard::by_credit_card_id(bank_account_id, &*pool).await.unwrap();
+    let credit_card_payments: Vec<CreditCard> = CreditCard::by_credit_card_id(bank_account_id, &pool).await.unwrap();
 
     assert_eq!(credit_card_payments.len(), 4);
     assert!(credit_card_payments

@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use sqlx::Postgres;
+use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateState};
 use esrs::policy::PgPolicy;
-use esrs::pool::Pool;
 use esrs::store::StoreEvent;
 
 use crate::bank_account::aggregate::BankAccountAggregate;

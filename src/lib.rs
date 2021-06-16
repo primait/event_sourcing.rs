@@ -19,10 +19,6 @@ pub mod policy {
     pub use crate::esrs::sqlite::policy::SqlitePolicy;
 }
 
-pub mod pool {
-    pub use crate::esrs::pool::{Pool, Transaction};
-}
-
 #[cfg(any(feature = "postgres", feature = "sqlite"))]
 pub mod projector {
     #[cfg(feature = "postgres")]
