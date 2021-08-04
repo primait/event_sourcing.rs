@@ -23,6 +23,7 @@ use crate::esrs::query::Queries;
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
+use sqlx::types::Json;
 
 pub mod policy;
 pub mod projector;
@@ -42,7 +43,7 @@ pub type SqliteStore<
 
 /// TODO: some doc here
 pub struct InnerSqliteStore<
-    Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+    Evt: Serialize + DeserializeOwned + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
     Projector: SqliteProjector<Evt, Err> + Send + Sync + ?Sized,
     Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -58,7 +59,7 @@ pub struct InnerSqliteStore<
 
 impl<
         'a,
-        Evt: 'a + Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: 'a + Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: SqliteProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -154,7 +155,7 @@ impl<
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: SqliteProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -183,8 +184,8 @@ impl<
         let store_event_result: Result<SqliteQueryResult, Err> = sqlx::query(self.queries.insert())
             .bind(event_id)
             .bind(aggregate_id)
-            .bind(serde_json::to_value(event.clone()).unwrap())
-            .bind(Utc::now())
+            .bind(Json(&event))
+            .bind(occurred_on)
             .bind(sequence_number)
             .execute(&mut *connection)
             .await
@@ -195,7 +196,7 @@ impl<
                 let store_event: StoreEvent<Evt> = StoreEvent {
                     id: event_id,
                     aggregate_id,
-                    payload: event.clone(),
+                    payload: event,
                     occurred_on,
                     sequence_number,
                 };
@@ -230,7 +231,7 @@ impl<
 }
 
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: SqliteProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -245,7 +246,7 @@ impl<
         Self: Sync + 'a,
     {
         async fn run<
-            Ev: Serialize + DeserializeOwned + Clone + Send + Sync,
+            Ev: Serialize + DeserializeOwned + Send + Sync,
             Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
             Prj: SqliteProjector<Ev, Er> + Send + Sync + ?Sized,
             Plc: SqlitePolicy<Ev, Er> + Send + Sync + ?Sized,
@@ -267,7 +268,7 @@ impl<
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: SqliteProjector<Evt, Err> + SqliteProjectorEraser<Evt, Err> + Send + Sync + ?Sized,
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,

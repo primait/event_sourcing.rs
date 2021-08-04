@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::esrs::store::StoreEvent;
 use crate::esrs::SequenceNumber;
 
-#[derive(sqlx::FromRow, Serialize, Deserialize, Debug, Clone)]
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
 pub struct Event {
     pub id: Uuid,
     pub aggregate_id: Uuid,
@@ -18,7 +18,7 @@ pub struct Event {
     pub sequence_number: SequenceNumber,
 }
 
-impl<E: Serialize + DeserializeOwned + Clone + Send + Sync> TryInto<StoreEvent<E>> for Event {
+impl<E: Serialize + DeserializeOwned + Send + Sync> TryInto<StoreEvent<E>> for Event {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {

@@ -18,7 +18,7 @@ pub trait Identifier {
 
 #[async_trait]
 pub trait Eraser<
-    Event: Serialize + DeserializeOwned + Clone + Send + Sync,
+    Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
 >
 {
@@ -28,9 +28,9 @@ pub trait Eraser<
 /// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
 #[async_trait]
 pub trait Aggregate: Identifier {
-    type State: Default + Debug + Clone + Send + Sync;
+    type State: Default + Clone + Debug + Send + Sync;
     type Command: Send + Sync;
-    type Event: Serialize + DeserializeOwned + Clone + Send + Sync;
+    type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
 
     /// Event store configured for aggregate
@@ -62,13 +62,14 @@ pub trait Aggregate: Identifier {
     ) -> AggregateState<Self::State> {
         let mut max_seq_number: SequenceNumber = 0;
 
+        let aggregate_id: &Uuid = &aggregate_state.id;
         let inner: Self::State = events.iter().fold(
-            aggregate_state.inner.to_owned(),
+            aggregate_state.inner,
             |acc: Self::State, event: &StoreEvent<Self::Event>| {
                 if event.sequence_number() > max_seq_number {
                     max_seq_number = event.sequence_number()
                 }
-                Self::apply_event(&aggregate_state.id, acc, event)
+                Self::apply_event(aggregate_id, acc, event)
             },
         );
 

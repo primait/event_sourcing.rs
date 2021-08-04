@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::esrs::SequenceNumber;
 
 #[async_trait]
-pub trait EventStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
+pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
     async fn persist(
@@ -23,7 +23,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, 
     async fn close(&self);
 }
 
-pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Executor, Error> {
+pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Executor, Error> {
     fn project_event<'a>(
         &'a self,
         store_event: &'a StoreEvent<Event>,
@@ -34,12 +34,11 @@ pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Clone + Send + Sy
 }
 
 #[async_trait]
-pub trait EraserStore<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
+pub trait EraserStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
-#[derive(Clone)]
-pub struct StoreEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync> {
+pub struct StoreEvent<Event: Serialize + DeserializeOwned + Send + Sync> {
     pub id: Uuid,
     pub aggregate_id: Uuid,
     pub payload: Event,
@@ -47,7 +46,7 @@ pub struct StoreEvent<Event: Serialize + DeserializeOwned + Clone + Send + Sync>
     pub sequence_number: SequenceNumber,
 }
 
-impl<Event: Serialize + DeserializeOwned + Clone + Send + Sync> StoreEvent<Event> {
+impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
     pub fn sequence_number(&self) -> SequenceNumber {
         self.sequence_number
     }
