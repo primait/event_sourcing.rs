@@ -23,6 +23,7 @@ use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 use crate::projector::PgProjectorEraser;
+use sqlx::types::Json;
 
 mod index;
 pub mod policy;
@@ -43,7 +44,7 @@ pub type PgStore<
 
 /// TODO: some doc here
 pub struct InnerPgStore<
-    Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+    Evt: Serialize + DeserializeOwned + Send + Sync,
     Err: From<sqlx::Error> + From<serde_json::Error>,
     Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
     Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -59,7 +60,7 @@ pub struct InnerPgStore<
 
 impl<
         'a,
-        Evt: 'a + Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: 'a + Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -159,7 +160,7 @@ impl<
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -188,8 +189,8 @@ impl<
         let store_event_result: Result<PgQueryResult, Err> = sqlx::query(self.queries.insert())
             .bind(event_id)
             .bind(aggregate_id)
-            .bind(serde_json::to_value(event.clone()).unwrap())
-            .bind(Utc::now())
+            .bind(Json(&event))
+            .bind(occurred_on)
             .bind(sequence_number)
             .execute(&mut *connection)
             .await
@@ -200,7 +201,7 @@ impl<
                 let store_event: StoreEvent<Evt> = StoreEvent {
                     id: event_id,
                     aggregate_id,
-                    payload: event.clone(),
+                    payload: event,
                     occurred_on,
                     sequence_number,
                 };
@@ -235,7 +236,7 @@ impl<
 }
 
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
@@ -250,7 +251,7 @@ impl<
         Self: Sync + 'a,
     {
         async fn run<
-            Ev: Serialize + DeserializeOwned + Clone + Send + Sync,
+            Ev: Serialize + DeserializeOwned + Send + Sync,
             Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
             Prj: PgProjector<Ev, Er> + Send + Sync + ?Sized,
             Plc: PgPolicy<Ev, Er> + Send + Sync + ?Sized,
@@ -272,7 +273,7 @@ impl<
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Clone + Send + Sync,
+        Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjectorEraser<Evt, Err> + Send + Sync + ?Sized,
         Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,

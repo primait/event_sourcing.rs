@@ -9,7 +9,7 @@ use crate::esrs::store::StoreEvent;
 
 /// Projector trait that takes a Sqlite transaction in order to create a read model
 #[async_trait]
-pub trait SqliteProjector<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error> {
+pub trait SqliteProjector<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.
     async fn project(&self, event: &StoreEvent<Event>, connection: &mut PoolConnection<Sqlite>) -> Result<(), Error>;
@@ -17,7 +17,7 @@ pub trait SqliteProjector<Event: Serialize + DeserializeOwned + Clone + Send + S
 
 /// Projector trait that takes a Sqlite transaction in order to delete a read model
 #[async_trait]
-pub trait SqliteProjectorEraser<Event: Serialize + DeserializeOwned + Clone + Send + Sync, Error>:
+pub trait SqliteProjectorEraser<Event: Serialize + DeserializeOwned + Send + Sync, Error>:
     SqliteProjector<Event, Error>
 {
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
