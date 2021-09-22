@@ -11,7 +11,7 @@ edition = "2018"
 [dependencies]
 
 # async main
-tokio = { version = "1.6", features = ["full"] }
+tokio = { version = "1.12", features = ["full"] }
 
 esrs = { version = "*", path = "../../", features = ["sqlite"] }
 # Sql library for async impl
