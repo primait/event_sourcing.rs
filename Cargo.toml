@@ -48,5 +48,5 @@ futures = { version = "0.3" }
 [dev-dependencies]
 postgres-payments = { path = "examples/postgres_payments" }
 sqlite-payments = { path = "examples/sqlite_payments" }
-tokio = { version = "1.6", features = ["full"] }
+tokio = { version = "1.13", features = ["full"] }
 
