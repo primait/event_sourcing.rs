@@ -31,5 +31,6 @@ if [[ "$DRONE_TAG" != "$version" ]]; then
   exit 1
 fi
 
+git checkout .
 cargo login "$CARGO_AUTH_KEY"
 cargo publish --all-features
