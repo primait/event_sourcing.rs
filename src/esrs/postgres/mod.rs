@@ -357,9 +357,7 @@ mod tests {
 
     async fn persist(database_url: &str) {
         let aggregate_id: Uuid = Uuid::new_v4();
-        let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![])
-            .await
-            .unwrap();
+        let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![]).await.unwrap();
         let _ = test_store.persist(aggregate_id, "hello".to_string(), 0).await.unwrap();
         let list = test_store.by_aggregate_id(aggregate_id).await.unwrap();
         assert_eq!(list.len(), 1);
