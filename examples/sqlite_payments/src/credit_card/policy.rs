@@ -23,10 +23,7 @@ impl SqlitePolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
     ) -> Result<(), CreditCardError> {
         let bank_account: BankAccountAggregate = BankAccountAggregate::new(pool).await?;
 
-        let state: AggregateState<BankAccountState> = bank_account
-            .load(event.aggregate_id)
-            .await
-            .unwrap_or_default();
+        let state: AggregateState<BankAccountState> = bank_account.load(event.aggregate_id).await.unwrap_or_default();
 
         let command: BankAccountCommand = match event.payload {
             CreditCardEvent::Payed { amount } => BankAccountCommand::Withdraw { amount },
