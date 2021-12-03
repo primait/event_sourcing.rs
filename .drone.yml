@@ -1,269 +1,258 @@
----
 kind: pipeline
 name: default
 
-platform:
-  os: linux
-  arch: amd64
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+  - name: ecs
+    host:
+      path: /etc/profile.d/ecs-credentials-endpoint
+
+services:
+- environment:
+    POSTGRES_DB: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_USER: postgres
+  image: public.ecr.aws/bitnami/postgresql:11
+  name: postgres
+
+
 
 clone:
   disable: true
 
 steps:
-- name: git-clone
-  image: public.ecr.aws/prima/drone-git:1.3-3
-  environment:
-    PLUGIN_DEPTH: 5
+  - name: git-clone
+    image: public.ecr.aws/prima/drone-git:1.3-3
+    environment:
+      PLUGIN_DEPTH: "5"
 
-- name: cache-restore
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - . /etc/profile.d/ecs-credentials-endpoint
-  - cache-restore
-  environment:
-    BUCKET_NAME: prima-ci-cache
-  volumes:
-  - name: ecs
-    path: /etc/profile.d/ecs-credentials-endpoint
-  - name: docker
-    path: /var/run/docker.sock
-  depends_on:
-  - git-clone
+  - name: cache-restore
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    environment:
+      BUCKET_NAME: "prima-ci-cache"
+    volumes:
+      - name: ecs
+        path: /etc/profile.d/ecs-credentials-endpoint
+      - name: docker
+        path: /var/run/docker.sock
+    commands:
+      - . /etc/profile.d/ecs-credentials-endpoint
+      - cache-restore 
+    depends_on:
+    - git-clone
+  - name: check-secrets
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    volumes:
+      - name: ecs
+        path: /etc/profile.d/ecs-credentials-endpoint
+    commands:
+      - . /etc/profile.d/ecs-credentials-endpoint
+      - check-secrets-grants
+    depends_on:
+    - git-clone
+  - name: check-public-docker-images
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    commands:
+      - check-public-docker-images
+    depends_on:
+    - git-clone
 
-- name: check-secrets
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - . /etc/profile.d/ecs-credentials-endpoint
-  - check-secrets-grants
-  volumes:
-  - name: ecs
-    path: /etc/profile.d/ecs-credentials-endpoint
-  depends_on:
-  - git-clone
+  - name: build-image
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    commands:
+      - sed -i 's/USER app/USER root/g' ./Dockerfile
+      - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
+    depends_on:
+      - cache-restore
+  - name: cargo-deps
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      CARGO_HOME: /drone/src/.cargo
+    commands:
+      - cargo fetch
+    depends_on:
+      - build-image
 
-- name: check-public-docker-images
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - check-public-docker-images
-  depends_on:
-  - git-clone
+  - name: cargo-format
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      CARGO_HOME: /drone/src/.cargo
+    commands:
+      - cargo make --profile drone format-ci
+    depends_on:
+      - cargo-deps
 
-- name: build-image
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - sed -i 's/USER app/USER root/g' ./Dockerfile
-  - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
-  volumes:
-  - name: docker
-    path: /var/run/docker.sock
-  depends_on:
-  - cache-restore
+  - name: cargo-clippy-ci
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      CARGO_HOME: /drone/src/.cargo
+      BUILD_ENV: dev
+    commands:
+      - cargo make --profile drone clippy-ci
+    depends_on:
+      - cargo-format
 
-- name: cargo-deps
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo fetch
-  environment:
-    CARGO_HOME: /drone/src/.cargo
-  depends_on:
-  - build-image
+  - name: cargo-test
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      {"CARGO_HOME": "/drone/src/.cargo", "CARGO_HTTP_CAINFO": "", "BUILD_ENV": "dev"}
+    commands:
+      - cargo make --profile drone test
+    depends_on:
+      - cargo-clippy-ci
 
-- name: cargo-format
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo make --profile drone format-ci
-  environment:
-    CARGO_HOME: /drone/src/.cargo
-  depends_on:
-  - cargo-deps
+  - name: cargo-build
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      CARGO_HOME: /drone/src/.cargo
+      BUILD_ENV: dev
+    commands:
+      - cargo make --profile drone build-ci
+    depends_on:
+      - cargo-test
+    when:
+      branch:
+        exclude:
+          - master
 
-- name: cargo-clippy-ci
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo make --profile drone clippy-ci
-  environment:
-    BUILD_ENV: dev
-    CARGO_HOME: /drone/src/.cargo
-  depends_on:
-  - cargo-format
 
-- name: cargo-test
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo make --profile drone test
-  environment:
-    BUILD_ENV: dev
-    CARGO_HOME: /drone/src/.cargo
-    CARGO_HTTP_CAINFO: ""
-  depends_on:
-  - cargo-clippy-ci
+  - name: cache-cleanup
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    commands:
+      - cargo make --profile drone cache-cleanup
+    when:
+      branch: master
+    depends_on:
+      
+      - cargo-build
 
-- name: cargo-build
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo make --profile drone build-ci
-  environment:
-    BUILD_ENV: dev
-    CARGO_HOME: /drone/src/.cargo
-  when:
-    branch:
-      exclude:
-      - master
-  depends_on:
-  - cargo-test
+      - cargo-format
+      - cargo-clippy-ci
+      - cargo-test
 
-- name: cache-cleanup
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - cargo make --profile drone cache-cleanup
-  when:
-    branch:
-    - master
-  depends_on:
-  - cargo-build
-  - cargo-format
-  - cargo-clippy-ci
-  - cargo-test
 
-- name: cache-save
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - . /etc/profile.d/ecs-credentials-endpoint
-  - cache-save target
-  environment:
-    BUCKET_NAME: prima-ci-cache
-  volumes:
-  - name: ecs
-    path: /etc/profile.d/ecs-credentials-endpoint
-  - name: docker
-    path: /var/run/docker.sock
-  when:
-    branch:
-    - master
-  depends_on:
-  - cache-cleanup
-
-volumes:
-- name: docker
-  host:
-    path: /var/run/docker.sock
-- name: ecs
-  host:
-    path: /etc/profile.d/ecs-credentials-endpoint
+  - name: cache-save
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    environment:
+      BUCKET_NAME: "prima-ci-cache"
+    volumes:
+      - name: ecs
+        path: /etc/profile.d/ecs-credentials-endpoint
+      - name: docker
+        path: /var/run/docker.sock
+    commands:
+      - . /etc/profile.d/ecs-credentials-endpoint
+      - cache-save target
+    when:
+      branch: master
+    depends_on:
+      - cache-cleanup
 
 trigger:
   event:
-  - push
+    - push
+
 
 ---
 kind: pipeline
 name: build-production
 
-platform:
-  os: linux
-  arch: amd64
+
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+  - name: ecs
+    host:
+      path: /etc/profile.d/ecs-credentials-endpoint
 
 clone:
   disable: true
 
 steps:
-- name: git-clone
-  image: public.ecr.aws/prima/drone-git:1.3-3
-  environment:
-    PLUGIN_DEPTH: 5
+  - name: git-clone
+    image: public.ecr.aws/prima/drone-git:1.3-3
+    environment:
+      PLUGIN_DEPTH: "5"
 
-- name: cache-restore
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - . /etc/profile.d/ecs-credentials-endpoint
-  - cache-restore
-  environment:
-    BUCKET_NAME: prima-ci-cache
-  volumes:
-  - name: ecs
-    path: /etc/profile.d/ecs-credentials-endpoint
-  - name: docker
-    path: /var/run/docker.sock
-  depends_on:
-  - git-clone
+  - name: cache-restore
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    environment:
+      BUCKET_NAME: "prima-ci-cache"
+    volumes:
+      - name: ecs
+        path: /etc/profile.d/ecs-credentials-endpoint
+      - name: docker
+        path: /var/run/docker.sock
+    commands:
+      - . /etc/profile.d/ecs-credentials-endpoint
+      - cache-restore 
+    depends_on:
+    - git-clone
+  - name: build-image
+    image: public.ecr.aws/prima/drone-tools:1.21.3
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    commands:
+      - sed -i 's/USER app/USER root/g' ./Dockerfile
+      - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
+    depends_on:
+      - cache-restore
+  - name: build-production
+    image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
+    environment:
+      {'CARGO_AUTH_KEY': {'from_secret': 'cargo_auth_key'}}
+    volumes:
+      - name: ecs
+        path: /etc/profile.d/ecs-credentials-endpoint
+    commands:
+      - . /etc/profile.d/ecs-credentials-endpoint
+      - ./deploy/build production
+    depends_on:
+      - build-image
 
-- name: build-image
-  image: public.ecr.aws/prima/drone-tools:1.21.2
-  commands:
-  - sed -i 's/USER app/USER root/g' ./Dockerfile
-  - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
-  volumes:
-  - name: docker
-    path: /var/run/docker.sock
-  depends_on:
-  - cache-restore
-
-- name: build-production
-  image: prima/event_sourcing.rs-ci:${DRONE_COMMIT}
-  commands:
-  - . /etc/profile.d/ecs-credentials-endpoint
-  - ./deploy/build production
-  environment:
-    CARGO_AUTH_KEY:
-      from_secret: cargo_auth_key
-  volumes:
-  - name: ecs
-    path: /etc/profile.d/ecs-credentials-endpoint
-  depends_on:
-  - build-image
-
-volumes:
-- name: docker
-  host:
-    path: /var/run/docker.sock
-- name: ecs
-  host:
-    path: /etc/profile.d/ecs-credentials-endpoint
 
 trigger:
-  event:
-  - tag
-  ref:
-  - refs/tags/*.*.*
+  {'event': 'tag', 'ref': ['refs/tags/*.*.*']}
+
+
 
 ---
 kind: pipeline
 name: email-failure
 
-platform:
-  os: linux
-  arch: amd64
 
 clone:
   disable: true
 
 steps:
-- name: email-failure
-  image: public.ecr.aws/prima/drone-email
-  settings:
-    from: drone@prima.it
-    host: email-smtp.eu-west-1.amazonaws.com
-  environment:
-    PLUGIN_PASSWORD:
-      from_secret: email_password
-    PLUGIN_USERNAME:
-      from_secret: email_username
-
+  - name: email-failure
+    image: public.ecr.aws/prima/drone-email
+    environment:
+      PLUGIN_USERNAME:
+        from_secret: email_username
+      PLUGIN_PASSWORD:
+        from_secret: email_password
+    settings:
+      host: email-smtp.eu-west-1.amazonaws.com
+      from: drone@prima.it
 trigger:
   status:
-  - failure
+    - failure
   target:
     exclude:
-    - qa-stack
-    - qa-it
-    - qa
+      - qa-stack
+      - qa-it
+      - qa
 
 depends_on:
 - default
 - build-production
 
----
-kind: signature
-hmac: 5af3ef76eab134ee2473799e31ca656e0af494e2333df674061ddfb681b65410
 
-...
