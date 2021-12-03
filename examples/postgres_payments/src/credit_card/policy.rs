@@ -26,7 +26,7 @@ impl PgPolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
         let state: AggregateState<BankAccountState> = bank_account
             .load(event.aggregate_id)
             .await
-            .unwrap_or_else(AggregateState::default);
+            .unwrap_or_default();
 
         let command: BankAccountCommand = match event.payload {
             CreditCardEvent::Payed { amount } => BankAccountCommand::Withdraw { amount },
