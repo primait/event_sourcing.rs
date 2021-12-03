@@ -51,9 +51,9 @@ Run tests and linting.
 
 ```shell
 # Run tests
-cargo test --workspace --all-targets --all-features
+cargo test --all-targets --all-features
 # Run linting
-cargo clippy --workspace --all-targets --all-features -- -W clippy::nursery
+cargo clippy --all-targets --all-features -- -W clippy::nursery
 ```
 
 Finally eventually unset `DATABASE_URL` environment variable.
