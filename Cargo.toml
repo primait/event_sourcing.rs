@@ -1,10 +1,3 @@
-[workspace]
-members = [
-    ".",
-    "examples/postgres_payments",
-    "examples/sqlite_payments"
-]
-
 [package]
 name = "esrs"
 version = "0.5.3"

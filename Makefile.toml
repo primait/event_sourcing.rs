@@ -1,0 +1,48 @@
+[env.drone]
+DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+
+[tasks.build-ci]
+description = "Build prima_tracing.rs inside CI."
+command = "cargo"
+args = ["build", "-j", "2", "--all-features"]
+
+[tasks.format-ci]
+description = "Runs the cargo rustfmt plugin during CI."
+command = "cargo"
+args = ["fmt", "--all", "--", "--check"]
+
+[tasks.test]
+description = "Run tests."
+command = "cargo"
+args = ["test", "${@}"]
+
+[tasks.clippy-ci]
+command = "cargo"
+args = ["clippy", "--", "-D", "warnings"]
+
+[tasks.cargo-prune]
+description = "Run cargo prune"
+command = "cargo"
+args = ["prune"]
+
+[tasks.print-stats]
+description = "Print cache size"
+command = "du"
+args = ["-sh", "target", ".cargo"]
+
+[tasks.cache-cleanup]
+description = "Clean CI cache"
+dependencies = ["cargo-prune", "delete-artifacts", "print-stats"]
+
+[tasks.delete-artifacts]
+description = "Remove non cachable artifacts"
+script = [
+    '''
+    #!/bin/bash
+    set -e
+    set -x
+    find ./target/debug -type f -maxdepth 1 -delete || true
+    rm -rf ./target/{debug,release}/deps/{*prima-tracing*}
+    rm -rf ./target/{debug,release}/.fingerprint/*prima-tracing*
+    ''',
+]
