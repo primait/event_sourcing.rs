@@ -25,9 +25,11 @@ pub trait Eraser<
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
-/// Aggregate trait. It is used to keep the state in-memory and to validate commands. It also persist events
+/// AggregateManager trait.
+/// An AggregateManager is responsible for loading an aggregate from the store, mapping commands to events, and
+/// persisting those events in the store.
 #[async_trait]
-pub trait Aggregate: Identifier {
+pub trait AggregateManager: Identifier {
     type State: Default + Clone + Debug + Send + Sync;
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Send + Sync;

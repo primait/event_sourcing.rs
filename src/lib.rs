@@ -1,7 +1,7 @@
 mod esrs;
 
 pub mod aggregate {
-    pub use crate::esrs::aggregate::{Aggregate, Eraser, Identifier};
+    pub use crate::esrs::aggregate::{AggregateManager, Eraser, Identifier};
     pub use crate::esrs::state::AggregateState;
 }
 

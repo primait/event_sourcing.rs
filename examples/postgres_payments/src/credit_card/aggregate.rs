@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Identifier};
+use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore, StoreEvent};
@@ -47,7 +47,7 @@ impl Identifier for CreditCardAggregate {
 }
 
 #[async_trait]
-impl Aggregate for CreditCardAggregate {
+impl AggregateManager for CreditCardAggregate {
     type State = CreditCardState;
     type Command = CreditCardCommand;
     type Event = CreditCardEvent;

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::store::StoreEvent;
 
