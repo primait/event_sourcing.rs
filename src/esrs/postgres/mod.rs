@@ -127,7 +127,7 @@ impl<
     /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
     pub async fn begin(&self) -> Result<PoolConnection<Postgres>, sqlx::Error> {
         let mut connection = self.pool.acquire().await?;
-        let _ = sqlx::query("BEGIN").execute(&mut connection).await;
+        let _ = sqlx::query("BEGIN").execute(&mut connection).await?;
         Ok(connection)
     }
 
