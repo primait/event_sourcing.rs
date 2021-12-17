@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres};
 use esrs::aggregate::{Aggregate, AggregateState, Identifier};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore, StoreEvent};
+use esrs::store::{EventStore, PgStore};
 
 use crate::credit_card::command::CreditCardCommand;
 use crate::credit_card::error::CreditCardError;
@@ -55,8 +55,8 @@ impl Aggregate for CreditCardAggregate {
     }
 
     // No state for credit_card aggregate
-    fn apply_event(state: CreditCardState, event: &StoreEvent<Self::Event>) -> CreditCardState {
-        match event.payload() {
+    fn apply_event(state: CreditCardState, event: &Self::Event) -> CreditCardState {
+        match event {
             CreditCardEvent::Payed { amount } => state.add_amount(*amount),
             CreditCardEvent::Refunded { amount } => state.sub_amount(*amount),
         }
