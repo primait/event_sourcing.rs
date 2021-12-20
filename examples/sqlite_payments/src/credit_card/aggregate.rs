@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Identifier};
+use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
@@ -47,7 +47,7 @@ impl Identifier for CreditCardAggregate {
 }
 
 #[async_trait]
-impl Aggregate for CreditCardAggregate {
+impl AggregateManager for CreditCardAggregate {
     type State = CreditCardState;
     type Command = CreditCardCommand;
     type Event = CreditCardEvent;

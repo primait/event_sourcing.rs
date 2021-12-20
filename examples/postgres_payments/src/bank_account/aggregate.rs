@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::aggregate::{AggregateManager, AggregateState, Eraser, Identifier};
 use esrs::projector::PgProjectorEraser;
 use esrs::store::{EraserStore, EventStore, PgStore, StoreEvent};
 
@@ -53,7 +53,7 @@ impl Eraser<BankAccountEvent, BankAccountError> for BankAccountAggregate {
 }
 
 #[async_trait]
-impl Aggregate for BankAccountAggregate {
+impl AggregateManager for BankAccountAggregate {
     type State = BankAccountState;
     type Command = BankAccountCommand;
     type Event = BankAccountEvent;

@@ -2,7 +2,7 @@ use sqlx::pool::PoolOptions;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState};
+use esrs::aggregate::{AggregateManager, AggregateState};
 use postgres_payments::bank_account::aggregate::BankAccountAggregate;
 use postgres_payments::bank_account::command::BankAccountCommand;
 use postgres_payments::bank_account::error::BankAccountError;

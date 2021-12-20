@@ -1,11 +1,9 @@
-use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
-use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateState, Identifier};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore, StoreEvent};
+use esrs::store::{EventStore, PgStore};
 
 use crate::credit_card::command::CreditCardCommand;
 use crate::credit_card::error::CreditCardError;
@@ -46,7 +44,6 @@ impl Identifier for CreditCardAggregate {
     }
 }
 
-#[async_trait]
 impl Aggregate for CreditCardAggregate {
     type State = CreditCardState;
     type Command = CreditCardCommand;
@@ -58,8 +55,8 @@ impl Aggregate for CreditCardAggregate {
     }
 
     // No state for credit_card aggregate
-    fn apply_event(_id: &Uuid, state: CreditCardState, event: &StoreEvent<Self::Event>) -> CreditCardState {
-        match event.payload() {
+    fn apply_event(state: CreditCardState, event: &Self::Event) -> CreditCardState {
+        match event {
             CreditCardEvent::Payed { amount } => state.add_amount(*amount),
             CreditCardEvent::Refunded { amount } => state.sub_amount(*amount),
         }
@@ -85,17 +82,10 @@ impl Aggregate for CreditCardAggregate {
         }
     }
 
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<CreditCardState>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
+    fn handle_command(&self, _aggregate_state: &AggregateState<CreditCardState>, cmd: Self::Command) -> Self::Event {
         match cmd {
-            CreditCardCommand::Pay { amount } => self.persist(aggregate_state, CreditCardEvent::Payed { amount }).await,
-            CreditCardCommand::Refund { amount } => {
-                self.persist(aggregate_state, CreditCardEvent::Refunded { amount })
-                    .await
-            }
+            CreditCardCommand::Pay { amount } => CreditCardEvent::Payed { amount },
+            CreditCardCommand::Refund { amount } => CreditCardEvent::Refunded { amount },
         }
     }
 }

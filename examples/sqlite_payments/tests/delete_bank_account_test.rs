@@ -2,7 +2,7 @@ use sqlx::pool::PoolOptions;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Eraser};
+use esrs::aggregate::{AggregateManager, AggregateState, Eraser};
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
 use sqlite_payments::bank_account::projector::BankAccount;
