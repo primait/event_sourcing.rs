@@ -9,20 +9,29 @@ use uuid::Uuid;
 
 use crate::esrs::SequenceNumber;
 
+/// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
+/// that represent an aggregate's history from the database.
 #[async_trait]
 pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
+    /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
+    /// Persists multiple events into the database.  This should be done transactionally - either
+    /// all the events are persisted correctly, or none are.
+    ///
+    /// Persisting events may additionally trigger configured Policies or Projectors.
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        _events: Vec<Event>,
+        events: Vec<Event>,
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Event>>, Error>;
 
     async fn close(&self);
 }
 
+/// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
+/// form that is better suited to being read by other parts of the application.
 pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Executor, Error> {
     fn project_event<'a>(
         &'a self,
@@ -34,15 +43,23 @@ pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Exec
 }
 
 #[async_trait]
+/// An EraserStore is responsible for wiping an aggregate isntance from history: it should delete the
+/// aggregate instance, along with all of its events, or fail.
 pub trait EraserStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
+/// A StoreEvent contains the payload (the original event) alongside the event's metadata.
 pub struct StoreEvent<Event: Serialize + DeserializeOwned + Send + Sync> {
+    /// Uniquely identifies an event among all events emitted from all aggregates.
     pub id: Uuid,
+    /// The aggregate instance that emitted the event.
     pub aggregate_id: Uuid,
+    /// The original, emitted, event.
     pub payload: Event,
+    /// The timestamp of when the event is persisted.
     pub occurred_on: DateTime<Utc>,
+    /// The sequence number of the event, within its specific aggregate instance.
     pub sequence_number: SequenceNumber,
 }
 
