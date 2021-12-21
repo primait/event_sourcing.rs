@@ -91,9 +91,12 @@ impl AggregateManager for CreditCardAggregate {
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match cmd {
-            CreditCardCommand::Pay { amount } => self.persist(aggregate_state, CreditCardEvent::Payed { amount }).await,
+            CreditCardCommand::Pay { amount } => {
+                self.persist(aggregate_state, vec![CreditCardEvent::Payed { amount }])
+                    .await
+            }
             CreditCardCommand::Refund { amount } => {
-                self.persist(aggregate_state, CreditCardEvent::Refunded { amount })
+                self.persist(aggregate_state, vec![CreditCardEvent::Refunded { amount }])
                     .await
             }
         }
