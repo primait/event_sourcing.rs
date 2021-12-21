@@ -10,7 +10,6 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
@@ -179,55 +178,66 @@ impl<
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        event: Evt,
-        sequence_number: SequenceNumber,
-    ) -> Result<StoreEvent<Evt>, Err> {
+        events: Vec<Evt>,
+        starting_sequence_number: SequenceNumber,
+    ) -> Result<Vec<StoreEvent<Evt>>, Err> {
         let mut connection: PoolConnection<Postgres> = self.begin().await?;
 
-        let event_id: Uuid = Uuid::new_v4();
         let occurred_on: DateTime<Utc> = Utc::now();
-        let store_event_result: Result<PgQueryResult, Err> = sqlx::query(self.queries.insert())
-            .bind(event_id)
-            .bind(aggregate_id)
-            .bind(Json(&event))
-            .bind(occurred_on)
-            .bind(sequence_number)
-            .execute(&mut *connection)
-            .await
-            .map_err(|error| error.into());
 
-        let rebuild_result: Result<StoreEvent<Evt>, Err> = match store_event_result {
-            Ok(_) => {
-                let store_event: StoreEvent<Evt> = StoreEvent {
-                    id: event_id,
-                    aggregate_id,
-                    payload: event,
-                    occurred_on,
-                    sequence_number,
-                };
+        let events: Vec<_> = events
+            .into_iter()
+            .map(|e| (Uuid::new_v4(), e))
+            .zip(starting_sequence_number..)
+            .collect();
 
-                self.project_event(&store_event, &mut connection)
-                    .await
-                    .map(|()| store_event)
-            }
-            Err(error) => Err(error),
-        };
+        for ((event_id, event), sequence_number) in events.iter() {
+            let result = sqlx::query(self.queries.insert())
+                .bind(event_id)
+                .bind(aggregate_id)
+                .bind(Json(event))
+                .bind(occurred_on)
+                .bind(sequence_number)
+                .execute(&mut *connection)
+                .await;
 
-        match rebuild_result {
-            Ok(event) => {
-                self.commit(connection).await?;
-
-                for policy in &self.policies {
-                    policy.handle_event(&event, &self.pool).await?
-                }
-
-                Ok(event)
-            }
-            Err(err) => {
+            if let Err(err) = result {
                 self.rollback(connection).await?;
-                Err(err)
+                return Err(err.into());
             }
         }
+
+        let store_events: Vec<_> = events
+            .into_iter()
+            .map(|((event_id, event), sequence_number)| StoreEvent {
+                id: event_id,
+                aggregate_id,
+                payload: event,
+                occurred_on,
+                sequence_number,
+            })
+            .collect();
+
+        for store_event in store_events.iter() {
+            let result = self.project_event(store_event, &mut connection).await;
+
+            if let Err(err) = result {
+                self.rollback(connection).await?;
+                return Err(err);
+            }
+        }
+
+        self.commit(connection).await?;
+
+        // REVIEW: This implies that potentially half of the policies would trigger, then one fails, and the rest wouldn't.
+        // potentially we should be returning some other kind of error, that includes the errors from any failed policies?
+        for policy in &self.policies {
+            for store_event in store_events.iter() {
+                policy.handle_event(store_event, &self.pool).await?
+            }
+        }
+
+        Ok(store_events)
     }
 
     async fn close(&self) {
@@ -358,8 +368,11 @@ mod tests {
     async fn persist(database_url: &str) {
         let aggregate_id: Uuid = Uuid::new_v4();
         let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![]).await.unwrap();
-        let _ = test_store.persist(aggregate_id, "hello".to_string(), 0).await.unwrap();
+        let _ = test_store
+            .persist(aggregate_id, vec!["hello".to_string(), "goodbye".to_string()], 0)
+            .await
+            .unwrap();
         let list = test_store.by_aggregate_id(aggregate_id).await.unwrap();
-        assert_eq!(list.len(), 1);
+        assert_eq!(list.len(), 2);
     }
 }

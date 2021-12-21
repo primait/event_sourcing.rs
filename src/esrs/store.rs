@@ -16,9 +16,9 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        event: Event,
-        sequence_number: SequenceNumber,
-    ) -> Result<StoreEvent<Event>, Error>;
+        _events: Vec<Event>,
+        starting_sequence_number: SequenceNumber,
+    ) -> Result<Vec<StoreEvent<Event>>, Error>;
 
     async fn close(&self);
 }

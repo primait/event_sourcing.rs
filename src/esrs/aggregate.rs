@@ -123,15 +123,12 @@ pub trait AggregateManager: Identifier {
         event: Self::Event,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         let next_sequence_number: SequenceNumber = aggregate_state.sequence_number + 1;
-        Ok(self
+        let events = self
             .event_store()
-            .persist(aggregate_state.id, event, next_sequence_number)
-            .await
-            .map(|event| AggregateState {
-                inner: Self::apply_event(&aggregate_state.id, aggregate_state.inner, &event),
-                sequence_number: next_sequence_number,
-                ..aggregate_state
-            })?)
+            .persist(aggregate_state.id, vec![event], next_sequence_number)
+            .await?;
+
+        Ok(Self::apply_events(aggregate_state, events))
     }
 }
 
