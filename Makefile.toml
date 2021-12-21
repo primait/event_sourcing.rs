@@ -1,6 +1,9 @@
 [env.drone]
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
 
+[config]
+default_to_workspace = false
+
 [tasks.build-ci]
 description = "Build prima_tracing.rs inside CI."
 command = "cargo"
@@ -14,7 +17,7 @@ args = ["fmt", "--all", "--", "--check"]
 [tasks.test]
 description = "Run tests."
 command = "cargo"
-args = ["test", "${@}"]
+args = ["test", "${@}", "--all"]
 
 [tasks.clippy-ci]
 command = "cargo"
