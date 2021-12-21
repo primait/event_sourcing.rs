@@ -10,6 +10,9 @@ categories = ["rust-patterns", "web-programming", "asynchronous", "data-structur
 keywords = ["architecture", "ddd", "event-sourcing", "cqrs", "es"]
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
 
+[workspace]
+members = ["examples/postgres_payments", "examples/sqlite_payments"]
+
 [[example]]
 name = "postgres-payments"
 path = "examples/postgres_payments.rs"
