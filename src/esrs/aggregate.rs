@@ -73,27 +73,22 @@ pub trait AggregateManager: Identifier {
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
-    /// You should avoid implenting this method, and be _very_ careful if you decide to do so.
+    /// You should avoid implementing this method, and be _very_ careful if you decide to do so.
+    ///
+    /// `events` will be passed in order of ascending sequence number.
     fn apply_events(
         aggregate_state: AggregateState<Self::State>,
         events: Vec<StoreEvent<Self::Event>>,
     ) -> AggregateState<Self::State> {
-        let mut max_seq_number: SequenceNumber = 0;
-
         let aggregate_id: &Uuid = &aggregate_state.id;
         let inner: Self::State = events.iter().fold(
             aggregate_state.inner,
-            |acc: Self::State, event: &StoreEvent<Self::Event>| {
-                if event.sequence_number() > max_seq_number {
-                    max_seq_number = event.sequence_number()
-                }
-                Self::apply_event(aggregate_id, acc, event)
-            },
+            |acc: Self::State, event: &StoreEvent<Self::Event>| Self::apply_event(aggregate_id, acc, event),
         );
 
         AggregateState {
             inner,
-            sequence_number: max_seq_number,
+            sequence_number: events.last().map_or(0, |e| e.sequence_number()),
             ..aggregate_state
         }
     }
@@ -120,18 +115,15 @@ pub trait AggregateManager: Identifier {
     async fn persist(
         &self,
         aggregate_state: AggregateState<Self::State>,
-        event: Self::Event,
+        events: Vec<Self::Event>,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         let next_sequence_number: SequenceNumber = aggregate_state.sequence_number + 1;
-        Ok(self
+        let events = self
             .event_store()
-            .persist(aggregate_state.id, event, next_sequence_number)
-            .await
-            .map(|event| AggregateState {
-                inner: Self::apply_event(&aggregate_state.id, aggregate_state.inner, &event),
-                sequence_number: next_sequence_number,
-                ..aggregate_state
-            })?)
+            .persist(aggregate_state.id, events, next_sequence_number)
+            .await?;
+
+        Ok(Self::apply_events(aggregate_state, events))
     }
 }
 
@@ -163,8 +155,8 @@ pub trait Aggregate {
     /// if validation succeeds.
     fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
 
-    /// Handles a validated command, and emits a single event.
-    fn handle_command(&self, aggregate_state: &AggregateState<Self::State>, cmd: Self::Command) -> Self::Event;
+    /// Handles a validated command, and emits events.
+    fn handle_command(&self, aggregate_state: &AggregateState<Self::State>, cmd: Self::Command) -> Vec<Self::Event>;
 }
 
 #[async_trait]
@@ -191,8 +183,8 @@ impl<T: Aggregate + Sync + Identifier> AggregateManager for T {
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<T::State>, T::Error> {
-        let event = Aggregate::handle_command(self, &aggregate_state, cmd);
-        AggregateManager::persist(self, aggregate_state, event).await
+        let events = Aggregate::handle_command(self, &aggregate_state, cmd);
+        AggregateManager::persist(self, aggregate_state, events).await
     }
 
     async fn handle_command(

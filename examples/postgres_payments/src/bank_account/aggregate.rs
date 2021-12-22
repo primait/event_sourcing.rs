@@ -92,11 +92,11 @@ impl AggregateManager for BankAccountAggregate {
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match cmd {
             BankAccountCommand::Withdraw { amount } => {
-                self.persist(aggregate_state, BankAccountEvent::Withdrawn { amount })
+                self.persist(aggregate_state, vec![BankAccountEvent::Withdrawn { amount }])
                     .await
             }
             BankAccountCommand::Deposit { amount } => {
-                self.persist(aggregate_state, BankAccountEvent::Deposited { amount })
+                self.persist(aggregate_state, vec![BankAccountEvent::Deposited { amount }])
                     .await
             }
         }
