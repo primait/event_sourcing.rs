@@ -1,6 +1,6 @@
 pub fn create_id_index_statement(aggregate_name: &str) -> String {
     format!(
-        "CREATE INDEX IF NOT EXISTS {0}_events_aggregate_id ON public.{0}_events USING btree (((payload ->> 'id'::text)))",
+        "CREATE INDEX IF NOT EXISTS {0}_events_aggregate_id ON {0}_events USING btree (((payload ->> 'id'::text)))",
         aggregate_name
     )
 }
