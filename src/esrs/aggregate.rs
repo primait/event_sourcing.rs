@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 use crate::esrs::state::AggregateState;
 use crate::esrs::store::{EventStore, StoreEvent};
-use crate::esrs::SequenceNumber;
 
 /// The Identifier trait is responsible for naming an aggregate type.
 /// Each aggregate type should have an identifier that is unique among all the aggregate types in your application.
@@ -117,10 +116,9 @@ pub trait AggregateManager: Identifier {
         aggregate_state: AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let next_sequence_number: SequenceNumber = aggregate_state.sequence_number + 1;
         let events = self
             .event_store()
-            .persist(aggregate_state.id, events, next_sequence_number)
+            .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
             .await?;
 
         self.event_store().run_policies(&events).await?;
