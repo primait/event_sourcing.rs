@@ -188,13 +188,4 @@ impl<T: Aggregate + Sync + Identifier> AggregateManager for T {
         let events = Aggregate::handle_command(self, &aggregate_state, cmd);
         AggregateManager::persist(self, aggregate_state, events).await
     }
-
-    async fn handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        Self::validate_command(&aggregate_state, &cmd)?;
-        AggregateManager::do_handle_command(self, aggregate_state, cmd).await
-    }
 }
