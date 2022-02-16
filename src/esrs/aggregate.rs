@@ -123,6 +123,8 @@ pub trait AggregateManager: Identifier {
             .persist(aggregate_state.id, events, next_sequence_number)
             .await?;
 
+        self.event_store().run_policies(&events).await?;
+
         Ok(Self::apply_events(aggregate_state, events))
     }
 }

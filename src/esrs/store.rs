@@ -19,13 +19,17 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// Persists multiple events into the database.  This should be done transactionally - either
     /// all the events are persisted correctly, or none are.
     ///
-    /// Persisting events may additionally trigger configured Policies or Projectors.
+    /// Persisting events may additionally trigger configured Projectors.
     async fn persist(
         &self,
         aggregate_id: Uuid,
         events: Vec<Event>,
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Event>>, Error>;
+
+    /// Run any policies attached to this store against a set of events.
+    /// This should be called only after the events have successfully been persisted in the store.
+    async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error>;
 
     async fn close(&self);
 }
