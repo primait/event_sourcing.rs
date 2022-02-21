@@ -46,4 +46,8 @@ impl<S: Default + Debug + Clone> AggregateState<S> {
     pub fn inner(&self) -> &S {
         &self.inner
     }
+
+    pub fn next_sequence_number(&self) -> SequenceNumber {
+        self.sequence_number + 1
+    }
 }

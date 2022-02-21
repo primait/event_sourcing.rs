@@ -224,15 +224,20 @@ impl<
 
         self.commit(connection).await?;
 
-        // REVIEW: This implies that potentially half of the policies would trigger, then one fails, and the rest wouldn't.
+        Ok(store_events)
+    }
+
+    /// Default `run_policies` strategy is to run all events against each policy in turn, returning on the first error.
+    async fn run_policies(&self, events: &[StoreEvent<Evt>]) -> Result<(), Err> {
+        // TODO: This implies that potentially half of the policies would trigger, then one fails, and the rest wouldn't.
         // potentially we should be returning some other kind of error, that includes the errors from any failed policies?
         for policy in &self.policies {
-            for store_event in store_events.iter() {
-                policy.handle_event(store_event, &self.pool).await?
+            for event in events.iter() {
+                policy.handle_event(event, &self.pool).await?
             }
         }
 
-        Ok(store_events)
+        Ok(())
     }
 
     async fn close(&self) {
