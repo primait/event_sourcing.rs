@@ -1,0 +1,20 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+spec:
+  type: library
+  lifecycle: production
+  owner: team-shared-services
+  system: prima.it
+metadata:
+  name: event_sourcing.rs
+  description: an opinionated library used to achieve cqrs/es
+  tags:
+  - rust
+  links:
+  - url: https://crates.io/crates/esrs 
+    icon: link
+    title: crates.io 
+
+  - url: https://docs.rs/esrs/latest/esrs/ 
+    icon: link
+    title: official documentation
