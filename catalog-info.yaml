@@ -18,7 +18,3 @@ metadata:
   - url: https://docs.rs/esrs/latest/esrs/ 
     icon: link
     title: official documentation
-
-  - url: https://github.com/primait/event_sourcing.rs
-    icon: github
-    title: github repository
