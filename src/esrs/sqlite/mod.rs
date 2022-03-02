@@ -94,7 +94,7 @@ impl<
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
 
         let aggregate_name: &str = <T as Identifier>::name();
-        // Check if table and indexes exist and eventually create them
+        // Check if table and indexes exist and possibly create them
         util::run_preconditions(&pool, aggregate_name).await?;
 
         Ok(Self {
