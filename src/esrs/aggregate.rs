@@ -33,9 +33,9 @@ pub trait Eraser<
 }
 
 /// The AggregateManager is responsible for loading an aggregate from the store, mapping commands to events, and
-/// persisting those events in the store.  Be careful when implenting this trait, as you will be responsible for
+/// persisting those events in the store. Be careful when implementing this trait, as you will be responsible for
 /// threading AggregateState/Commands/Events correctly.  For example, a bad implementation could result in an AggregateState
-/// that is not replicated on load.
+/// that could not be replicated on load.
 ///
 /// Unless you need to perform side effects as part of your command handling/verification you should implement the
 /// safer `Aggregate` trait instead.
@@ -131,11 +131,11 @@ pub trait AggregateManager: Identifier {
 /// events onto the aggregate state.
 ///
 /// An Aggregate should be able to derive its own state from nothing but its initial configuration, and its
-/// event stream.  Applying the same events, in the same order, to the same aggregate, should always yield an
+/// event stream. Applying the same events, in the same order, to the same aggregate, should always yield an
 /// identical aggregate state.
 ///
-/// This trait is purposfully _synchronous_.  If you are implementing this trait, your aggregate
-/// should not have any side effects.  If you additional information to handle commands correctly, then
+/// This trait is purposefully _synchronous_.  If you are implementing this trait, your aggregate
+/// should not have any side effects.  If you need additional information to handle commands correctly, then
 /// consider either looking up that information and placing it in the command, or if that is not an option
 /// you can implement the more powerful _asynchronous_ `AggregateManager` trait - it will then be your responsibility to
 /// uphold the Aggregate _invariants_.
