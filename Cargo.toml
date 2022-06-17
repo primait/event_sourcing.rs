@@ -37,7 +37,7 @@ chrono = { version = "^0.4", features = ["serde"] }
 async-trait = "0.1.50"
 
 # Sql library for async impl
-sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 # To stream over sqlx results
 futures = { version = "0.3" }
 
