@@ -1,14 +1,14 @@
 [package]
-name = "esrs"
-version = "0.6.1"
-license = "MIT OR Apache-2.0"
-readme = "README.md"
-edition = "2018"
-description = "A Prima.it-opinionated library to achieve cqrs/es"
-repository = "https://github.com/primait/event_sourcing.rs"
-categories = ["rust-patterns", "web-programming", "asynchronous", "data-structures"]
-keywords = ["architecture", "ddd", "event-sourcing", "cqrs", "es"]
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
+categories = ["rust-patterns", "web-programming", "asynchronous", "data-structures"]
+description = "A Prima.it-opinionated library to achieve cqrs/es"
+edition = "2018"
+keywords = ["architecture", "ddd", "event-sourcing", "cqrs", "es"]
+license = "MIT OR Apache-2.0"
+name = "esrs"
+readme = "README.md"
+repository = "https://github.com/primait/event_sourcing.rs"
+version = "0.6.1"
 
 [workspace]
 members = ["examples/postgres_payments", "examples/sqlite_payments"]
@@ -27,22 +27,21 @@ sqlite = ["sqlx/sqlite"]
 
 [dependencies]
 # Serialization/Deserialization
-serde = { version = "^1.0", features = ["derive"] }
-serde_json = "^1.0"
+serde = {version = "1.0", features = ["derive"]}
+serde_json = "1.0"
 # Uuid generation
-uuid = { version = "^0.8.1", features = ["serde", "v4"] }
+uuid = {version = "1.1", features = ["serde", "v4"]}
 # Time esrs-core
-chrono = { version = "^0.4", features = ["serde"] }
+chrono = {version = "0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.50"
 
 # Sql library for async impl
-sqlx = { version = "0.5", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = {version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"]}
 # To stream over sqlx results
-futures = { version = "0.3" }
+futures = {version = "0.3"}
 
 [dev-dependencies]
-postgres-payments = { path = "examples/postgres_payments" }
-sqlite-payments = { path = "examples/sqlite_payments" }
-tokio = { version = "1.6", features = ["full"] }
-
+postgres-payments = {path = "examples/postgres_payments"}
+sqlite-payments = {path = "examples/sqlite_payments"}
+tokio = {version = "1.6", features = ["full"]}
