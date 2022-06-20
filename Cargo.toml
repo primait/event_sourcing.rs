@@ -9,7 +9,7 @@ name = "esrs"
 readme = "README.md"
 repository = "https://github.com/primait/event_sourcing.rs"
 rust-version = "1.58.0"
-version = "0.6.1"
+version = "0.6.2"
 
 [workspace]
 members = ["examples/postgres_payments", "examples/sqlite_payments"]
