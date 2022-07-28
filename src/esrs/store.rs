@@ -16,7 +16,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
-    /// Persists multiple events into the database.  This should be done transactional - either
+    /// Persists multiple events into the database.  This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
     ///
     /// Persisting events may additionally trigger configured Projectors.
