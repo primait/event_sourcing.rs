@@ -91,7 +91,7 @@ impl<
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Err> {
-        let pool: sqlx::Pool<sqlx::Postgres> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
+        let pool: Pool<Postgres> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
 
         let aggregate_name: &str = <T as Identifier>::name();
@@ -345,7 +345,7 @@ mod tests {
     #[tokio::test]
     async fn hello_table_do_not_exist_test() {
         let database_url = std::env::var("DATABASE_URL").unwrap();
-        let pool: sqlx::Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())
             .fetch_all(&pool)
@@ -359,7 +359,7 @@ mod tests {
     async fn test_transaction_in_test_store_test() {
         let database_url = std::env::var("DATABASE_URL").unwrap();
         persist(database_url.as_str()).await;
-        let pool: sqlx::Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
         // When
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())

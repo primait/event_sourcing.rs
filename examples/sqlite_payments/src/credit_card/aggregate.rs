@@ -72,11 +72,11 @@ impl AggregateManager for CreditCardAggregate {
         match cmd {
             // Cannot pay with negative amounts
             CreditCardCommand::Pay { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            // Check if plafond limit has not been reached
+            // Check if ceiling limit has not been reached
             CreditCardCommand::Pay { amount }
-                if aggregate_state.inner().total_amount + *amount > aggregate_state.inner().plafond =>
+                if aggregate_state.inner().total_amount + *amount > aggregate_state.inner().ceiling =>
             {
-                Err(Self::Error::PlafondLimitReached)
+                Err(Self::Error::CeilingLimitReached)
             }
             CreditCardCommand::Pay { .. } => Ok(()),
             // Cannot refund with negative amounts

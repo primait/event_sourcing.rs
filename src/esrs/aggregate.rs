@@ -52,7 +52,7 @@ pub trait AggregateManager: Identifier {
     /// This function applies the event onto the aggregate and returns a new one, updated with the event data
     fn apply_event(id: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State;
 
-    /// Validation should reject any command is inconsitent with the current aggregate state, or would result
+    /// Validation should reject any command is inconsistent with the current aggregate state, or would result
     /// in one or more events that could not be applied onto the aggregate state.
     fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
 
@@ -110,7 +110,7 @@ pub trait AggregateManager: Identifier {
         }
     }
 
-    /// Persits an event into the event store - recording it in the aggregate instance's history.
+    /// Persists an event into the event store - recording it in the aggregate instance's history.
     async fn persist(
         &self,
         aggregate_state: AggregateState<Self::State>,

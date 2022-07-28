@@ -90,7 +90,7 @@ impl<
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Err> {
-        let pool: sqlx::Pool<sqlx::Sqlite> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
+        let pool: Pool<Sqlite> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
 
         let aggregate_name: &str = <T as Identifier>::name();
