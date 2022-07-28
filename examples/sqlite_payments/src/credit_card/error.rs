@@ -17,6 +17,6 @@ pub enum CreditCardError {
     #[error("Negative amount")]
     NegativeAmount,
 
-    #[error("Platfond limit reached")]
+    #[error("Ceiling limit reached")]
     CeilingLimitReached,
 }
