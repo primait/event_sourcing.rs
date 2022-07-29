@@ -44,42 +44,16 @@ pub trait AggregateManager: Identifier + Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
-    /// This function applies the event onto the aggregate and returns a new one, updated with the event data
-    fn apply_event(id: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State {
-        <Self as Aggregate>::apply_event(state, event.payload())
-    }
-
-    /// Validation should reject any command is inconsistent with the current aggregate state, or would result
-    /// in one or more events that could not be applied onto the aggregate state.
-    fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error> {
-        <Self as Aggregate>::validate_command(aggregate_state, cmd)
-    }
-
-    async fn handle_command(
+    async fn execute_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        // If cmd is valid...
-        <Self as AggregateManager>::validate_command(&aggregate_state, &cmd)?;
+        Self::validate_command(aggregate_state.inner(), &cmd)?;
+        let events = self.handle_command(aggregate_state.inner(), cmd);
+        let store_events = self.run_store(&aggregate_state, events).await?;
 
-        // ...let the aggregate handle it, in a pure way...
-        let events = Aggregate::handle_command(self, &aggregate_state, cmd);
-
-        // ...and then persist to store
-        match AggregateManager::persist(self, &aggregate_state, events).await {
-            Ok(events) => {
-                match self.event_store().run_policies(&events).await {
-                    Ok(_) => {
-                        // all good
-                    },
-                    Err(_) => todo!("POLICIES FAILED, MAYBE LOG"),
-                };
-                let new_state = Self::apply_events(aggregate_state, events);
-                Ok(new_state)
-            },
-            Err(_) => todo!("FAILED AND ROLLED BACK THE EVENTS"),
-        }
+        Ok(Self::apply_events(aggregate_state, store_events))
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
@@ -90,10 +64,9 @@ pub trait AggregateManager: Identifier + Aggregate {
         aggregate_state: AggregateState<Self::State>,
         events: Vec<StoreEvent<Self::Event>>,
     ) -> AggregateState<Self::State> {
-        let aggregate_id: &Uuid = &aggregate_state.id;
         let inner: Self::State = events.iter().fold(
             aggregate_state.inner,
-            |acc: Self::State, event: &StoreEvent<Self::Event>| <Self as AggregateManager>::apply_event(aggregate_id, acc, event),
+            |acc: Self::State, event: &StoreEvent<Self::Event>| Self::apply_event(acc, event.payload()),
         );
 
         AggregateState {
@@ -122,24 +95,24 @@ pub trait AggregateManager: Identifier + Aggregate {
     }
 
     /// Persists an event into the event store - recording it in the aggregate instance's history.
-    async fn persist(
+    async fn run_store(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        self
+        let events = self
             .event_store()
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
-            .await
+            .await?;
 
-        // self.event_store().run_policies(&events).await?;
+        let _ = self.event_store().run_policies(&events).await;
 
-        // Ok(Self::apply_events(aggregate_state, events))
+        Ok(events)
     }
 }
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
-/// events onto the aggregate state.
+/// events onto the state.
 ///
 /// An Aggregate should be able to derive its own state from nothing but its initial configuration, and its
 /// event stream. Applying the same events, in the same order, to the same aggregate, should always yield an
@@ -158,10 +131,10 @@ pub trait Aggregate {
 
     /// Validates a command against the current aggregate state.  The aggregate must be able to handle the command
     /// if validation succeeds.
-    fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
+    fn validate_command(state: &Self::State, cmd: &Self::Command) -> Result<(), Self::Error>;
 
     /// Handles a validated command, and emits events.
-    fn handle_command(&self, aggregate_state: &AggregateState<Self::State>, cmd: Self::Command) -> Vec<Self::Event>;
+    fn handle_command(&self, state: &Self::State, cmd: Self::Command) -> Vec<Self::Event>;
 
     /// Updates the aggregate state using the new event.
     fn apply_event(state: Self::State, event: &Self::Event) -> Self::State;
