@@ -60,9 +60,26 @@ pub trait AggregateManager: Identifier + Aggregate {
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
+        // If cmd is valid...
         <Self as AggregateManager>::validate_command(&aggregate_state, &cmd)?;
+
+        // ...let the aggregate handle it, in a pure way...
         let events = Aggregate::handle_command(self, &aggregate_state, cmd);
-        AggregateManager::persist(self, aggregate_state, events).await
+
+        // ...and then persist to store
+        match AggregateManager::persist(self, &aggregate_state, events).await {
+            Ok(events) => {
+                match self.event_store().run_policies(&events).await {
+                    Ok(_) => {
+                        // all good
+                    },
+                    Err(_) => todo!("POLICIES FAILED, MAYBE LOG"),
+                };
+                let new_state = Self::apply_events(aggregate_state, events);
+                Ok(new_state)
+            },
+            Err(_) => todo!("FAILED AND ROLLED BACK THE EVENTS"),
+        }
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
@@ -107,17 +124,17 @@ pub trait AggregateManager: Identifier + Aggregate {
     /// Persists an event into the event store - recording it in the aggregate instance's history.
     async fn persist(
         &self,
-        aggregate_state: AggregateState<Self::State>,
+        aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let events = self
+    ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
+        self
             .event_store()
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
-            .await?;
+            .await
 
-        self.event_store().run_policies(&events).await?;
+        // self.event_store().run_policies(&events).await?;
 
-        Ok(Self::apply_events(aggregate_state, events))
+        // Ok(Self::apply_events(aggregate_state, events))
     }
 }
 
