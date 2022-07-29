@@ -32,18 +32,19 @@ pub trait Eraser<
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
-/// The AggregateManager is responsible for loading an aggregate from the store, mapping commands to events, and
-/// persisting those events in the store. Be careful when implementing this trait, as you will be responsible for
-/// threading AggregateState/Commands/Events correctly.  For example, a bad implementation could result in an AggregateState
-/// that could not be replicated on load.
+/// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
+/// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
 ///
-/// Unless you need to perform side effects as part of your command handling/verification you should implement the
-/// safer `Aggregate` trait instead.
+/// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
+/// 1. execute_command
+/// 2. load
+/// The other methods are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Identifier + Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
+    /// Validates and handles the command onto the given state, and then persists the events in the store.
     async fn execute_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
@@ -95,6 +96,9 @@ pub trait AggregateManager: Identifier + Aggregate {
     }
 
     /// Persists an event into the event store - recording it in the aggregate instance's history.
+    /// The store will also project the event.
+    ///
+    /// The policies associated to the store are run here. Override this function to change this behaviour.
     async fn run_store(
         &self,
         aggregate_state: &AggregateState<Self::State>,
@@ -118,11 +122,9 @@ pub trait AggregateManager: Identifier + Aggregate {
 /// event stream. Applying the same events, in the same order, to the same aggregate, should always yield an
 /// identical aggregate state.
 ///
-/// This trait is purposefully _synchronous_.  If you are implementing this trait, your aggregate
-/// should not have any side effects.  If you need additional information to handle commands correctly, then
-/// consider either looking up that information and placing it in the command, or if that is not an option
-/// you can implement the more powerful _asynchronous_ `AggregateManager` trait - it will then be your responsibility to
-/// uphold the Aggregate _invariants_.
+/// This trait is purposefully _synchronous_. If you are implementing this trait, your aggregate
+/// should not have any side effects. If you need additional information to handle commands correctly, then
+/// consider looking up that information and placing it in the command.
 pub trait Aggregate {
     type State: Default + Clone + Debug + Send + Sync;
     type Command: Send + Sync;
