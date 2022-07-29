@@ -16,7 +16,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
-    /// Persists multiple events into the database.  This should be done transactionally - either
+    /// Persists multiple events into the database.  This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
     ///
     /// Persisting events may additionally trigger configured Projectors.
@@ -47,7 +47,7 @@ pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Exec
 }
 
 #[async_trait]
-/// An EraserStore is responsible for wiping an aggregate isntance from history: it should delete the
+/// An EraserStore is responsible for wiping an aggregate instance from history: it should delete the
 /// aggregate instance, along with all of its events, or fail.
 pub trait EraserStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;

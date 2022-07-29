@@ -113,14 +113,14 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     assert_eq!(credit_card_state.inner().total_amount, 1500);
 
-    // Cannot exceed plafond (1500)
+    // Cannot exceed ceiling (1500)
     let result = credit_card_aggregate
         .handle_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 300 })
         .await;
 
     assert_eq!(
         result.err().unwrap().to_string(),
-        CreditCardError::PlafondLimitReached.to_string()
+        CreditCardError::CeilingLimitReached.to_string()
     );
 
     // Refund of 250 euros. Total amount is 1250
