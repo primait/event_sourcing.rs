@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, Eraser, Identifier};
 use esrs::projector::SqliteProjectorEraser;
 use esrs::store::{EraserStore, EventStore, SqliteStore};
 
@@ -58,40 +58,33 @@ impl Aggregate for BankAccountAggregate {
     type Event = BankAccountEvent;
     type Error = BankAccountError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
-    fn apply_event(state: BankAccountState, event: &Self::Event) -> BankAccountState {
+    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State {
         match event {
             BankAccountEvent::Withdrawn { amount } => state.sub_amount(*amount),
             BankAccountEvent::Deposited { amount } => state.add_amount(*amount),
         }
     }
 
-    fn validate_command(
-        aggregate_state: &AggregateState<BankAccountState>,
-        cmd: &Self::Command,
-    ) -> Result<(), Self::Error> {
+    fn validate_command(state: &Self::State, cmd: &Self::Command) -> Result<(), Self::Error> {
         match cmd {
             BankAccountCommand::Withdraw { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            BankAccountCommand::Withdraw { amount } if aggregate_state.inner().balance - *amount < 0 => {
-                Err(Self::Error::NegativeBalance)
-            }
+            BankAccountCommand::Withdraw { amount } if state.balance - *amount < 0 => Err(Self::Error::NegativeBalance),
             BankAccountCommand::Withdraw { .. } => Ok(()),
             BankAccountCommand::Deposit { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
             BankAccountCommand::Deposit { .. } => Ok(()),
         }
     }
 
-    fn handle_command(
-        &self,
-        _aggregate_state: &AggregateState<BankAccountState>,
-        cmd: Self::Command,
-    ) -> Vec<Self::Event> {
+    fn handle_command(&self, _aggregate_state: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
             BankAccountCommand::Withdraw { amount } => vec![BankAccountEvent::Withdrawn { amount }],
             BankAccountCommand::Deposit { amount } => vec![BankAccountEvent::Deposited { amount }],
         }
+    }
+}
+
+impl AggregateManager for BankAccountAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

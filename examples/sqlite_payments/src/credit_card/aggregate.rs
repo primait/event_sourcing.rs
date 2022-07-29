@@ -1,11 +1,10 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
-use uuid::Uuid;
 
-use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, Identifier};
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
-use esrs::store::{EventStore, SqliteStore, StoreEvent};
+use esrs::store::{EventStore, SqliteStore};
 
 use crate::credit_card::command::CreditCardCommand;
 use crate::credit_card::error::CreditCardError;
@@ -47,35 +46,26 @@ impl Identifier for CreditCardAggregate {
 }
 
 #[async_trait]
-impl AggregateManager for CreditCardAggregate {
+impl Aggregate for CreditCardAggregate {
     type State = CreditCardState;
     type Command = CreditCardCommand;
     type Event = CreditCardEvent;
     type Error = CreditCardError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
     // No state for credit_card aggregate
-    fn apply_event(_id: &Uuid, state: CreditCardState, event: &StoreEvent<Self::Event>) -> CreditCardState {
-        match event.payload() {
+    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State {
+        match event {
             CreditCardEvent::Payed { amount } => state.add_amount(*amount),
             CreditCardEvent::Refunded { amount } => state.sub_amount(*amount),
         }
     }
 
-    fn validate_command(
-        aggregate_state: &AggregateState<CreditCardState>,
-        cmd: &Self::Command,
-    ) -> Result<(), Self::Error> {
+    fn validate_command(state: &Self::State, cmd: &Self::Command) -> Result<(), Self::Error> {
         match cmd {
             // Cannot pay with negative amounts
             CreditCardCommand::Pay { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
             // Check if ceiling limit has not been reached
-            CreditCardCommand::Pay { amount }
-                if aggregate_state.inner().total_amount + *amount > aggregate_state.inner().ceiling =>
-            {
+            CreditCardCommand::Pay { amount } if state.total_amount + *amount > state.ceiling => {
                 Err(Self::Error::CeilingLimitReached)
             }
             CreditCardCommand::Pay { .. } => Ok(()),
@@ -85,20 +75,16 @@ impl AggregateManager for CreditCardAggregate {
         }
     }
 
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<CreditCardState>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
+    fn handle_command(&self, _: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
-            CreditCardCommand::Pay { amount } => {
-                self.persist(aggregate_state, vec![CreditCardEvent::Payed { amount }])
-                    .await
-            }
-            CreditCardCommand::Refund { amount } => {
-                self.persist(aggregate_state, vec![CreditCardEvent::Refunded { amount }])
-                    .await
-            }
+            CreditCardCommand::Pay { amount } => vec![CreditCardEvent::Payed { amount }],
+            CreditCardCommand::Refund { amount } => vec![CreditCardEvent::Refunded { amount }],
         }
+    }
+}
+
+impl AggregateManager for CreditCardAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }
