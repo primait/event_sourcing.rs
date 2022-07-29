@@ -40,35 +40,29 @@ pub trait Eraser<
 /// Unless you need to perform side effects as part of your command handling/verification you should implement the
 /// safer `Aggregate` trait instead.
 #[async_trait]
-pub trait AggregateManager: Identifier {
-    type State: Default + Clone + Debug + Send + Sync;
-    type Command: Send + Sync;
-    type Event: Serialize + DeserializeOwned + Send + Sync;
-    type Error: Send + Sync;
-
+pub trait AggregateManager: Identifier + Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
     /// This function applies the event onto the aggregate and returns a new one, updated with the event data
-    fn apply_event(id: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State;
+    fn apply_event(id: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State {
+        <Self as Aggregate>::apply_event(state, event.payload())
+    }
 
     /// Validation should reject any command is inconsistent with the current aggregate state, or would result
     /// in one or more events that could not be applied onto the aggregate state.
-    fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error>;
+    fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error> {
+        <Self as Aggregate>::validate_command(aggregate_state, cmd)
+    }
 
     async fn handle_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        Self::validate_command(&aggregate_state, &cmd)?;
-        self.do_handle_command(aggregate_state, cmd).await
+        <Self as AggregateManager>::validate_command(&aggregate_state, &cmd)?;
+        let events = Aggregate::handle_command(self, &aggregate_state, cmd);
+        AggregateManager::persist(self, aggregate_state, events).await
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
@@ -82,7 +76,7 @@ pub trait AggregateManager: Identifier {
         let aggregate_id: &Uuid = &aggregate_state.id;
         let inner: Self::State = events.iter().fold(
             aggregate_state.inner,
-            |acc: Self::State, event: &StoreEvent<Self::Event>| Self::apply_event(aggregate_id, acc, event),
+            |acc: Self::State, event: &StoreEvent<Self::Event>| <Self as AggregateManager>::apply_event(aggregate_id, acc, event),
         );
 
         AggregateState {
@@ -145,45 +139,13 @@ pub trait Aggregate {
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
 
-    /// Event store configured for aggregate - required for the default implementation of AggregateManager
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
-
-    /// Updates the aggregate state using the new event.
-    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State;
-
     /// Validates a command against the current aggregate state.  The aggregate must be able to handle the command
     /// if validation succeeds.
     fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
 
     /// Handles a validated command, and emits events.
     fn handle_command(&self, aggregate_state: &AggregateState<Self::State>, cmd: Self::Command) -> Vec<Self::Event>;
-}
 
-#[async_trait]
-impl<T: Aggregate + Sync + Identifier> AggregateManager for T {
-    type State = T::State;
-    type Command = T::Command;
-    type Event = T::Event;
-    type Error = T::Error;
-
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        self.event_store()
-    }
-
-    fn apply_event(_id: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State {
-        T::apply_event(state, event.payload())
-    }
-
-    fn validate_command(aggregate_state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error> {
-        T::validate_command(aggregate_state, cmd)
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<T::State>, T::Error> {
-        let events = Aggregate::handle_command(self, &aggregate_state, cmd);
-        AggregateManager::persist(self, aggregate_state, events).await
-    }
+    /// Updates the aggregate state using the new event.
+    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State;
 }
