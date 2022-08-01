@@ -44,7 +44,7 @@ pub trait AggregateManager: Identifier + Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
-    /// Validates and handles the command onto the given state, and then persists the events in the store.
+    /// Validates and handles the command onto the given state, and then passes the events to the store.
     async fn execute_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
@@ -98,15 +98,16 @@ pub trait AggregateManager: Identifier + Aggregate {
         }
     }
 
-    /// Persists an event into the event store - recording it in the aggregate instance's history.
-    /// The store will also project the event.
+    /// Transactionally persists events in store - recording it in the aggregate instance's history.
+    /// The store will also project the events. If an error occurs whilst persisting the events,
+    /// the whole transaction is rolled back and the error is returned.
     ///
-    /// The policies associated to the store are run here. Override this function to change this behaviour.
+    /// The policies associated to the store are run here. A failure at this point will be silently
+    /// ignored, and the new state returned successfully anyway.
     ///
     /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    /// The only scenario where this function need to be overwritten is if the use needs to change
-    /// policy run behaviour. Eg. if the user want to return an error if the store fails to run the
-    /// policies.
+    /// The only scenario where this function needs to be overwritten is if you need to change the
+    /// behaviour of policies, e.g. if you want to log something on error.
     async fn run_store(
         &self,
         aggregate_state: &AggregateState<Self::State>,
@@ -139,13 +140,19 @@ pub trait Aggregate {
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
 
-    /// Validates a command against the current aggregate state.  The aggregate must be able to handle the command
+    /// Validates a command against the current aggregate state. The aggregate must be able to handle the command
     /// if validation succeeds.
     fn validate_command(state: &Self::State, cmd: &Self::Command) -> Result<(), Self::Error>;
 
-    /// Handles a validated command, and emits events.
+    /// Handles a validated command, and emits events. This must always succeed if the command was validated
+    /// correctly.
+    ///
+    /// Passing a non-validated command is allowed to panic.
     fn handle_command(state: &Self::State, cmd: Self::Command) -> Vec<Self::Event>;
 
-    /// Updates the aggregate state using the new event.
+    /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
+    /// to the state.
+    ///
+    /// If this is not the case, this function is allowed to panic.
     fn apply_event(state: Self::State, event: &Self::Event) -> Self::State;
 }
