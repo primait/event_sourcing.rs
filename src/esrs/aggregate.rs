@@ -38,7 +38,7 @@ pub trait Eraser<
 /// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
 /// 1. execute_command
 /// 2. load
-/// The other methods are used internally, but can be overridden if needed.
+/// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Identifier + Aggregate {
     /// Returns the event store, configured for the aggregate
@@ -51,16 +51,17 @@ pub trait AggregateManager: Identifier + Aggregate {
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         Self::validate_command(aggregate_state.inner(), &cmd)?;
-        let events = self.handle_command(aggregate_state.inner(), cmd);
-        let store_events = self.run_store(&aggregate_state, events).await?;
+        let events: Vec<Self::Event> = self.handle_command(aggregate_state.inner(), cmd);
+        let store_events: Vec<StoreEvent<Self::Event>> = self.run_store(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, store_events))
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
-    /// You should avoid implementing this method, and be _very_ careful if you decide to do so.
     ///
     /// `events` will be passed in order of ascending sequence number.
+    ///
+    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
     fn apply_events(
         aggregate_state: AggregateState<Self::State>,
         events: Vec<StoreEvent<Self::Event>>,
@@ -72,13 +73,15 @@ pub trait AggregateManager: Identifier + Aggregate {
 
         AggregateState {
             inner,
-            sequence_number: events.last().map_or(0, |e| e.sequence_number()),
+            sequence_number: events.last().map_or(0, StoreEvent::sequence_number),
             ..aggregate_state
         }
     }
 
     /// Loads an aggregate instance from the event store, by applying previously persisted events onto
     /// the aggregate state by order of their sequence number
+    ///
+    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
     async fn load(&self, aggregate_id: Uuid) -> Option<AggregateState<Self::State>> {
         let events: Vec<StoreEvent<Self::Event>> = self
             .event_store()
@@ -99,12 +102,17 @@ pub trait AggregateManager: Identifier + Aggregate {
     /// The store will also project the event.
     ///
     /// The policies associated to the store are run here. Override this function to change this behaviour.
+    ///
+    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
+    /// The only scenario where this function need to be overwritten is if the use needs to change
+    /// policy run behaviour. Eg. if the user want to return an error if the store fails to run the
+    /// policies.
     async fn run_store(
         &self,
         aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        let events = self
+        let events: Vec<StoreEvent<Self::Event>> = self
             .event_store()
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
             .await?;
