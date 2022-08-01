@@ -1,7 +1,5 @@
 use std::convert::TryInto;
-use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -245,6 +243,7 @@ impl<
     }
 }
 
+#[async_trait]
 impl<
         Evt: Serialize + DeserializeOwned + Send + Sync,
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
@@ -252,32 +251,17 @@ impl<
         Policy: SqlitePolicy<Evt, Err> + Send + Sync + ?Sized,
     > ProjectorStore<Evt, PoolConnection<Sqlite>, Err> for InnerSqliteStore<Evt, Err, Projector, Policy>
 {
-    fn project_event<'a>(
-        &'a self,
-        store_event: &'a StoreEvent<Evt>,
-        executor: &'a mut PoolConnection<Sqlite>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Err>> + Send + 'a>>
-    where
-        Self: Sync + 'a,
-    {
-        async fn run<
-            Ev: Serialize + DeserializeOwned + Send + Sync,
-            Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: SqliteProjector<Ev, Er> + Send + Sync + ?Sized,
-            Plc: SqlitePolicy<Ev, Er> + Send + Sync + ?Sized,
-        >(
-            me: &InnerSqliteStore<Ev, Er, Prj, Plc>,
-            store_event: &StoreEvent<Ev>,
-            executor: &mut PoolConnection<Sqlite>,
-        ) -> Result<(), Er> {
-            for projector in &me.projectors {
-                projector.project(store_event, executor).await?
-            }
-
-            Ok(())
+    async fn project_event(
+        &self,
+        store_event: &StoreEvent<Evt>,
+        executor: &mut PoolConnection<Sqlite>,
+    ) -> Result<(), Err> {
+        // Does this NEED to run sequentially, rather than parallelly?
+        for projector in &self.projectors {
+            projector.project(store_event, executor).await?
         }
 
-        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, executor))
+        Ok(())
     }
 }
 
