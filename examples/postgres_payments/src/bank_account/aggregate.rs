@@ -69,7 +69,7 @@ impl Aggregate for BankAccountAggregate {
         }
     }
 
-    fn handle_command(&self, _: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
+    fn handle_command(_: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
             BankAccountCommand::Withdraw { amount } => vec![Self::Event::Withdrawn { amount }],
             BankAccountCommand::Deposit { amount } => vec![Self::Event::Deposited { amount }],

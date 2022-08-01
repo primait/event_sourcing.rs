@@ -51,7 +51,7 @@ pub trait AggregateManager: Identifier + Aggregate {
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         Self::validate_command(aggregate_state.inner(), &cmd)?;
-        let events: Vec<Self::Event> = self.handle_command(aggregate_state.inner(), cmd);
+        let events: Vec<Self::Event> = Self::handle_command(aggregate_state.inner(), cmd);
         let store_events: Vec<StoreEvent<Self::Event>> = self.run_store(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, store_events))
@@ -144,7 +144,7 @@ pub trait Aggregate {
     fn validate_command(state: &Self::State, cmd: &Self::Command) -> Result<(), Self::Error>;
 
     /// Handles a validated command, and emits events.
-    fn handle_command(&self, state: &Self::State, cmd: Self::Command) -> Vec<Self::Event>;
+    fn handle_command(state: &Self::State, cmd: Self::Command) -> Vec<Self::Event>;
 
     /// Updates the aggregate state using the new event.
     fn apply_event(state: Self::State, event: &Self::Event) -> Self::State;

@@ -73,7 +73,7 @@ impl Aggregate for CreditCardAggregate {
         }
     }
 
-    fn handle_command(&self, _: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
+    fn handle_command(_: &Self::State, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
             CreditCardCommand::Pay { amount } => vec![CreditCardEvent::Payed { amount }],
             CreditCardCommand::Refund { amount } => vec![CreditCardEvent::Refunded { amount }],
