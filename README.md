@@ -43,8 +43,6 @@ Run examples.
 ```shell
 # Run payments example using postgres database
 cargo run --example postgres-payments
-# Run payments example using sqlite database
-cargo run --example sqlite-payments
 ```
 
 Run tests and linting.
