@@ -3,15 +3,15 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState};
-use postgres_payments::bank_account::aggregate::BankAccountAggregate;
-use postgres_payments::bank_account::command::BankAccountCommand;
-use postgres_payments::bank_account::error::BankAccountError;
-use postgres_payments::bank_account::state::BankAccountState;
-use postgres_payments::credit_card::aggregate::CreditCardAggregate;
-use postgres_payments::credit_card::command::CreditCardCommand;
-use postgres_payments::credit_card::error::CreditCardError;
-use postgres_payments::credit_card::projector::CreditCard;
-use postgres_payments::credit_card::state::CreditCardState;
+use postgres_payments::aggregate::account_aggregate::BankAccountAggregate;
+use postgres_payments::command::BankAccountCommand;
+use postgres_payments::error::BankAccountError;
+use postgres_payments::state::account_state::BankAccountState;
+use postgres_payments::aggregate::credit_aggregate::CreditCardAggregate;
+use postgres_payments::command::CreditCardCommand;
+use postgres_payments::error::CreditCardError;
+use postgres_payments::projector::credit_projector::CreditCard;
+use postgres_payments::state::credit_state::CreditCardState;
 
 #[tokio::test]
 async fn postgres_credit_card_aggregate_and_projector_test() {

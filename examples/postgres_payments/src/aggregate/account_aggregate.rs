@@ -6,11 +6,11 @@ use esrs::aggregate::{AggregateManager, AggregateState, Eraser, Identifier};
 use esrs::projector::PgProjectorEraser;
 use esrs::store::{EraserStore, EventStore, PgStore, StoreEvent};
 
-use crate::bank_account::command::BankAccountCommand;
-use crate::bank_account::error::BankAccountError;
-use crate::bank_account::event::BankAccountEvent;
-use crate::bank_account::projector::BankAccountProjector;
-use crate::bank_account::state::BankAccountState;
+use crate::command::BankAccountCommand;
+use crate::error::BankAccountError;
+use crate::event::BankAccountEvent;
+use crate::projector::account_projector::BankAccountProjector;
+use crate::state::account_state::BankAccountState;
 
 const BANK_ACCOUNT: &str = "bank_account";
 

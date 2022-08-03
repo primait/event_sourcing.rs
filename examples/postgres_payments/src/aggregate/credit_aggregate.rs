@@ -5,12 +5,12 @@ use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore};
 
-use crate::credit_card::command::CreditCardCommand;
-use crate::credit_card::error::CreditCardError;
-use crate::credit_card::event::CreditCardEvent;
-use crate::credit_card::policy::BankAccountPolicy;
-use crate::credit_card::projector::CreditCardsProjector;
-use crate::credit_card::state::CreditCardState;
+use crate::command::CreditCardCommand;
+use crate::error::CreditCardError;
+use crate::event::CreditCardEvent;
+use crate::policy::BankAccountPolicy;
+use crate::projector::credit_projector::CreditCardsProjector;
+use crate::state::credit_state::CreditCardState;
 
 const PAYMENT: &str = "credit_card";
 

@@ -2,12 +2,12 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState};
-use postgres_payments::bank_account::aggregate::BankAccountAggregate;
-use postgres_payments::bank_account::command::BankAccountCommand;
-use postgres_payments::bank_account::state::BankAccountState;
-use postgres_payments::credit_card::aggregate::CreditCardAggregate;
-use postgres_payments::credit_card::command::CreditCardCommand;
-use postgres_payments::credit_card::state::CreditCardState;
+use postgres_payments::aggregate::account_aggregate::BankAccountAggregate;
+use postgres_payments::command::BankAccountCommand;
+use postgres_payments::state::account_state::BankAccountState;
+use postgres_payments::aggregate::credit_aggregate::CreditCardAggregate;
+use postgres_payments::command::CreditCardCommand;
+use postgres_payments::state::credit_state::CreditCardState;
 use sqlx::pool::PoolOptions;
 
 #[tokio::main]

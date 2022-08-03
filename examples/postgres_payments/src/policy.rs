@@ -5,11 +5,11 @@ use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::store::StoreEvent;
 
-use crate::bank_account::aggregate::BankAccountAggregate;
-use crate::bank_account::command::BankAccountCommand;
-use crate::bank_account::state::BankAccountState;
-use crate::credit_card::error::CreditCardError;
-use crate::credit_card::event::CreditCardEvent;
+use crate::aggregate::account_aggregate::BankAccountAggregate;
+use crate::command::BankAccountCommand;
+use crate::state::account_state::BankAccountState;
+use crate::error::CreditCardError;
+use crate::event::CreditCardEvent;
 
 // Against a credit_card create new event to BankAccount aggregate to update balance
 pub struct BankAccountPolicy;

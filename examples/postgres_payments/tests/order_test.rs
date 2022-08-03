@@ -1,12 +1,12 @@
-use postgres_payments::bank_account::event::BankAccountEvent;
+use postgres_payments::event::BankAccountEvent;
 use sqlx::pool::PoolOptions;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState};
-use postgres_payments::bank_account::aggregate::BankAccountAggregate;
-use postgres_payments::bank_account::command::BankAccountCommand;
-use postgres_payments::bank_account::state::BankAccountState;
+use postgres_payments::aggregate::account_aggregate::BankAccountAggregate;
+use postgres_payments::command::BankAccountCommand;
+use postgres_payments::state::account_state::BankAccountState;
 
 #[tokio::test]
 async fn postgres_credit_card_aggregate_event_order_test() {

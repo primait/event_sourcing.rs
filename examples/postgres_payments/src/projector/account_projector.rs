@@ -5,8 +5,8 @@ use uuid::Uuid;
 use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
-use crate::bank_account::error::BankAccountError;
-use crate::bank_account::event::BankAccountEvent;
+use crate::error::BankAccountError;
+use crate::event::BankAccountEvent;
 use sqlx::pool::PoolConnection;
 
 pub struct BankAccountProjector;

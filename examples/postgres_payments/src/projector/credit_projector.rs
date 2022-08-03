@@ -6,8 +6,8 @@ use uuid::Uuid;
 use esrs::projector::{PgProjector, PgProjectorEraser};
 use esrs::store::StoreEvent;
 
-use crate::credit_card::error::CreditCardError;
-use crate::credit_card::event::CreditCardEvent;
+use crate::error::CreditCardError;
+use crate::event::CreditCardEvent;
 
 pub struct CreditCardsProjector;
 
