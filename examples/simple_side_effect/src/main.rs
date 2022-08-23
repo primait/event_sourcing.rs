@@ -1,5 +1,5 @@
 use esrs::aggregate::{AggregateManager, AggregateState};
-use sqlx::{Sqlite, Pool, pool::PoolOptions};
+use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
@@ -9,7 +9,6 @@ pub mod structs;
 
 #[tokio::main]
 async fn main() {
-
     let pool: Pool<Sqlite> = PoolOptions::new()
         .connect("sqlite::memory:")
         .await
@@ -23,7 +22,9 @@ async fn main() {
     let logger_id = Uuid::new_v4();
 
     // Construct the aggregation, and some null state for it
-    let aggregate = LoggingAggregate::new(&pool).await.expect("Failed to construct aggregate");
+    let aggregate = LoggingAggregate::new(&pool)
+        .await
+        .expect("Failed to construct aggregate");
     let state = AggregateState::new(logger_id);
 
     // Log some messages
@@ -43,7 +44,10 @@ async fn main() {
     // Lets cause a projection error, to illustrate the difference between
     // projection and policy errors, from an AggregateState perspective
     let res = aggregate
-        .handle_command(state, LoggingCommand::Log(String::from("This will fail since it contains fail_projection")))
+        .handle_command(
+            state,
+            LoggingCommand::Log(String::from("This will fail since it contains fail_projection")),
+        )
         .await;
     assert!(res.is_err());
     // We now need to rebuild the event state - and we'll see that there are only 3 events
@@ -54,12 +58,14 @@ async fn main() {
     // event store, so now when we reload the aggregate state, we'll see 4 events have
     // been applied
     let res = aggregate
-        .handle_command(state, LoggingCommand::Log(String::from("This will fail since it contains fail_policy")))
+        .handle_command(
+            state,
+            LoggingCommand::Log(String::from("This will fail since it contains fail_policy")),
+        )
         .await;
     assert!(res.is_err());
 
     // We now need to rebuild the event state - and we'll see that there are 4 events
     let state = aggregate.load(logger_id).await.expect("Failed to load aggregate state");
     assert!(*state.inner() == 4);
-
 }

@@ -4,18 +4,15 @@ use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
-use esrs::store::{EventStore, StoreEvent, SqliteStore};
+use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::projector::CounterProjector;
-use crate::structs::{CounterEvent, CounterError, CounterCommand};
+use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
 const COUNTERS: &str = "counters";
 
 // A store of events
-pub type CounterStore = SqliteStore<
-    CounterEvent,
-    CounterError
->;
+pub type CounterStore = SqliteStore<CounterEvent, CounterError>;
 
 pub struct CounterAggregate {
     event_store: CounterStore,
@@ -58,10 +55,7 @@ impl AggregateManager for CounterAggregate {
         state
     }
 
-    fn validate_command(
-        _: &AggregateState<Self::State>,
-        _: &Self::Command,
-    ) -> Result<(), Self::Error> {
+    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
         Ok(()) // No validation done on commands received in this aggregate
     }
 
@@ -72,7 +66,7 @@ impl AggregateManager for CounterAggregate {
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match cmd {
             Self::Command::Increment => self.persist(aggregate_state, vec![Self::Event::Incremented]).await,
-            Self::Command::Decrement => self.persist(aggregate_state, vec![Self::Event::Decremented]).await
+            Self::Command::Decrement => self.persist(aggregate_state, vec![Self::Event::Decremented]).await,
         }
     }
 }

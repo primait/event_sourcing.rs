@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use sqlx::{Executor, Sqlite};
 use uuid::Uuid;
 
-use esrs::projector::{SqliteProjector};
+use esrs::projector::SqliteProjector;
 use esrs::store::StoreEvent;
 
 use sqlx::pool::PoolConnection;
 
-use crate::structs::{CounterEvent, CounterError};
+use crate::structs::{CounterError, CounterEvent};
 
 pub struct CounterProjector;
 
@@ -18,24 +18,18 @@ impl SqliteProjector<CounterEvent, CounterError> for CounterProjector {
         event: &StoreEvent<CounterEvent>,
         connection: &mut PoolConnection<Sqlite>,
     ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection).await?.map(|existing| existing);
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection)
+            .await?
+            .map(|existing| existing);
         match event.payload {
-            CounterEvent::Incremented => {
-                match existing {
-                    Some(counter) => {
-                        Ok(Counter::update(event.aggregate_id, counter.count + 1, &mut *connection).await?)
-                    }
-                    None => Ok(Counter::insert(event.aggregate_id, 1, &mut *connection).await?),
-                }
-            }
-            CounterEvent::Decremented => {
-                match existing {
-                    Some(counter) => {
-                        Ok(Counter::update(event.aggregate_id, counter.count - 1, &mut *connection).await?)
-                    }
-                    None => Ok(Counter::insert(event.aggregate_id, -1, &mut *connection).await?),
-                }
-            }
+            CounterEvent::Incremented => match existing {
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count + 1, &mut *connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, 1, &mut *connection).await?),
+            },
+            CounterEvent::Decremented => match existing {
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count - 1, &mut *connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, -1, &mut *connection).await?),
+            },
         }
     }
 }
@@ -47,10 +41,7 @@ pub struct Counter {
 }
 
 impl Counter {
-    pub async fn by_id(
-        id: Uuid,
-        executor: impl Executor<'_, Database = Sqlite>,
-    ) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn by_id(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM counters WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)
@@ -83,10 +74,7 @@ impl Counter {
             .map(|_| ())
     }
 
-    pub async fn delete(
-        id: Uuid,
-        executor: impl Executor<'_, Database = Sqlite>,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("DELETE FROM counter WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)

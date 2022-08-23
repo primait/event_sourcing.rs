@@ -1,5 +1,5 @@
 use esrs::aggregate::{AggregateManager, AggregateState};
-use sqlx::{Sqlite, Pool, pool::PoolOptions};
+use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
@@ -15,19 +15,20 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
-    println!("Running migrations"); 
+    println!("Running migrations");
     let () = sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
-
 
     println!("Migrations run");
 
     let logger_id = Uuid::new_v4();
 
     // Construct the aggregation, and some null state for it
-    let aggregate = LoggingAggregate::new(&pool).await.expect("Failed to construct aggregate");
+    let aggregate = LoggingAggregate::new(&pool)
+        .await
+        .expect("Failed to construct aggregate");
     let state = AggregateState::new(logger_id);
 
     // Log some messages
@@ -41,7 +42,11 @@ async fn main() {
     // To demonstrate, 2 events exist in the event store, but if we check the state we get back from our call to
     // handle_command, it only shows 1 event as applied. Loading our state from the DB again, we see the correct
     // value of 2:
-    let events = aggregate.event_store().by_aggregate_id(logger_id).await.expect("Failed to get events");
+    let events = aggregate
+        .event_store()
+        .by_aggregate_id(logger_id)
+        .await
+        .expect("Failed to get events");
     assert!(events.len() == 2); // 2 events in the store, 1 from our command and 1 from the policy
     assert!(*state.inner() == 1); // However, the state we get back only has 1 event applied (it isn't valid)
     let state = aggregate.load(logger_id).await.expect("Failed to load state");
@@ -52,5 +57,4 @@ async fn main() {
         .handle_command(state, LoggingCommand::TryLog(String::from("Second logging message")))
         .await
         .expect("Failed to log message");
-
 }

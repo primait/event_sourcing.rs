@@ -1,5 +1,5 @@
-use thiserror::Error;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 // A simple error enum for event processing errors
 #[derive(Debug, Error)]
@@ -11,7 +11,7 @@ pub enum CounterError {
     Json(#[from] esrs::error::JsonError),
 
     #[error(transparent)]
-    Sql(#[from] esrs::error::SqlxError)
+    Sql(#[from] esrs::error::SqlxError),
 }
 // The events to be projected
 #[derive(Serialize, Deserialize, Debug)]

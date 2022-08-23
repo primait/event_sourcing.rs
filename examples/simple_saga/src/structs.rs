@@ -1,5 +1,5 @@
-use thiserror::Error;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 // A simple error enum for event processing errors
 #[derive(Debug, Error)]
@@ -11,7 +11,7 @@ pub enum LoggingError {
     Json(#[from] esrs::error::JsonError),
 
     #[error(transparent)]
-    Sql(#[from] esrs::error::SqlxError)
+    Sql(#[from] esrs::error::SqlxError),
 }
 // The events to be processed. On receipt of a new log message, the aggregate stores a Received event.
 // If the message contained within can be logged, it is, and then a Succeeded event is produced, otherwise
@@ -20,12 +20,12 @@ pub enum LoggingError {
 pub enum LoggingEvent {
     Received(String),
     Succeeded,
-    Failed
+    Failed,
 }
 
 // The aggregate receieves commands to log a message
 pub enum LoggingCommand {
     TryLog(String),
     Succeed,
-    Fail
+    Fail,
 }

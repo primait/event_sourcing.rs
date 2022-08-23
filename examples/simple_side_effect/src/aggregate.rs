@@ -1,15 +1,14 @@
 use async_trait::async_trait;
-use esrs::policy::{SqlitePolicy};
+use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
 use sqlx::pool::PoolConnection;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
-use esrs::store::{EventStore, StoreEvent, SqliteStore};
+use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
-use crate::structs::{LoggingEvent, LoggingError, LoggingCommand};
-
+use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
 // Here's a simple projection that just carries out a side effect, and can fail,
 // causing the event not to be written to the event store. In this case the
@@ -22,7 +21,7 @@ impl SqliteProjector<LoggingEvent, LoggingError> for LoggingProjector {
     async fn project(
         &self,
         event: &StoreEvent<LoggingEvent>,
-        _: &mut PoolConnection<Sqlite>
+        _: &mut PoolConnection<Sqlite>,
     ) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
@@ -31,7 +30,7 @@ impl SqliteProjector<LoggingEvent, LoggingError> for LoggingProjector {
                     return Err(LoggingError::Domain(msg.clone()));
                 }
                 println!("Logged via projector from {}: {}", id, msg);
-            },
+            }
         }
         Ok(())
     }
@@ -48,11 +47,7 @@ pub struct LoggingPolicy;
 
 #[async_trait]
 impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
-    async fn handle_event(
-        &self,
-        event: &StoreEvent<LoggingEvent>,
-        _: &Pool<Sqlite>,
-    ) -> Result<(), LoggingError> {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Sqlite>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -60,7 +55,7 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
                     return Err(LoggingError::Domain(msg.clone()));
                 }
                 println!("Logged via policy from {}: {}", id, msg);
-            },
+            }
         }
         Ok(())
     }
@@ -69,10 +64,7 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
 const MESSAGES: &str = "messages";
 
 // A store of events
-pub type LogStore = SqliteStore<
-    LoggingEvent,
-    LoggingError
->;
+pub type LogStore = SqliteStore<LoggingEvent, LoggingError>;
 
 pub struct LoggingAggregate {
     event_store: LogStore,
@@ -89,7 +81,7 @@ impl LoggingAggregate {
         let projectors: Vec<Box<dyn SqliteProjector<LoggingEvent, LoggingError> + Send + Sync>> =
             vec![Box::new(LoggingProjector)];
 
-        let policies: Vec<Box<dyn SqlitePolicy<LoggingEvent, LoggingError> + Send + Sync>> = 
+        let policies: Vec<Box<dyn SqlitePolicy<LoggingEvent, LoggingError> + Send + Sync>> =
             vec![Box::new(LoggingPolicy)];
 
         SqliteStore::new::<Self>(pool, projectors, policies).await
@@ -118,10 +110,7 @@ impl AggregateManager for LoggingAggregate {
         state + 1
     }
 
-    fn validate_command(
-        _: &AggregateState<Self::State>,
-        _: &Self::Command,
-    ) -> Result<(), Self::Error> {
+    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
         Ok(()) // No validation done on commands received in this aggregate
     }
 
@@ -131,7 +120,7 @@ impl AggregateManager for LoggingAggregate {
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match cmd {
-            Self::Command::Log(msg) => self.persist(aggregate_state, vec![Self::Event::Logged(msg)]).await
+            Self::Command::Log(msg) => self.persist(aggregate_state, vec![Self::Event::Logged(msg)]).await,
         }
     }
 }
