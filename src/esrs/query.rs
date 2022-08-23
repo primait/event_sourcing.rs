@@ -1,5 +1,6 @@
 pub struct Queries {
     select: String,
+    select_all: String,
     insert: String,
     delete: String,
 }
@@ -8,6 +9,7 @@ impl Queries {
     pub fn new(name: &str) -> Self {
         Self {
             select: select_statement(name),
+            select_all: select_all_statement(name),
             insert: insert_statement(name),
             delete: delete_statement(name),
         }
@@ -15,6 +17,9 @@ impl Queries {
 
     pub fn select(&self) -> &str {
         &self.select
+    }
+    pub fn select_all(&self) -> &str {
+        &self.select_all
     }
     pub fn insert(&self) -> &str {
         &self.insert
@@ -39,6 +44,10 @@ pub fn create_table_statement(aggregate_name: &str) -> String {
     ",
         aggregate_name
     )
+}
+
+fn select_all_statement(aggregate_name: &str) -> String {
+    format!("SELECT * FROM {}_events ORDER BY sequence_number ASC", aggregate_name)
 }
 
 fn select_statement(aggregate_name: &str) -> String {
