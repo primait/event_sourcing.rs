@@ -5,8 +5,6 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use futures::stream::BoxStream;
-use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
@@ -85,6 +83,7 @@ impl<
         })
     }
 
+    // TODO - this is never used? It seems like test code?
     pub async fn test_store<T: Identifier + Sized>(
         connection_url: &'a str,
         projectors: Vec<Box<Projector>>,
@@ -126,6 +125,7 @@ impl<
     }
 
     async fn commit(&self, mut connection: PoolConnection<Sqlite>) -> Result<(), sqlx::Error> {
+        // TODO Why do we not commit when test is true? This seems like a strange check to have in production code
         if !self.test {
             let _ = sqlx::query("COMMIT").execute(&mut connection).await?;
         }
@@ -134,20 +134,6 @@ impl<
 
     async fn rollback(&self, mut connection: PoolConnection<Sqlite>) -> Result<(), sqlx::Error> {
         let _ = sqlx::query("ROLLBACK").execute(&mut connection).await?;
-        Ok(())
-    }
-
-    pub async fn rebuild_events(&self) -> Result<(), Err> {
-        let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
-
-        let mut connection: PoolConnection<Sqlite> = self.begin().await?;
-
-        while let Some(event) = events.try_next().await? {
-            let evt: StoreEvent<Evt> = event.try_into()?;
-            self.project_event(&evt, &mut connection).await?;
-        }
-
         Ok(())
     }
 }
