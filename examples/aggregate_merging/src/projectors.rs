@@ -18,7 +18,7 @@ pub struct CounterProjector;
 // and projecting them to a shared table, is RACE PRONE - if the projector writes to the same column
 // when consuming more than one kind of event (as it does in this example, writing to both count_a and
 // count_b when updating the counts, regardless of if it received and EventA or an EventB), then it is
-// possible for two simulatenous transactions, updating the same projection, to occur. If the projector
+// possible for two simultaneous transactions, updating the same projection, to occur. If the projector
 // also relies on previous state to calculate next state (as this one does), this is a data race. The fix
 // (not implemented here, for demonstration purposes) is dependant on your database transaction isolation
 // model - in this case, using queries which only update count_a when EventA is received, and count_b
