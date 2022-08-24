@@ -1,6 +1,8 @@
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
+use projector::CounterProjector;
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
+use structs::{CounterEvent, CounterError};
 use uuid::Uuid;
 
 use crate::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
@@ -8,6 +10,35 @@ use crate::{aggregate::CounterAggregate, projector::Counter, structs::CounterCom
 pub mod aggregate;
 pub mod projector;
 pub mod structs;
+
+// Rebuild the projection of an aggregation, given the aggregate, an aggregate ID, a projector to rebuild and a pool connection
+async fn rebuild(
+    aggregate: &CounterAggregate,
+    count_id: &Uuid,
+    projector: &dyn SqliteProjector<CounterEvent, CounterError>,
+    pool: &Pool<Sqlite>
+) {
+    let events = aggregate
+        .event_store()
+        .by_aggregate_id(*count_id)
+        .await
+        .expect("Failed to retrieve events");
+    let mut connection = pool.acquire().await.expect("Failed to acquire connection");
+    let _ = sqlx::query("BEGIN")
+        .execute(&mut connection)
+        .await
+        .expect("Failed to begin transaction");
+    for event in events {
+        projector
+            .project(&event, &mut connection)
+            .await
+            .expect("Failed to project event");
+    }
+    let _ = sqlx::query("COMMIT")
+        .execute(&mut connection)
+        .await
+        .expect("Failed to commit rebuild");
+}
 
 // A simple example demonstrating rebuilding a read-side projection from an event
 // stream
@@ -60,31 +91,8 @@ async fn main() {
     let res = Counter::by_id(count_id, &pool).await.expect("Query failed");
     assert!(res.is_none());
 
-    // Rebuild the counter - scoped here to demonstrate that everything is dropped after and it's the underlying
-    // sql table that has been updated
-    {
-        let events = aggregate
-            .event_store()
-            .by_aggregate_id(count_id)
-            .await
-            .expect("Failed to retrieve events");
-        let projector = projector::CounterProjector {};
-        let mut connection = pool.acquire().await.expect("Failed to acquire connection");
-        let _ = sqlx::query("BEGIN")
-            .execute(&mut connection)
-            .await
-            .expect("Failed to begin transaction");
-        for event in events {
-            projector
-                .project(&event, &mut connection)
-                .await
-                .expect("Failed to project event");
-        }
-        let _ = sqlx::query("COMMIT")
-            .execute(&mut connection)
-            .await
-            .expect("Failed to commit rebuild");
-    }
+    let projector = CounterProjector{};
+    rebuild(&aggregate, &count_id, &projector, &pool).await;
 
     // Assert the counter has been rebuilt
     let res = Counter::by_id(count_id, &pool)

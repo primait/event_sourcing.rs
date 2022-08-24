@@ -1,0 +1,1 @@
+An example of rebuilding a projection, given an aggregate_id and a Projector. See `rebuild` in main.rs for the implementation of the rebuilding itself - the rest is just setup to allow us to demonstrate.
