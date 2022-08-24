@@ -29,7 +29,7 @@ pub enum ProjectorEvent {
 }
 
 // We implement From<> for the two event types to convert
-// them into a common PorjectorEvent, so that we can share
+// them into a common ProjectorEvent, so that we can share
 // our projector implementation across two aggregates without
 // needing to duplicate our projector code. This complicates
 // some type bounds a little in aggregates.rs, for the sake
