@@ -14,6 +14,7 @@ version = "0.1.0"
 tokio = {version = "1.6", features = ["full"]}
 
 esrs = {version = "*", path = "../../", features = ["sqlite"]}
+simple_projection = {version = "*", path = "../simple_projection/"}
 # Sql library for async impl
 sqlx = {version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"]}
 

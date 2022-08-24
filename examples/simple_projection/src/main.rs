@@ -2,11 +2,7 @@ use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
-use crate::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
-
-pub mod aggregate;
-pub mod projector;
-pub mod structs;
+use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 
 #[tokio::main]
 async fn main() {

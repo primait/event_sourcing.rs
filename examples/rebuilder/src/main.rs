@@ -1,29 +1,39 @@
+use std::fmt::Debug;
+
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
-use projector::CounterProjector;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use simple_projection::aggregate::CounterAggregate;
+use simple_projection::projector::{Counter, CounterProjector};
+use simple_projection::structs::*;
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
-use structs::{CounterEvent, CounterError};
 use uuid::Uuid;
 
-use crate::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
-
-pub mod aggregate;
-pub mod projector;
-pub mod structs;
-
-// Rebuild the projection of an aggregation, given the aggregate, an aggregate ID, a projector to rebuild and a pool connection
-async fn rebuild(
-    aggregate: &CounterAggregate,
-    count_id: &Uuid,
-    projector: &dyn SqliteProjector<CounterEvent, CounterError>,
-    pool: &Pool<Sqlite>
-) {
-    let events = aggregate
-        .event_store()
-        .by_aggregate_id(*count_id)
-        .await
-        .expect("Failed to retrieve events");
-    let mut connection = pool.acquire().await.expect("Failed to acquire connection");
+// Rebuild the projection of a single aggregation, given the aggregate, an aggregate ID, a projector to rebuild and a pool connection
+// This rebuilds the projection for all aggregate ids in a single transaction. An alternative (see _rebuild_per_id, below) is
+// to rebuild on a per-id basis.
+async fn rebuild_all_at_once<E, Err, A>(
+    aggregate: &A,
+    ids: Vec<Uuid>,
+    projector: &dyn SqliteProjector<E, Err>,
+    pool: &Pool<Sqlite>,
+) where
+    A: AggregateManager<Event = E, Error = Err>,
+    E: Serialize + DeserializeOwned + Send + Sync,
+    Err: Debug,
+{
+    let mut events = Vec::new();
+    for id in ids {
+        events.append(
+            &mut aggregate
+                .event_store()
+                .by_aggregate_id(id)
+                .await
+                .expect("failed to retrieve events"),
+        );
+    }
+    let mut connection = pool.acquire().await.expect("Failed to acquire pool connection");
     let _ = sqlx::query("BEGIN")
         .execute(&mut connection)
         .await
@@ -38,6 +48,23 @@ async fn rebuild(
         .execute(&mut connection)
         .await
         .expect("Failed to commit rebuild");
+}
+
+// An alternative approach to rebuilding that rebuilds the projected table for a given projection one
+// aggregate ID at a time, rather than committing the entire table all at once
+async fn _rebuild_per_id<E, Err, A>(
+    aggregate: &A,
+    ids: Vec<Uuid>,
+    projector: &dyn SqliteProjector<E, Err>,
+    pool: &Pool<Sqlite>,
+) where
+    A: AggregateManager<Event = E, Error = Err>,
+    <A as AggregateManager>::Error: Debug,
+    E: Serialize + DeserializeOwned + Send + Sync,
+{
+    for id in ids {
+        rebuild_all_at_once(aggregate, vec![id], projector, pool).await;
+    }
 }
 
 // A simple example demonstrating rebuilding a read-side projection from an event
@@ -91,8 +118,8 @@ async fn main() {
     let res = Counter::by_id(count_id, &pool).await.expect("Query failed");
     assert!(res.is_none());
 
-    let projector = CounterProjector{};
-    rebuild(&aggregate, &count_id, &projector, &pool).await;
+    let projector = CounterProjector {};
+    rebuild_all_at_once(&aggregate, vec![count_id], &projector, &pool).await;
 
     // Assert the counter has been rebuilt
     let res = Counter::by_id(count_id, &pool)

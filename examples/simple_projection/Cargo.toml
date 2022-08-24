@@ -3,7 +3,7 @@ authors = ["Oliver Browne <oliver.browne@prima.it"]
 description = "Simple esrs projection - one aggregate, one projection"
 edition = "2018"
 license = "MIT OR Apache-2.0"
-name = "simple-projection"
+name = "simple_projection"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
