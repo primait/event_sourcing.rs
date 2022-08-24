@@ -47,7 +47,7 @@ async fn main() {
     let _ = agg_b
         .handle_command(b_state, CommandB {})
         .await
-        .expect("Gailed to handle command b");
+        .expect("Failed to handle command b");
 
     // Retrieve counter projection from sqlite and print
     let counter = Counter::by_id(count_id, &pool)
