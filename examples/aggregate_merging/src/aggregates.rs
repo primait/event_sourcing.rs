@@ -11,8 +11,8 @@ use esrs::store::{EventStore, SqliteStore, StoreEvent};
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
 
-const A_EVENTS: &str = "a_events";
-const B_EVENTS: &str = "b_events";
+const A_EVENTS: &str = "A";
+const B_EVENTS: &str = "B";
 
 // A store of events
 type Store<E> = SqliteStore<E, CounterError>;
@@ -93,9 +93,11 @@ impl AggregateManager for AggregateA {
     async fn do_handle_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
-        _: Self::Command,
+        command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        self.persist(aggregate_state, vec![EventA {}]).await
+        match command {
+            CommandA::Inner => self.persist(aggregate_state, vec![EventA::Inner]).await
+        }
     }
 }
 
@@ -122,8 +124,10 @@ impl AggregateManager for AggregateB {
     async fn do_handle_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
-        _: Self::Command,
+        command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        self.persist(aggregate_state, vec![EventB {}]).await
+        match command {
+            CommandB::Inner => self.persist(aggregate_state, vec![EventB::Inner]).await
+        }
     }
 }

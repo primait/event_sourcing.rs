@@ -44,7 +44,7 @@ async fn main() {
     let _state = aggregate
         .handle_command(state, CounterCommand::Increment)
         .await
-        .expect("Failed t&mut o handle increment command");
+        .expect("Failed to handle increment command");
 
     //Drop and rebuild the counters table
     sqlx::query("DROP TABLE counters")

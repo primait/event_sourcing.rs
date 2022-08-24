@@ -17,9 +17,13 @@ pub enum CounterError {
 // The events produced by the aggregates. These are empty structs as their contents don't
 // matter for this example
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct EventA;
+pub enum EventA {
+    Inner
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct EventB;
+pub enum EventB {
+    Inner
+}
 
 // The event the projector accepts
 #[derive(Serialize, Deserialize, Debug)]
@@ -48,5 +52,9 @@ impl From<EventB> for ProjectorEvent {
 
 // The commands received by the application, which will produce the events
 // These are empty structs since their actual contents dont matter for this example
-pub struct CommandA;
-pub struct CommandB;
+pub enum CommandA {
+    Inner
+}
+pub enum CommandB {
+    Inner
+}

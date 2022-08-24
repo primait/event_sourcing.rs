@@ -141,20 +141,6 @@ impl<
         let _ = sqlx::query("ROLLBACK").execute(&mut connection).await?;
         Ok(())
     }
-
-    pub async fn rebuild_events(&self) -> Result<(), Err> {
-        let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
-
-        let mut connection: PoolConnection<Postgres> = self.begin().await?;
-
-        while let Some(event) = events.try_next().await? {
-            let evt: StoreEvent<Evt> = event.try_into()?;
-            self.project_event(&evt, &mut connection).await?;
-        }
-
-        Ok(())
-    }
 }
 
 #[async_trait]
