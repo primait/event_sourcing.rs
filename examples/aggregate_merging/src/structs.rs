@@ -18,11 +18,11 @@ pub enum CounterError {
 // matter for this example
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventA {
-    Inner
+    Inner,
 }
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventB {
-    Inner
+    Inner,
 }
 
 // The event the projector accepts
@@ -53,8 +53,8 @@ impl From<EventB> for ProjectorEvent {
 // The commands received by the application, which will produce the events
 // These are empty structs since their actual contents dont matter for this example
 pub enum CommandA {
-    Inner
+    Inner,
 }
 pub enum CommandB {
-    Inner
+    Inner,
 }

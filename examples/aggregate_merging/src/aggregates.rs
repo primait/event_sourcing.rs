@@ -96,7 +96,7 @@ impl AggregateManager for AggregateA {
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match command {
-            CommandA::Inner => self.persist(aggregate_state, vec![EventA::Inner]).await
+            CommandA::Inner => self.persist(aggregate_state, vec![EventA::Inner]).await,
         }
     }
 }
@@ -127,7 +127,7 @@ impl AggregateManager for AggregateB {
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         match command {
-            CommandB::Inner => self.persist(aggregate_state, vec![EventB::Inner]).await
+            CommandB::Inner => self.persist(aggregate_state, vec![EventB::Inner]).await,
         }
     }
 }
