@@ -22,7 +22,7 @@ pub struct CounterProjector;
 // also relies on previous state to calculate next state (as this one does), this is a data race. The fix
 // (not implemented here, for demonstration purposes) is dependant on your database transaction isolation
 // model - in this case, using queries which only update count_a when EventA is received, and count_b
-// when EventB is received, would be sufficient to guarentee soundness.
+// when EventB is received, would be sufficient to guarantee soundness.
 #[async_trait]
 impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> SqliteProjector<T, CounterError>
     for CounterProjector
