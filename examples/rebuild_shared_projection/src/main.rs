@@ -33,8 +33,9 @@ async fn main() {
         let events_b = store_b.by_aggregate_id(id).await.unwrap();
 
         // Using StoreEvent::into, convert both event lists into a StoreEvent the shared projector can consume
-        let mut events: Vec<StoreEvent<ProjectorEvent>> = events_a.into_iter().map(|a| a.into()).collect();
-        events.extend(events_b.into_iter().map(|b| b.into()));
+        let mut events: Vec<StoreEvent<ProjectorEvent>> =
+            events_a.into_iter().map(|a| a.map(ProjectorEvent::from)).collect();
+        events.extend(events_b.into_iter().map(|b| b.map(ProjectorEvent::from)));
 
         // Since we've retrieved two different event lists and then concatenated them, we need to sort by timestamp
         // to ensure in-order projection
