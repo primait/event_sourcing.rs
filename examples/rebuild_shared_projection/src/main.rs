@@ -3,7 +3,7 @@ use aggregate_merging::projectors::{Counter, CounterProjector};
 use aggregate_merging::structs::{CommandA, CommandB, CounterError, ProjectorEvent};
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
-use esrs::store::{StoreEvent};
+use esrs::store::StoreEvent;
 
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
