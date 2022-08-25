@@ -67,6 +67,24 @@ async fn _rebuild_per_id<E, Err, A>(
     }
 }
 
+// Rebuild a number of boxed projectors at once, for a single aggregate, for a number of aggregate ids
+async fn _rebuild_multiple_projectors<'a, E, Err, A>(
+    aggregate: &'a A,
+    ids: Vec<Uuid>,
+    projectors: Vec<Box<dyn SqliteProjector<E, Err>>>,
+    pool: &'a Pool<Sqlite>,
+) where
+    A: AggregateManager<Event = E, Error = Err>,
+    <A as AggregateManager>::Error: Debug,
+    E: Serialize + DeserializeOwned + Send + Sync,
+{
+    for projector in projectors {
+        for id in &ids {
+            rebuild_all_at_once(aggregate, vec![*id], projector.as_ref(), pool).await;
+        }
+    }
+}
+
 // A simple example demonstrating rebuilding a read-side projection from an event
 // stream
 #[tokio::main]
