@@ -82,7 +82,7 @@ impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
             aggregate_id: self.aggregate_id,
             payload: self.payload.into(),
             occurred_on: self.occurred_on,
-            sequence_number: self.sequence_number
+            sequence_number: self.sequence_number,
         }
     }
 }

@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use aggregate_merging::aggregates::{AggregateA, AggregateB};
-use aggregate_merging::projectors::{Counter, CounterProjector, self};
-use aggregate_merging::structs::{CommandA, CommandB, EventA, EventB, ProjectorEvent, CounterError};
+use aggregate_merging::projectors::{self, Counter, CounterProjector};
+use aggregate_merging::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, StoreEvent};
@@ -28,7 +28,6 @@ async fn main() {
     let agg_b = AggregateB::new(&pool).await.unwrap();
     let store_a = agg_a.event_store();
     let store_b = agg_b.event_store();
-
 
     let ids = vec![count_id];
     let projectors: Vec<Box<dyn SqliteProjector<ProjectorEvent, CounterError>>> = vec![Box::new(CounterProjector)];
@@ -57,15 +56,13 @@ async fn main() {
 
     let retrieved = Counter::by_id(count_id, &pool).await.unwrap().unwrap();
     assert!(retrieved.count_a == 1 && retrieved.count_b == 1);
-
 }
-
 
 async fn setup(pool: &Pool<Sqlite>, count_id: Uuid) {
     let () = sqlx::migrate!("./migrations")
-    .run(pool)
-    .await
-    .expect("Failed to run migrations");
+        .run(pool)
+        .await
+        .expect("Failed to run migrations");
 
     // Construct the two aggregates
     let agg_a = AggregateA::new(pool).await.expect("Failed to construct aggregate");
@@ -94,5 +91,4 @@ async fn setup(pool: &Pool<Sqlite>, count_id: Uuid) {
         .execute(pool)
         .await
         .expect("Failed to recreate counters table");
-
 }
