@@ -75,4 +75,14 @@ impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
     pub fn payload(&self) -> &Event {
         &self.payload
     }
+
+    pub fn into<Other: Serialize + DeserializeOwned + Send + Sync + From<Event>>(self) -> StoreEvent<Other> {
+        StoreEvent {
+            id: self.id,
+            aggregate_id: self.aggregate_id,
+            payload: self.payload.into(),
+            occurred_on: self.occurred_on,
+            sequence_number: self.sequence_number
+        }
+    }
 }

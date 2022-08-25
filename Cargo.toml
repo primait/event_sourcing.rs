@@ -17,7 +17,9 @@ members = [
     "examples/simple_side_effect",
     "examples/simple_saga",
     "examples/rebuilder",
-    "examples/aggregate_merging"]
+    "examples/aggregate_merging",
+    "examples/rebuild_shared_projection"
+]
 
 [features]
 postgres = ["sqlx/postgres"]

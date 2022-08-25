@@ -2,16 +2,12 @@ use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
-use crate::{
+use aggregate_merging::{
     aggregates::AggregateA,
     aggregates::AggregateB,
     projectors::Counter,
     structs::{CommandA, CommandB},
 };
-
-pub mod aggregates;
-pub mod projectors;
-pub mod structs;
 
 #[tokio::main]
 async fn main() {

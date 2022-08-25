@@ -26,7 +26,7 @@ pub enum EventB {
 }
 
 // The event the projector accepts
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ProjectorEvent {
     A,
     B,
