@@ -1,13 +1,9 @@
-use std::fmt::Debug;
-
 use aggregate_merging::aggregates::{AggregateA, AggregateB};
-use aggregate_merging::projectors::{self, Counter, CounterProjector};
-use aggregate_merging::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
+use aggregate_merging::projectors::{Counter, CounterProjector};
+use aggregate_merging::structs::{CommandA, CommandB, CounterError, ProjectorEvent};
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
-use esrs::store::{EventStore, StoreEvent};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use esrs::store::{StoreEvent};
 
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
