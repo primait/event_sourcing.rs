@@ -50,38 +50,28 @@ impl Aggregate for CreditCardAggregate {
     type Event = CreditCardEvent;
     type Error = CreditCardError;
 
+    fn handle_command(
+        aggregate_state: &AggregateState<CreditCardState>,
+        cmd: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
+        match cmd {
+            CreditCardCommand::Pay { amount } if amount < 0 => Err(Self::Error::NegativeAmount),
+            CreditCardCommand::Pay { amount }
+                if aggregate_state.inner().total_amount + amount > aggregate_state.inner().ceiling =>
+            {
+                Err(Self::Error::CeilingLimitReached)
+            }
+            CreditCardCommand::Pay { amount } => Ok(vec![CreditCardEvent::Payed { amount }]),
+            CreditCardCommand::Refund { amount } if amount < 0 => Err(Self::Error::NegativeAmount),
+            CreditCardCommand::Refund { amount } => Ok(vec![CreditCardEvent::Refunded { amount }]),
+        }
+    }
+
     // No state for credit_card aggregate
     fn apply_event(state: CreditCardState, event: &Self::Event) -> CreditCardState {
         match event {
             CreditCardEvent::Payed { amount } => state.add_amount(*amount),
             CreditCardEvent::Refunded { amount } => state.sub_amount(*amount),
-        }
-    }
-
-    fn validate_command(
-        aggregate_state: &AggregateState<CreditCardState>,
-        cmd: &Self::Command,
-    ) -> Result<(), Self::Error> {
-        match cmd {
-            // Cannot pay with negative amounts
-            CreditCardCommand::Pay { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            // Check if ceiling limit has not been reached
-            CreditCardCommand::Pay { amount }
-                if aggregate_state.inner().total_amount + *amount > aggregate_state.inner().ceiling =>
-            {
-                Err(Self::Error::CeilingLimitReached)
-            }
-            CreditCardCommand::Pay { .. } => Ok(()),
-            // Cannot refund with negative amounts
-            CreditCardCommand::Refund { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            CreditCardCommand::Refund { .. } => Ok(()),
-        }
-    }
-
-    fn handle_command(_aggregate_state: &AggregateState<CreditCardState>, cmd: Self::Command) -> Vec<Self::Event> {
-        match cmd {
-            CreditCardCommand::Pay { amount } => vec![CreditCardEvent::Payed { amount }],
-            CreditCardCommand::Refund { amount } => vec![CreditCardEvent::Refunded { amount }],
         }
     }
 }

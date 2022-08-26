@@ -36,15 +36,12 @@ pub trait Aggregate: Identifier {
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
 
-    /// Validates a command against the current aggregate state. The aggregate must be able to handle the command
-    /// if validation succeeds.
-    fn validate_command(state: &AggregateState<Self::State>, cmd: &Self::Command) -> Result<(), Self::Error>;
-
     /// Handles a validated command, and emits events. This must always succeed if the command was validated
     /// correctly.
     ///
     /// Passing a non-validated command is allowed to panic.
-    fn handle_command(state: &AggregateState<Self::State>, cmd: Self::Command) -> Vec<Self::Event>;
+    fn handle_command(state: &AggregateState<Self::State>, cmd: Self::Command)
+        -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
     /// to the state.
@@ -71,8 +68,7 @@ pub trait AggregateManager: Aggregate {
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        Self::validate_command(&aggregate_state, &cmd)?;
-        let events: Vec<Self::Event> = Self::handle_command(&aggregate_state, cmd);
+        let events: Vec<Self::Event> = Self::handle_command(&aggregate_state, cmd)?;
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, stored_events))

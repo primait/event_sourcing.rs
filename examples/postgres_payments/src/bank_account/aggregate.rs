@@ -52,32 +52,24 @@ impl Eraser<BankAccountEvent, BankAccountError> for BankAccountAggregate {
     }
 }
 
-#[async_trait]
 impl Aggregate for BankAccountAggregate {
     type State = BankAccountState;
     type Command = BankAccountCommand;
     type Event = BankAccountEvent;
     type Error = BankAccountError;
 
-    fn validate_command(
+    fn handle_command(
         aggregate_state: &AggregateState<BankAccountState>,
-        cmd: &Self::Command,
-    ) -> Result<(), Self::Error> {
+        cmd: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         match cmd {
-            BankAccountCommand::Withdraw { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            BankAccountCommand::Withdraw { amount } if aggregate_state.inner().balance - *amount < 0 => {
+            BankAccountCommand::Withdraw { amount } if amount < 0 => Err(Self::Error::NegativeAmount),
+            BankAccountCommand::Withdraw { amount } if aggregate_state.inner().balance - amount < 0 => {
                 Err(Self::Error::NegativeBalance)
             }
-            BankAccountCommand::Withdraw { .. } => Ok(()),
-            BankAccountCommand::Deposit { amount } if *amount < 0 => Err(Self::Error::NegativeAmount),
-            BankAccountCommand::Deposit { .. } => Ok(()),
-        }
-    }
-
-    fn handle_command(_aggregate_state: &AggregateState<BankAccountState>, cmd: Self::Command) -> Vec<Self::Event> {
-        match cmd {
-            BankAccountCommand::Withdraw { amount } => vec![BankAccountEvent::Withdrawn { amount }],
-            BankAccountCommand::Deposit { amount } => vec![BankAccountEvent::Deposited { amount }],
+            BankAccountCommand::Withdraw { amount } => Ok(vec![BankAccountEvent::Withdrawn { amount }]),
+            BankAccountCommand::Deposit { amount } if amount < 0 => Err(Self::Error::NegativeAmount),
+            BankAccountCommand::Deposit { amount } => Ok(vec![BankAccountEvent::Deposited { amount }]),
         }
     }
 
