@@ -29,7 +29,7 @@ async fn sqlite_delete_bank_account_aggregate_and_read_model_test() {
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate
-        .handle_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
+        .execute_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
         .await
         .unwrap();
 
