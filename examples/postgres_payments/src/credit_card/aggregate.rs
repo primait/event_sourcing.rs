@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore};
@@ -50,10 +50,6 @@ impl Aggregate for CreditCardAggregate {
     type Event = CreditCardEvent;
     type Error = CreditCardError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
     // No state for credit_card aggregate
     fn apply_event(state: CreditCardState, event: &Self::Event) -> CreditCardState {
         match event {
@@ -82,14 +78,16 @@ impl Aggregate for CreditCardAggregate {
         }
     }
 
-    fn handle_command(
-        &self,
-        _aggregate_state: &AggregateState<CreditCardState>,
-        cmd: Self::Command,
-    ) -> Vec<Self::Event> {
+    fn handle_command(_aggregate_state: &AggregateState<CreditCardState>, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
             CreditCardCommand::Pay { amount } => vec![CreditCardEvent::Payed { amount }],
             CreditCardCommand::Refund { amount } => vec![CreditCardEvent::Refunded { amount }],
         }
+    }
+}
+
+impl AggregateManager for CreditCardAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

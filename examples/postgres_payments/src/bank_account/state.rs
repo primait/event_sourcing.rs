@@ -1,12 +1,6 @@
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct BankAccountState {
     pub balance: i32,
-}
-
-impl Default for BankAccountState {
-    fn default() -> Self {
-        Self { balance: 0 }
-    }
 }
 
 impl BankAccountState {

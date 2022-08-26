@@ -68,11 +68,11 @@ pub struct StoreEvent<Event: Serialize + DeserializeOwned + Send + Sync> {
 }
 
 impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
-    pub fn sequence_number(&self) -> SequenceNumber {
+    pub const fn sequence_number(&self) -> SequenceNumber {
         self.sequence_number
     }
 
-    pub fn payload(&self) -> &Event {
+    pub const fn payload(&self) -> &Event {
         &self.payload
     }
 }

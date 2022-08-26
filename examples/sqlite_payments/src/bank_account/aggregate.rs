@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateState, Eraser, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Eraser, Identifier};
 use esrs::projector::SqliteProjectorEraser;
 use esrs::store::{EraserStore, EventStore, SqliteStore};
 
@@ -58,17 +58,6 @@ impl Aggregate for BankAccountAggregate {
     type Event = BankAccountEvent;
     type Error = BankAccountError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
-    fn apply_event(state: BankAccountState, event: &Self::Event) -> BankAccountState {
-        match event {
-            BankAccountEvent::Withdrawn { amount } => state.sub_amount(*amount),
-            BankAccountEvent::Deposited { amount } => state.add_amount(*amount),
-        }
-    }
-
     fn validate_command(
         aggregate_state: &AggregateState<BankAccountState>,
         cmd: &Self::Command,
@@ -84,14 +73,23 @@ impl Aggregate for BankAccountAggregate {
         }
     }
 
-    fn handle_command(
-        &self,
-        _aggregate_state: &AggregateState<BankAccountState>,
-        cmd: Self::Command,
-    ) -> Vec<Self::Event> {
+    fn handle_command(_aggregate_state: &AggregateState<BankAccountState>, cmd: Self::Command) -> Vec<Self::Event> {
         match cmd {
             BankAccountCommand::Withdraw { amount } => vec![BankAccountEvent::Withdrawn { amount }],
             BankAccountCommand::Deposit { amount } => vec![BankAccountEvent::Deposited { amount }],
         }
+    }
+
+    fn apply_event(state: BankAccountState, event: &Self::Event) -> BankAccountState {
+        match event {
+            BankAccountEvent::Withdrawn { amount } => state.sub_amount(*amount),
+            BankAccountEvent::Deposited { amount } => state.add_amount(*amount),
+        }
+    }
+}
+
+impl AggregateManager for BankAccountAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }
