@@ -3,8 +3,8 @@ use aggregate_merging::projectors::{Counter, CounterProjector};
 use aggregate_merging::structs::{CommandA, CommandB, CounterError, ProjectorEvent};
 use esrs::aggregate::{AggregateManager, AggregateState};
 use esrs::projector::SqliteProjector;
-use esrs::store::StoreEvent;
 
+use futures::StreamExt;
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
@@ -25,34 +25,66 @@ async fn main() {
     let store_a = agg_a.event_store();
     let store_b = agg_b.event_store();
 
-    let ids = vec![count_id];
+    let mut events_a = store_a.get_all().map(|r| match r {
+        Ok(e) => Ok(e.map(ProjectorEvent::from)),
+        Err(e) => Err(e),
+    });
+    let mut events_b = store_b.get_all().map(|r| match r {
+        Ok(e) => Ok(e.map(ProjectorEvent::from)),
+        Err(e) => Err(e),
+    });
+
     let projectors: Vec<Box<dyn SqliteProjector<ProjectorEvent, CounterError>>> = vec![Box::new(CounterProjector)];
-    for id in ids {
-        // For a given ID, retrieve the event lists for both aggregates
-        let events_a = store_a.by_aggregate_id(id).await.unwrap();
-        let events_b = store_b.by_aggregate_id(id).await.unwrap();
 
-        // Using StoreEvent::into, convert both event lists into a StoreEvent the shared projector can consume
-        let mut events: Vec<StoreEvent<ProjectorEvent>> =
-            events_a.into_iter().map(|a| a.map(ProjectorEvent::from)).collect();
-        events.extend(events_b.into_iter().map(|b| b.map(ProjectorEvent::from)));
-
-        // Since we've retrieved two different event lists and then concatenated them, we need to sort by timestamp
-        // to ensure in-order projection
-        events.sort_by_key(|e| e.occurred_on);
-        // And project them
-        for event in events {
-            let mut connection = pool.acquire().await.unwrap();
-            let _ = sqlx::query("BEGIN").execute(&mut connection).await.unwrap();
-            for projector in &projectors {
-                projector.project(&event, &mut connection).await.unwrap();
-            }
-            let _ = sqlx::query("COMMIT").execute(&mut connection).await.unwrap();
+    let mut a = None;
+    let mut b = None;
+    loop {
+        if a.is_none() {
+            a = events_a.next().await;
         }
+        if b.is_none() {
+            b = events_b.next().await;
+        }
+        if a.is_none() && b.is_none() {
+            break;
+        }
+        let mut connection = pool.acquire().await.unwrap();
+        let _ = sqlx::query("BEGIN").execute(&mut connection).await.unwrap();
+        for projector in &projectors {
+            if a.is_none() {
+                projector
+                    .project(b.as_ref().unwrap().as_ref().unwrap(), &mut connection)
+                    .await
+                    .unwrap();
+                b = None;
+                continue;
+            }
+            if b.is_none() {
+                projector
+                    .project(&a.as_ref().unwrap().as_ref().unwrap(), &mut connection)
+                    .await
+                    .unwrap();
+                a = None;
+                continue;
+            }
+            let a_inner = a.as_ref().unwrap().as_ref().unwrap();
+            let b_inner = b.as_ref().unwrap().as_ref().unwrap();
+            if a_inner.occurred_on > b_inner.occurred_on {
+                projector.project(b_inner, &mut connection).await.unwrap();
+                b = None;
+            } else {
+                projector.project(a_inner, &mut connection).await.unwrap();
+                a = None;
+            }
+        }
+        let _ = sqlx::query("COMMIT").execute(&mut connection).await.unwrap();
     }
 
-    let retrieved = Counter::by_id(count_id, &pool).await.unwrap().unwrap();
-    assert!(retrieved.count_a == 1 && retrieved.count_b == 1);
+    let counter = Counter::by_id(count_id, &pool)
+        .await
+        .expect("Failed to retrieve counter")
+        .expect("Failed to find counter");
+    assert!(counter.count_a == 1 && counter.count_b == 1);
 }
 
 async fn setup(pool: &Pool<Sqlite>, count_id: Uuid) {

@@ -6,7 +6,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
-use futures::TryStreamExt;
+use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
@@ -233,6 +233,20 @@ impl<
 
     async fn close(&self) {
         self.pool.close().await
+    }
+
+    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Evt>, Err>> {
+        Box::pin(
+            sqlx::query_as::<_, Event>(self.queries.select_all())
+                .fetch(&self.pool)
+                .map(|res| match res {
+                    Ok(e) => match e.try_into() {
+                        Ok(e) => Ok(e),
+                        Err(e) => Err(Err::from(e)),
+                    },
+                    Err(e) => Err(e.into()),
+                }),
+        )
     }
 }
 

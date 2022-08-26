@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::{Executor, Sqlite};
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use esrs::projector::SqliteProjector;
@@ -112,5 +115,39 @@ impl Counter {
             .fetch_optional(executor)
             .await
             .map(|_| ())
+    }
+}
+
+// Here's an example of how one might implement a projector that is shared between two aggregates, in a
+// way that guarantees soundness when both aggregate event types can lead to modifying a shared
+// column in the projection. Note that this requires a different Aggregate setup, where a shared
+// (inner) projector is constructed, two SharedProjectors are constructed to wrap the inner, and then
+// an EventStore for each event type is constructed and passed the right SharedProjector for it's Event type,
+// before being passed into some Aggregate::new.
+pub struct SharedProjector<InnerEvent, InnerError> {
+    inner: Arc<Mutex<dyn SqliteProjector<InnerEvent, InnerError> + Send + Sync>>,
+}
+
+impl<InnerEvent, InnerError> SharedProjector<InnerEvent, InnerError> {
+    pub fn new(inner: Arc<Mutex<dyn SqliteProjector<InnerEvent, InnerError> + Send + Sync>>) -> Self {
+        SharedProjector { inner: inner }
+    }
+}
+
+#[async_trait]
+impl<Event, Error, InnerEvent, InnerError> SqliteProjector<Event, Error> for SharedProjector<InnerEvent, InnerError>
+where
+    Event: Into<InnerEvent> + Clone + Send + Sync + Serialize + DeserializeOwned,
+    InnerEvent: Send + Sync + Serialize + DeserializeOwned,
+    InnerError: Into<Error>,
+{
+    async fn project(&self, event: &StoreEvent<Event>, connection: &mut PoolConnection<Sqlite>) -> Result<(), Error> {
+        let event: StoreEvent<InnerEvent> = event.clone().map(Event::into);
+        let inner = self.inner.lock().await;
+        let result = inner.project(&event, connection).await;
+        match result {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e.into()),
+        }
     }
 }

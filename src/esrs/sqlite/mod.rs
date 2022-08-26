@@ -5,6 +5,8 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
+use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
@@ -229,6 +231,20 @@ impl<
     async fn close(&self) {
         self.pool.close().await
     }
+
+    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Evt>, Err>> {
+        Box::pin(
+            sqlx::query_as::<_, Event>(self.queries.select_all())
+                .fetch(&self.pool)
+                .map(|res| match res {
+                    Ok(e) => match e.try_into() {
+                        Ok(e) => Ok(e),
+                        Err(e) => Err(Err::from(e)),
+                    },
+                    Err(e) => Err(e.into()),
+                }),
+        )
+    }
 }
 
 impl<
@@ -246,24 +262,15 @@ impl<
     where
         Self: Sync + 'a,
     {
-        async fn run<
-            Ev: Serialize + DeserializeOwned + Send + Sync,
-            Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: SqliteProjector<Ev, Er> + Send + Sync + ?Sized,
-            Plc: SqlitePolicy<Ev, Er> + Send + Sync + ?Sized,
-        >(
-            me: &InnerSqliteStore<Ev, Er, Prj, Plc>,
-            store_event: &StoreEvent<Ev>,
-            executor: &mut PoolConnection<Sqlite>,
-        ) -> Result<(), Er> {
-            for projector in &me.projectors {
+        let res = async move {
+            for projector in &self.projectors {
                 projector.project(store_event, executor).await?
             }
 
             Ok(())
-        }
+        };
 
-        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, executor))
+        Box::pin(res)
     }
 }
 

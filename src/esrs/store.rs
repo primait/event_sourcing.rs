@@ -3,6 +3,7 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
@@ -32,6 +33,8 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error>;
 
     async fn close(&self);
+
+    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Event>, Error>>;
 }
 
 /// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
@@ -86,6 +89,21 @@ impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
             payload: mapper(self.payload),
             occurred_on: self.occurred_on,
             sequence_number: self.sequence_number,
+        }
+    }
+}
+
+impl<E: Serialize + DeserializeOwned + Send + Sync> Clone for StoreEvent<E>
+where
+    E: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            aggregate_id: self.aggregate_id.clone(),
+            payload: self.payload.clone(),
+            occurred_on: self.occurred_on.clone(),
+            sequence_number: self.sequence_number.clone(),
         }
     }
 }
