@@ -25,7 +25,7 @@ impl CounterAggregate {
         })
     }
 
-    pub async fn new_store(pool: &Pool<Sqlite>) -> Result<CounterStore, CounterError> {
+    async fn new_store(pool: &Pool<Sqlite>) -> Result<CounterStore, CounterError> {
         let projectors: Vec<Box<dyn SqliteProjector<CounterEvent, CounterError> + Send + Sync>> =
             vec![Box::new(CounterProjector)];
 

@@ -25,7 +25,7 @@ impl LoggingAggregate {
         })
     }
 
-    pub async fn new_store(pool: &Pool<Sqlite>) -> Result<LogStore, LoggingError> {
+    async fn new_store(pool: &Pool<Sqlite>) -> Result<LogStore, LoggingError> {
         let projectors: Vec<Box<dyn SqliteProjector<LoggingEvent, LoggingError> + Send + Sync>> = vec![]; // There are no projections here
 
         let policies: Vec<Box<dyn SqlitePolicy<LoggingEvent, LoggingError> + Send + Sync>> =
