@@ -30,16 +30,13 @@ pub trait Identifier {
 /// This trait is purposefully _synchronous_. If you are implementing this trait, your aggregate
 /// should not have any side effects. If you need additional information to handle commands correctly, then
 /// consider looking up that information and placing it in the command.
-pub trait Aggregate: Identifier {
+pub trait Aggregate {
     type State: Default + Clone + Debug + Send + Sync;
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
 
-    /// Handles a validated command, and emits events. This must always succeed if the command was validated
-    /// correctly.
-    ///
-    /// Passing a non-validated command is allowed to panic.
+    /// Handles, validate a command and emits events.
     fn handle_command(state: &AggregateState<Self::State>, cmd: Self::Command)
         -> Result<Vec<Self::Event>, Self::Error>;
 
@@ -58,7 +55,7 @@ pub trait Aggregate: Identifier {
 /// 2. load
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
-pub trait AggregateManager: Aggregate {
+pub trait AggregateManager: Aggregate + Identifier {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
