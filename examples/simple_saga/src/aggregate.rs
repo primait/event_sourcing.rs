@@ -9,7 +9,7 @@ use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
-const MESSAGES: &str = "messages";
+const MESSAGES: &str = "message";
 
 // A store of events
 pub type LogStore = SqliteStore<LoggingEvent, LoggingError>;

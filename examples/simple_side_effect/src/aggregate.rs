@@ -61,7 +61,7 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
     }
 }
 
-const MESSAGES: &str = "messages";
+const MESSAGES: &str = "message";
 
 // A store of events
 pub type LogStore = SqliteStore<LoggingEvent, LoggingError>;

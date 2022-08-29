@@ -9,7 +9,7 @@ use esrs::store::{EventStore, SqliteStore, StoreEvent};
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
-const COUNTERS: &str = "counters";
+const COUNTERS: &str = "counter";
 
 // A store of events
 pub type CounterStore = SqliteStore<CounterEvent, CounterError>;
