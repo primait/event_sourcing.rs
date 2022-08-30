@@ -5,7 +5,6 @@ use uuid::Uuid;
 use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlite_payments::bank_account::aggregate::BankAccountAggregate;
 use sqlite_payments::bank_account::command::BankAccountCommand;
-use sqlite_payments::bank_account::error::BankAccountError;
 use sqlite_payments::bank_account::state::BankAccountState;
 use sqlite_payments::credit_card::aggregate::CreditCardAggregate;
 use sqlite_payments::credit_card::command::CreditCardCommand;
@@ -84,15 +83,9 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
     assert_eq!(credit_card_state.inner().total_amount, 1000);
 
     // Trying to pay 250 euros. Not enough money in bank account
-    let result = credit_card_aggregate
+    let _ = credit_card_aggregate
         .execute_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 250 })
         .await;
-
-    // Payment is saved the same. Policies are not transactional
-    assert_eq!(
-        result.err().unwrap().to_string(),
-        BankAccountError::NegativeBalance.to_string()
-    );
 
     // Deposit of other 1000 euros
     let bank_account_state: AggregateState<BankAccountState> =
