@@ -132,7 +132,7 @@ pub trait AggregateManager: Aggregate + Identifier {
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
             .await?;
 
-        self.event_store().run_policies(&events).await?;
+        let _ = self.event_store().run_policies(&events).await;
 
         Ok(events)
     }
