@@ -17,11 +17,11 @@ use policy::SqlitePolicy;
 use projector::SqliteProjector;
 
 use crate::esrs::aggregate::Identifier;
-use crate::esrs::event::Event;
+use crate::esrs::event::EventHandler;
 use crate::esrs::query::Queries;
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
-use crate::esrs::SequenceNumber;
+use crate::esrs::{event, SequenceNumber};
 use sqlx::types::Json;
 
 pub mod policy;
@@ -50,7 +50,7 @@ pub struct InnerSqliteStore<
     pool: Pool<Sqlite>,
     projectors: Vec<Box<Projector>>,
     policies: Vec<Box<Policy>>,
-    queries: Queries,
+    aggregate_name: String,
     evt: PhantomData<Evt>,
     err: PhantomData<Err>,
     test: bool,
@@ -78,7 +78,7 @@ impl<
             pool: pool.clone(),
             projectors,
             policies,
-            queries: Queries::new(aggregate_name),
+            aggregate_name: aggregate_name.to_string(),
             evt: PhantomData::default(),
             err: PhantomData::default(),
             test: false,
@@ -101,7 +101,7 @@ impl<
             pool,
             projectors,
             policies,
-            queries: Queries::new(aggregate_name),
+            aggregate_name: aggregate_name.to_string(),
             evt: PhantomData::default(),
             err: PhantomData::default(),
             test: true,
@@ -138,8 +138,8 @@ impl<
     }
 
     pub async fn rebuild_events(&self) -> Result<(), Err> {
-        let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
+        let query: String = event::select_all_query(&self.aggregate_name);
+        let mut events = sqlx::query_as::<_, event::Event>(query.as_str()).fetch(&self.pool);
 
         let mut connection: PoolConnection<Sqlite> = self.begin().await?;
 
@@ -161,13 +161,7 @@ impl<
     > EventStore<Evt, Err> for InnerSqliteStore<Evt, Err, Projector, Policy>
 {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
-        Ok(sqlx::query_as::<_, Event>(self.queries.select())
-            .bind(id)
-            .fetch_all(&self.pool)
-            .await?
-            .into_iter()
-            .map(|event| Ok(event.try_into()?))
-            .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?)
+        EventHandler::<Sqlite>::by_aggregate_id(&self.aggregate_name, id, &self.pool).await
     }
 
     async fn persist(
@@ -187,14 +181,16 @@ impl<
             .collect();
 
         for ((event_id, event), sequence_number) in events.iter() {
-            let result = sqlx::query(self.queries.insert())
-                .bind(event_id)
-                .bind(aggregate_id)
-                .bind(Json(event))
-                .bind(occurred_on)
-                .bind(sequence_number)
-                .execute(&mut *connection)
-                .await;
+            let result = EventHandler::<Sqlite>::insert(
+                &self.aggregate_name,
+                *event_id,
+                aggregate_id,
+                event,
+                occurred_on,
+                *sequence_number,
+                &mut *connection,
+            )
+            .await;
 
             if let Err(err) = result {
                 self.rollback(connection).await?;
@@ -291,11 +287,7 @@ impl<
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Err> {
         let mut connection: PoolConnection<Sqlite> = self.begin().await?;
-        let _ = sqlx::query(self.queries.delete())
-            .bind(aggregate_id)
-            .execute(&mut *connection)
-            .await
-            .map(|_| ());
+        EventHandler::<Sqlite>::delete_by_aggregate_id(&self.aggregate_name, aggregate_id, &self.pool).await?;
 
         for projector in &self.projectors {
             projector.delete(aggregate_id, &mut connection).await?
