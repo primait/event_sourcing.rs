@@ -59,27 +59,21 @@ impl<
         Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
     > InnerPgStore<Event, Error, Projector, Policy>
 {
-    /// Prefer this. Pool should be shared between stores
     pub async fn new<T: Aggregate + Sized>(
         pool: &'a Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
-        let aggregate_name: &str = <T as Aggregate>::name();
-        DatabaseSetup::run(aggregate_name, pool).await?;
+        DatabaseSetup::run(T::name(), pool).await?;
 
         Ok(Self {
             pool: pool.clone(),
             projectors,
             policies,
-            aggregate_name: aggregate_name.to_string(),
+            aggregate_name: T::name().to_string(),
             phantom_event_type: PhantomData::default(),
             phantom_error_type: PhantomData::default(),
         })
-    }
-
-    pub const fn pool(&self) -> &Pool<Postgres> {
-        &self.pool
     }
 
     pub fn add_projector(&mut self, projector: Box<Projector>) -> &mut Self {
