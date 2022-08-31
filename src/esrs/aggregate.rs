@@ -60,7 +60,7 @@ pub trait AggregateManager: Aggregate + Identifier {
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
-    async fn execute_command(
+    async fn handle(
         &self,
         aggregate_state: AggregateState<Self::State>,
         cmd: Self::Command,

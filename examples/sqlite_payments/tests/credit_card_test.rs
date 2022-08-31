@@ -40,7 +40,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate
-        .execute_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
+        .handle(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
         .await
         .unwrap();
 
@@ -56,7 +56,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Cannot pay negative amount
     let result = credit_card_aggregate
-        .execute_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: -10 })
+        .handle(credit_card_state.clone(), CreditCardCommand::Pay { amount: -10 })
         .await;
 
     assert_eq!(
@@ -66,7 +66,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Cannot refund negative amount
     let result = credit_card_aggregate
-        .execute_command(credit_card_state.clone(), CreditCardCommand::Refund { amount: -10 })
+        .handle(credit_card_state.clone(), CreditCardCommand::Refund { amount: -10 })
         .await;
 
     assert_eq!(
@@ -76,7 +76,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Credit card payment of 1000 euros
     let credit_card_state: AggregateState<CreditCardState> = credit_card_aggregate
-        .execute_command(credit_card_state, CreditCardCommand::Pay { amount: 1000 })
+        .handle(credit_card_state, CreditCardCommand::Pay { amount: 1000 })
         .await
         .unwrap();
 
@@ -84,7 +84,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Trying to pay 250 euros. Not enough money in bank account
     let _ = credit_card_aggregate
-        .execute_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 250 })
+        .handle(credit_card_state.clone(), CreditCardCommand::Pay { amount: 250 })
         .await;
 
     // Deposit of other 1000 euros
@@ -92,7 +92,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
         bank_account_aggregate.load(bank_account_id).await.unwrap();
 
     let _bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate
-        .execute_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
+        .handle(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
         .await
         .unwrap();
 
@@ -100,7 +100,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
     let credit_card_state: AggregateState<CreditCardState> =
         credit_card_aggregate.load(*credit_card_state.id()).await.unwrap();
     let credit_card_state: AggregateState<CreditCardState> = credit_card_aggregate
-        .execute_command(credit_card_state, CreditCardCommand::Pay { amount: 250 })
+        .handle(credit_card_state, CreditCardCommand::Pay { amount: 250 })
         .await
         .unwrap();
 
@@ -108,7 +108,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Cannot exceed ceiling (1500)
     let result = credit_card_aggregate
-        .execute_command(credit_card_state.clone(), CreditCardCommand::Pay { amount: 300 })
+        .handle(credit_card_state.clone(), CreditCardCommand::Pay { amount: 300 })
         .await;
 
     assert_eq!(
@@ -118,7 +118,7 @@ async fn sqlite_credit_card_aggregate_and_projector_test() {
 
     // Refund of 250 euros. Total amount is 1250
     let credit_card_state: AggregateState<CreditCardState> = credit_card_aggregate
-        .execute_command(credit_card_state, CreditCardCommand::Refund { amount: 250 })
+        .handle(credit_card_state, CreditCardCommand::Refund { amount: 250 })
         .await
         .unwrap();
 

@@ -31,12 +31,12 @@ async fn postgres_credit_card_aggregate_event_order_test() {
     let bank_account_aggregate: BankAccountAggregate = BankAccountAggregate::new(&pool).await.unwrap();
 
     bank_account_state = bank_account_aggregate
-        .execute_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
+        .handle(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
         .await
         .unwrap();
 
     bank_account_aggregate
-        .execute_command(bank_account_state, BankAccountCommand::Withdraw { amount: 10 })
+        .handle(bank_account_state, BankAccountCommand::Withdraw { amount: 10 })
         .await
         .unwrap();
 

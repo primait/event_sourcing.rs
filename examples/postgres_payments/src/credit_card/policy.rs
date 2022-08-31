@@ -30,7 +30,7 @@ impl PgPolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
             CreditCardEvent::Refunded { amount } => BankAccountCommand::Deposit { amount },
         };
 
-        let _ = bank_account.execute_command(state, command).await?;
+        let _ = bank_account.handle(state, command).await?;
 
         Ok(())
     }

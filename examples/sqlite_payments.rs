@@ -46,7 +46,7 @@ async fn main() {
 
     // Salary deposit (1000)
     let bank_account_state: AggregateState<BankAccountState> = bank_account_aggregate
-        .execute_command(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
+        .handle(bank_account_state, BankAccountCommand::Deposit { amount: 1000 })
         .await
         .unwrap();
 
@@ -62,7 +62,7 @@ async fn main() {
     );
 
     let _credit_card_state: AggregateState<CreditCardState> = credit_card_aggregate
-        .execute_command(credit_card_state, CreditCardCommand::Pay { amount: tv_price })
+        .handle(credit_card_state, CreditCardCommand::Pay { amount: tv_price })
         .await
         .unwrap();
 
