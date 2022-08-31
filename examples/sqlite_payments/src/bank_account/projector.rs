@@ -1,46 +1,45 @@
 use async_trait::async_trait;
-use sqlx::{Executor, Sqlite};
+use sqlx::{Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
-use esrs::projector::{SqliteProjector, SqliteProjectorEraser};
+use esrs::projector::{Projector, ProjectorEraser};
 use esrs::store::StoreEvent;
 
 use crate::bank_account::error::BankAccountError;
 use crate::bank_account::event::BankAccountEvent;
-use sqlx::pool::PoolConnection;
 
 pub struct BankAccountProjector;
 
 #[async_trait]
-impl SqliteProjector<BankAccountEvent, BankAccountError> for BankAccountProjector {
+impl Projector<Sqlite, BankAccountEvent, BankAccountError> for BankAccountProjector {
     async fn project(
         &self,
         event: &StoreEvent<BankAccountEvent>,
-        connection: &mut PoolConnection<Sqlite>,
+        transaction: &mut Transaction<Sqlite>,
     ) -> Result<(), BankAccountError> {
         match event.payload {
             BankAccountEvent::Withdrawn { amount } => {
-                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *connection)
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
                     .await?
                     .map(|bank_account| bank_account.balance);
 
                 match balance {
                     Some(balance) => {
-                        Ok(BankAccount::update(event.aggregate_id, balance - amount, &mut *connection).await?)
+                        Ok(BankAccount::update(event.aggregate_id, balance - amount, &mut *transaction).await?)
                     }
-                    None => Ok(BankAccount::insert(event.aggregate_id, -amount, &mut *connection).await?),
+                    None => Ok(BankAccount::insert(event.aggregate_id, -amount, &mut *transaction).await?),
                 }
             }
             BankAccountEvent::Deposited { amount } => {
-                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *connection)
+                let balance: Option<i32> = BankAccount::by_bank_account_id(event.aggregate_id, &mut *transaction)
                     .await?
                     .map(|bank_account| bank_account.balance);
 
                 match balance {
                     Some(balance) => {
-                        Ok(BankAccount::update(event.aggregate_id, balance + amount, &mut *connection).await?)
+                        Ok(BankAccount::update(event.aggregate_id, balance + amount, &mut *transaction).await?)
                     }
-                    None => Ok(BankAccount::insert(event.aggregate_id, amount, connection).await?),
+                    None => Ok(BankAccount::insert(event.aggregate_id, amount, transaction).await?),
                 }
             }
         }
@@ -48,13 +47,9 @@ impl SqliteProjector<BankAccountEvent, BankAccountError> for BankAccountProjecto
 }
 
 #[async_trait]
-impl SqliteProjectorEraser<BankAccountEvent, BankAccountError> for BankAccountProjector {
-    async fn delete(
-        &self,
-        aggregate_id: Uuid,
-        connection: &mut PoolConnection<Sqlite>,
-    ) -> Result<(), BankAccountError> {
-        Ok(BankAccount::delete(aggregate_id, connection).await?)
+impl ProjectorEraser<Sqlite, BankAccountEvent, BankAccountError> for BankAccountProjector {
+    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<Sqlite>) -> Result<(), BankAccountError> {
+        Ok(BankAccount::delete(aggregate_id, transaction).await?)
     }
 }
 

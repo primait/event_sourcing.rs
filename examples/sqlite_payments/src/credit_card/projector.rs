@@ -1,38 +1,37 @@
 use async_trait::async_trait;
-use sqlx::{Executor, Sqlite};
+use sqlx::{Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
-use esrs::projector::{SqliteProjector, SqliteProjectorEraser};
+use esrs::projector::{Projector, ProjectorEraser};
 use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
 use crate::credit_card::event::CreditCardEvent;
-use sqlx::pool::PoolConnection;
 
 pub struct CreditCardsProjector;
 
 #[async_trait]
-impl SqliteProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
+impl Projector<Sqlite, CreditCardEvent, CreditCardError> for CreditCardsProjector {
     async fn project(
         &self,
         event: &StoreEvent<CreditCardEvent>,
-        connection: &mut PoolConnection<Sqlite>,
+        transaction: &mut Transaction<Sqlite>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
             CreditCardEvent::Payed { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, connection).await?)
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, transaction).await?)
             }
             CreditCardEvent::Refunded { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, connection).await?)
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, transaction).await?)
             }
         }
     }
 }
 
 #[async_trait]
-impl SqliteProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn delete(&self, aggregate_id: Uuid, connection: &mut PoolConnection<Sqlite>) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, connection).await?)
+impl ProjectorEraser<Sqlite, CreditCardEvent, CreditCardError> for CreditCardsProjector {
+    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<Sqlite>) -> Result<(), CreditCardError> {
+        Ok(CreditCard::delete(aggregate_id, transaction).await?)
     }
 }
 

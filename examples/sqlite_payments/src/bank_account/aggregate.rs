@@ -3,7 +3,7 @@ use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Eraser};
-use esrs::projector::SqliteProjectorEraser;
+use esrs::projector::ProjectorEraser;
 use esrs::store::{EraserStore, EventStore, SqliteStore};
 
 use crate::bank_account::command::BankAccountCommand;
@@ -15,7 +15,7 @@ use crate::bank_account::state::BankAccountState;
 pub type BankAccountStore = SqliteStore<
     BankAccountEvent,
     BankAccountError,
-    dyn SqliteProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync,
+    dyn ProjectorEraser<Sqlite, BankAccountEvent, BankAccountError> + Send + Sync,
 >;
 
 pub struct BankAccountAggregate {
@@ -30,7 +30,7 @@ impl BankAccountAggregate {
     }
 
     pub async fn new_store(pool: &Pool<Sqlite>) -> Result<BankAccountStore, BankAccountError> {
-        let projectors: Vec<Box<dyn SqliteProjectorEraser<BankAccountEvent, BankAccountError> + Send + Sync>> =
+        let projectors: Vec<Box<dyn ProjectorEraser<Sqlite, BankAccountEvent, BankAccountError> + Send + Sync>> =
             vec![Box::new(BankAccountProjector)];
 
         SqliteStore::new::<Self>(pool, projectors, vec![]).await

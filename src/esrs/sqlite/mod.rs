@@ -11,37 +11,30 @@ use serde::Serialize;
 use sqlx::{Pool, Sqlite, Transaction};
 use uuid::Uuid;
 
-use crate::aggregate::Aggregate;
-use policy::SqlitePolicy;
-use projector::SqliteProjector;
-
+use crate::esrs::aggregate::Aggregate;
 use crate::esrs::event::Querier;
 use crate::esrs::setup::{DatabaseSetup, Setup};
-use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
-use crate::esrs::{event, SequenceNumber};
-
-pub mod policy;
-pub mod projector;
+use crate::esrs::{event, policy, projector, SequenceNumber};
 
 /// Convenient alias. It needs 4 generics to instantiate `InnerSqliteStore`:
 /// - Event
 /// - Error
-/// - Projector: Default to `dyn SqliteProjector<Event, Error>`
-/// - Policy: Default to `dyn SqlitePolicy<Event, Error>`
+/// - Projector: Default to `dyn projector::Projector< Event, Error>`
+/// - Policy: Default to `dyn policy::Policy<Sqlite, Event, Error>`
 pub type SqliteStore<
     Event,
     Error,
-    Projector = dyn SqliteProjector<Event, Error> + Send + Sync,
-    Policy = dyn SqlitePolicy<Event, Error> + Send + Sync,
+    Projector = dyn projector::Projector<Sqlite, Event, Error> + Send + Sync,
+    Policy = dyn policy::Policy<Sqlite, Event, Error> + Send + Sync,
 > = InnerSqliteStore<Event, Error, Projector, Policy>;
 
 /// TODO: some doc here
 pub struct InnerSqliteStore<
     Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error>,
-    Projector: SqliteProjector<Event, Error> + Send + Sync + ?Sized,
-    Policy: SqlitePolicy<Event, Error> + Send + Sync + ?Sized,
+    Projector: projector::Projector<Sqlite, Event, Error> + Send + Sync + ?Sized,
+    Policy: policy::Policy<Sqlite, Event, Error> + Send + Sync + ?Sized,
 > {
     pool: Pool<Sqlite>,
     projectors: Vec<Box<Projector>>,
@@ -55,8 +48,8 @@ impl<
         'a,
         Event: 'a + Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: SqliteProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: SqlitePolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Sqlite, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Sqlite, Event, Error> + Send + Sync + ?Sized,
     > InnerSqliteStore<Event, Error, Projector, Policy>
 {
     pub async fn new<T: Aggregate + Sized>(
@@ -105,8 +98,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: SqliteProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: SqlitePolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Sqlite, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Sqlite, Event, Error> + Send + Sync + ?Sized,
     > EventStore<Event, Error> for InnerSqliteStore<Event, Error, Projector, Policy>
 {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
@@ -182,9 +175,9 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: SqliteProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: SqlitePolicy<Event, Error> + Send + Sync + ?Sized,
-    > ProjectorStore<Event, Transaction<'_, Sqlite>, Error> for InnerSqliteStore<Event, Error, Projector, Policy>
+        Projector: projector::Projector<Sqlite, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Sqlite, Event, Error> + Send + Sync + ?Sized,
+    > ProjectorStore<Transaction<'_, Sqlite>, Event, Error> for InnerSqliteStore<Event, Error, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
@@ -197,8 +190,8 @@ impl<
         async fn run<
             Ev: Serialize + DeserializeOwned + Send + Sync,
             Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: SqliteProjector<Ev, Er> + Send + Sync + ?Sized,
-            Plc: SqlitePolicy<Ev, Er> + Send + Sync + ?Sized,
+            Prj: projector::Projector<Sqlite, Ev, Er> + Send + Sync + ?Sized,
+            Plc: policy::Policy<Sqlite, Ev, Er> + Send + Sync + ?Sized,
         >(
             me: &InnerSqliteStore<Ev, Er, Prj, Plc>,
             store_event: &StoreEvent<Ev>,
@@ -219,8 +212,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: SqliteProjector<Event, Error> + SqliteProjectorEraser<Event, Error> + Send + Sync + ?Sized,
-        Policy: SqlitePolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::ProjectorEraser<Sqlite, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Sqlite, Event, Error> + Send + Sync + ?Sized,
     > EraserStore<Event, Error> for InnerSqliteStore<Event, Error, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error> {

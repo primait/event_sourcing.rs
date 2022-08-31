@@ -36,7 +36,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
 
 /// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
 /// form that is better suited to being read by other parts of the application.
-pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Executor, Error> {
+pub trait ProjectorStore<Executor, Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     fn project_event<'a>(
         &'a self,
         store_event: &'a StoreEvent<Event>,

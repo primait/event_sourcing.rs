@@ -11,37 +11,30 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::aggregate::Aggregate;
-use policy::PgPolicy;
-use projector::PgProjector;
-
+use crate::esrs::aggregate::Aggregate;
 use crate::esrs::event::Querier;
 use crate::esrs::setup::{DatabaseSetup, Setup};
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
-use crate::esrs::{event, SequenceNumber};
-use crate::projector::PgProjectorEraser;
-
-pub mod policy;
-pub mod projector;
+use crate::esrs::{event, policy, projector, SequenceNumber};
 
 /// Convenient alias. It needs 4 generics to instantiate `InnerSqliteStore`:
 /// - Event
 /// - Error
-/// - Projector: Default to `dyn SqliteProjector<Event, Error>`
-/// - Policy: Default to `dyn SqlitePolicy<Event, Error>`
+/// - Projector: Default to `dyn Projector<Postgres, Event, Error>`
+/// - Policy: Default to `dyn Policy<Postgres, Event, Error>`
 pub type PgStore<
     Event,
     Error,
-    Projector = dyn PgProjector<Event, Error> + Send + Sync,
-    Policy = dyn PgPolicy<Event, Error> + Send + Sync,
+    Projector = dyn projector::Projector<Postgres, Event, Error> + Send + Sync,
+    Policy = dyn policy::Policy<Postgres, Event, Error> + Send + Sync,
 > = InnerPgStore<Event, Error, Projector, Policy>;
 
 /// TODO: some doc here
 pub struct InnerPgStore<
     Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error>,
-    Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-    Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+    Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
 > {
     pool: Pool<Postgres>,
     projectors: Vec<Box<Projector>>,
@@ -52,15 +45,15 @@ pub struct InnerPgStore<
 }
 
 impl<
-        'a,
-        Event: 'a + Serialize + DeserializeOwned + Send + Sync,
+        'e,
+        Event: 'e + Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > InnerPgStore<Event, Error, Projector, Policy>
 {
     pub async fn new<T: Aggregate + Sized>(
-        pool: &'a Pool<Postgres>,
+        pool: &'e Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
@@ -105,8 +98,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > EventStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
@@ -182,9 +175,9 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
-    > ProjectorStore<Event, Transaction<'_, Postgres>, Error> for InnerPgStore<Event, Error, Projector, Policy>
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
+    > ProjectorStore<Transaction<'_, Postgres>, Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
@@ -197,8 +190,8 @@ impl<
         async fn run<
             Ev: Serialize + DeserializeOwned + Send + Sync,
             Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: PgProjector<Ev, Er> + Send + Sync + ?Sized,
-            Plc: PgPolicy<Ev, Er> + Send + Sync + ?Sized,
+            Prj: projector::Projector<Postgres, Ev, Er> + Send + Sync + ?Sized,
+            Plc: policy::Policy<Postgres, Ev, Er> + Send + Sync + ?Sized,
         >(
             me: &InnerPgStore<Ev, Er, Prj, Plc>,
             store_event: &StoreEvent<Ev>,
@@ -219,8 +212,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjectorEraser<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::ProjectorEraser<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > EraserStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error> {
@@ -239,8 +232,9 @@ impl<
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::aggregate::AggregateState;
+
+    use super::*;
 
     #[derive(Debug)]
     pub enum Error {
@@ -286,10 +280,8 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn hello_table_do_not_exist_test() {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+    #[sqlx::test]
+    async fn hello_table_do_not_exist_test(pool: Pool<Postgres>) {
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())
             .fetch_all(&pool)
@@ -299,11 +291,9 @@ mod tests {
         assert!(rows.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_transaction_in_test_store_test() {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        persist(database_url.as_str()).await;
-        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+    #[sqlx::test]
+    async fn test_transaction_in_test_store_test(pool: Pool<Postgres>) -> sqlx::Result<()> {
+        persist(&pool).await;
         // When
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())
@@ -312,11 +302,12 @@ mod tests {
             .unwrap();
 
         assert!(rows.is_empty());
+        Ok(())
     }
 
-    async fn persist(database_url: &str) {
+    async fn persist(pool: &Pool<Postgres>) {
         let aggregate_id: Uuid = Uuid::new_v4();
-        let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![]).await.unwrap();
+        let test_store: PgStore<String, Error> = PgStore::new::<Hello>(&pool, vec![], vec![]).await.unwrap();
         let _ = test_store
             .persist(aggregate_id, vec!["hello".to_string(), "goodbye".to_string()], 0)
             .await

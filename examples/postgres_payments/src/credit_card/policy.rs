@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{AggregateManager, AggregateState};
-use esrs::policy::PgPolicy;
+use esrs::policy::Policy;
 use esrs::store::StoreEvent;
 
 use crate::bank_account::aggregate::BankAccountAggregate;
@@ -15,7 +15,7 @@ use crate::credit_card::event::CreditCardEvent;
 pub struct BankAccountPolicy;
 
 #[async_trait]
-impl PgPolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
+impl Policy<Postgres, CreditCardEvent, CreditCardError> for BankAccountPolicy {
     async fn handle_event(
         &self,
         event: &StoreEvent<CreditCardEvent>,

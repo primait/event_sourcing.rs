@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{AggregateManager, AggregateState};
-use esrs::policy::SqlitePolicy;
+use esrs::policy::Policy;
 use esrs::store::StoreEvent;
 
 use crate::bank_account::aggregate::BankAccountAggregate;
@@ -15,7 +15,7 @@ use crate::credit_card::event::CreditCardEvent;
 pub struct BankAccountPolicy;
 
 #[async_trait]
-impl SqlitePolicy<CreditCardEvent, CreditCardError> for BankAccountPolicy {
+impl Policy<Sqlite, CreditCardEvent, CreditCardError> for BankAccountPolicy {
     async fn handle_event(
         &self,
         event: &StoreEvent<CreditCardEvent>,

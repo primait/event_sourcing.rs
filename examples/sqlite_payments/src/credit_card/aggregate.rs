@@ -1,8 +1,8 @@
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::policy::SqlitePolicy;
-use esrs::projector::SqliteProjector;
+use esrs::policy::Policy;
+use esrs::projector::Projector;
 use esrs::store::{EventStore, SqliteStore};
 
 use crate::credit_card::command::CreditCardCommand;
@@ -26,10 +26,10 @@ impl CreditCardAggregate {
     pub async fn new_store(
         pool: &Pool<Sqlite>,
     ) -> Result<SqliteStore<CreditCardEvent, CreditCardError>, CreditCardError> {
-        let projectors: Vec<Box<dyn SqliteProjector<CreditCardEvent, CreditCardError> + Send + Sync>> =
+        let projectors: Vec<Box<dyn Projector<Sqlite, CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(CreditCardsProjector)];
 
-        let policies: Vec<Box<dyn SqlitePolicy<CreditCardEvent, CreditCardError> + Send + Sync>> =
+        let policies: Vec<Box<dyn Policy<Sqlite, CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(BankAccountPolicy)];
 
         SqliteStore::new::<Self>(pool, projectors, policies).await

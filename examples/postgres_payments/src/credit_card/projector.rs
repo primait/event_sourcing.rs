@@ -1,9 +1,8 @@
 use async_trait::async_trait;
-use sqlx::pool::PoolConnection;
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
-use esrs::projector::{PgProjector, PgProjectorEraser};
+use esrs::projector::{Projector, ProjectorEraser};
 use esrs::store::StoreEvent;
 
 use crate::credit_card::error::CreditCardError;
@@ -12,31 +11,27 @@ use crate::credit_card::event::CreditCardEvent;
 pub struct CreditCardsProjector;
 
 #[async_trait]
-impl PgProjector<CreditCardEvent, CreditCardError> for CreditCardsProjector {
+impl Projector<Postgres, CreditCardEvent, CreditCardError> for CreditCardsProjector {
     async fn project(
         &self,
         event: &StoreEvent<CreditCardEvent>,
-        connection: &mut PoolConnection<Postgres>,
+        transaction: &mut Transaction<Postgres>,
     ) -> Result<(), CreditCardError> {
         match event.payload {
             CreditCardEvent::Payed { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, connection).await?)
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "pay".to_string(), amount, transaction).await?)
             }
             CreditCardEvent::Refunded { amount } => {
-                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, connection).await?)
+                Ok(CreditCard::insert(event.id, event.aggregate_id, "refund".to_string(), amount, transaction).await?)
             }
         }
     }
 }
 
 #[async_trait]
-impl PgProjectorEraser<CreditCardEvent, CreditCardError> for CreditCardsProjector {
-    async fn delete(
-        &self,
-        aggregate_id: Uuid,
-        connection: &mut PoolConnection<Postgres>,
-    ) -> Result<(), CreditCardError> {
-        Ok(CreditCard::delete(aggregate_id, connection).await?)
+impl ProjectorEraser<Postgres, CreditCardEvent, CreditCardError> for CreditCardsProjector {
+    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<Postgres>) -> Result<(), CreditCardError> {
+        Ok(CreditCard::delete(aggregate_id, transaction).await?)
     }
 }
 

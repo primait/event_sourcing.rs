@@ -9,6 +9,7 @@ pub trait Setup<T: sqlx::Database> {
 
 pub struct DatabaseSetup;
 
+#[cfg(feature = "postgres")]
 #[async_trait::async_trait]
 impl Setup<Postgres> for DatabaseSetup {
     async fn run(aggregate_name: &str, pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
@@ -30,6 +31,7 @@ impl Setup<Postgres> for DatabaseSetup {
     }
 }
 
+#[cfg(feature = "sqlite")]
 #[async_trait::async_trait]
 impl Setup<Sqlite> for DatabaseSetup {
     async fn run(aggregate_name: &str, pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
@@ -59,6 +61,7 @@ pub fn create_table_statement(aggregate_name: &str) -> String {
     )
 }
 
+#[cfg(feature = "postgres")]
 pub fn create_id_index_statement(aggregate_name: &str) -> String {
     format!(
         "CREATE INDEX IF NOT EXISTS {0}_events_aggregate_id ON {0}_events USING btree (((payload ->> 'id'::text)))",
@@ -66,6 +69,7 @@ pub fn create_id_index_statement(aggregate_name: &str) -> String {
     )
 }
 
+#[cfg(feature = "postgres")]
 pub fn create_aggregate_id_index_statement(aggregate_name: &str) -> String {
     format!(
         "CREATE UNIQUE INDEX IF NOT EXISTS {0}_events_aggregate_id_sequence_number ON {0}_events(aggregate_id, sequence_number)",
