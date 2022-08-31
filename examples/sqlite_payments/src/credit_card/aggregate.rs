@@ -1,6 +1,6 @@
 use sqlx::{Pool, Sqlite};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore};
@@ -11,8 +11,6 @@ use crate::credit_card::event::CreditCardEvent;
 use crate::credit_card::policy::BankAccountPolicy;
 use crate::credit_card::projector::CreditCardsProjector;
 use crate::credit_card::state::CreditCardState;
-
-const PAYMENT: &str = "credit_card";
 
 pub struct CreditCardAggregate {
     event_store: SqliteStore<CreditCardEvent, CreditCardError>,
@@ -38,17 +36,15 @@ impl CreditCardAggregate {
     }
 }
 
-impl Identifier for CreditCardAggregate {
-    fn name() -> &'static str {
-        PAYMENT
-    }
-}
-
 impl Aggregate for CreditCardAggregate {
     type State = CreditCardState;
     type Command = CreditCardCommand;
     type Event = CreditCardEvent;
     type Error = CreditCardError;
+
+    fn name() -> &'static str {
+        "credit_card"
+    }
 
     fn handle_command(
         aggregate_state: &AggregateState<CreditCardState>,

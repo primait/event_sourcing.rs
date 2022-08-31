@@ -113,15 +113,13 @@ impl Querier<Postgres> for Event {
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     {
         Box::pin(async move {
-            Ok(
-                sqlx::query_as::<_, Event>(by_aggregate_id_query(aggregate_name).as_str())
-                    .bind(aggregate_id)
-                    .fetch_all(executor)
-                    .await?
-                    .into_iter()
-                    .map(|event| Ok(event.try_into()?))
-                    .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?,
-            )
+            sqlx::query_as::<_, Self>(by_aggregate_id_query(aggregate_name).as_str())
+                .bind(aggregate_id)
+                .fetch_all(executor)
+                .await?
+                .into_iter()
+                .map(|event| Ok(event.try_into()?))
+                .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()
         })
     }
 
@@ -185,15 +183,13 @@ impl Querier<Sqlite> for Event {
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
     {
         Box::pin(async move {
-            Ok(
-                sqlx::query_as::<_, Event>(by_aggregate_id_query(aggregate_name).as_str())
-                    .bind(aggregate_id)
-                    .fetch_all(executor)
-                    .await?
-                    .into_iter()
-                    .map(|event| Ok(event.try_into()?))
-                    .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?,
-            )
+            sqlx::query_as::<_, Self>(by_aggregate_id_query(aggregate_name).as_str())
+                .bind(aggregate_id)
+                .fetch_all(executor)
+                .await?
+                .into_iter()
+                .map(|event| Ok(event.try_into()?))
+                .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()
         })
     }
 
@@ -239,6 +235,6 @@ fn delete_query(aggregate_name: &str) -> String {
     format!("DELETE FROM {}_events WHERE aggregate_id = $1", aggregate_name)
 }
 
-pub(crate) fn select_all_query(aggregate_name: &str) -> String {
+pub fn select_all_query(aggregate_name: &str) -> String {
     format!("SELECT * FROM {}_events ORDER BY sequence_number ASC", aggregate_name)
 }

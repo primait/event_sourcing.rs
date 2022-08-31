@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Eraser, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Eraser};
 use esrs::projector::PgProjectorEraser;
 use esrs::store::{EraserStore, EventStore, PgStore};
 
@@ -11,8 +11,6 @@ use crate::bank_account::error::BankAccountError;
 use crate::bank_account::event::BankAccountEvent;
 use crate::bank_account::projector::BankAccountProjector;
 use crate::bank_account::state::BankAccountState;
-
-const BANK_ACCOUNT: &str = "bank_account";
 
 pub type BankAccountStore = PgStore<
     BankAccountEvent,
@@ -39,12 +37,6 @@ impl BankAccountAggregate {
     }
 }
 
-impl Identifier for BankAccountAggregate {
-    fn name() -> &'static str {
-        BANK_ACCOUNT
-    }
-}
-
 #[async_trait]
 impl Eraser<BankAccountEvent, BankAccountError> for BankAccountAggregate {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), BankAccountError> {
@@ -57,6 +49,10 @@ impl Aggregate for BankAccountAggregate {
     type Command = BankAccountCommand;
     type Event = BankAccountEvent;
     type Error = BankAccountError;
+
+    fn name() -> &'static str {
+        "bank_account"
+    }
 
     fn handle_command(
         aggregate_state: &AggregateState<BankAccountState>,

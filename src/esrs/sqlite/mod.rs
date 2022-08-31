@@ -12,10 +12,10 @@ use sqlx::pool::{PoolConnection, PoolOptions};
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use crate::aggregate::Aggregate;
 use policy::SqlitePolicy;
 use projector::SqliteProjector;
 
-use crate::esrs::aggregate::Identifier;
 use crate::esrs::event::Querier;
 use crate::esrs::setup::{DatabaseSetup, Setup};
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
@@ -62,12 +62,12 @@ impl<
     > InnerSqliteStore<Event, Error, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
-    pub async fn new<T: Identifier + Sized>(
+    pub async fn new<T: Aggregate + Sized>(
         pool: &'a Pool<Sqlite>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
-        let aggregate_name: &str = <T as Identifier>::name();
+        let aggregate_name: &str = <T as Aggregate>::name();
         DatabaseSetup::run(aggregate_name, pool).await?;
 
         Ok(Self {
@@ -81,7 +81,7 @@ impl<
         })
     }
 
-    pub async fn test_store<T: Identifier + Sized>(
+    pub async fn test_store<T: Aggregate + Sized>(
         connection_url: &'a str,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
@@ -89,7 +89,7 @@ impl<
         let pool: Pool<Sqlite> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
 
-        let aggregate_name: &str = <T as Identifier>::name();
+        let aggregate_name: &str = <T as Aggregate>::name();
         DatabaseSetup::run(aggregate_name, &pool).await?;
 
         Ok(Self {
@@ -189,7 +189,7 @@ impl<
 
             if let Err(err) = result {
                 self.rollback(connection).await?;
-                return Err(err.into());
+                return Err(err);
             }
         }
 

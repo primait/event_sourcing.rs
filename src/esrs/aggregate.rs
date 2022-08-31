@@ -8,18 +8,6 @@ use uuid::Uuid;
 use crate::esrs::state::AggregateState;
 use crate::esrs::store::{EventStore, StoreEvent};
 
-/// The Identifier trait is responsible for naming an aggregate type.
-/// Each aggregate type should have an identifier that is unique among all the aggregate types in your application.
-///
-/// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
-/// `name`, as doing so will break the link between all the aggregates of their type, and their events!
-pub trait Identifier {
-    /// Returns the aggregate name
-    fn name() -> &'static str
-    where
-        Self: Sized;
-}
-
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
 ///
@@ -35,6 +23,15 @@ pub trait Aggregate {
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
+
+    /// This function is responsible for naming an aggregate type.
+    /// Each aggregate type should have an identifier that is unique among all the aggregate types in your application.
+    ///
+    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
+    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
+    fn name() -> &'static str
+    where
+        Self: Sized;
 
     /// Handles, validate a command and emits events.
     fn handle_command(state: &AggregateState<Self::State>, cmd: Self::Command)
@@ -55,7 +52,7 @@ pub trait Aggregate {
 /// 2. load
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
-pub trait AggregateManager: Aggregate + Identifier {
+pub trait AggregateManager: Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
 

@@ -12,10 +12,10 @@ use sqlx::pool::{PoolConnection, PoolOptions};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use crate::aggregate::Aggregate;
 use policy::PgPolicy;
 use projector::PgProjector;
 
-use crate::esrs::aggregate::Identifier;
 use crate::esrs::event::Querier;
 use crate::esrs::setup::{DatabaseSetup, Setup};
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
@@ -62,12 +62,12 @@ impl<
     > InnerPgStore<Event, Error, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
-    pub async fn new<T: Identifier + Sized>(
+    pub async fn new<T: Aggregate + Sized>(
         pool: &'a Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
-        let aggregate_name: &str = <T as Identifier>::name();
+        let aggregate_name: &str = <T as Aggregate>::name();
         DatabaseSetup::run(aggregate_name, pool).await?;
 
         Ok(Self {
@@ -81,7 +81,7 @@ impl<
         })
     }
 
-    pub async fn test<T: Identifier + Sized>(
+    pub async fn test<T: Aggregate + Sized>(
         connection_url: &'a str,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
@@ -89,7 +89,7 @@ impl<
         let pool: Pool<Postgres> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
         sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
 
-        let aggregate_name: &str = <T as Identifier>::name();
+        let aggregate_name: &str = <T as Aggregate>::name();
         DatabaseSetup::run(aggregate_name, &pool).await?;
 
         Ok(Self {
@@ -192,7 +192,7 @@ impl<
 
             if let Err(err) = result {
                 self.rollback(connection).await?;
-                return Err(err.into());
+                return Err(err);
             }
         }
 
@@ -298,6 +298,7 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aggregate::AggregateState;
 
     #[derive(Debug)]
     pub enum Error {
@@ -318,12 +319,28 @@ mod tests {
     }
 
     struct Hello;
-    impl Identifier for Hello {
+    impl Aggregate for Hello {
+        type State = ();
+        type Command = ();
+        type Event = ();
+        type Error = ();
+
         fn name() -> &'static str
         where
             Self: Sized,
         {
             "hello"
+        }
+
+        fn handle_command(
+            _state: &AggregateState<Self::State>,
+            _cmd: Self::Command,
+        ) -> Result<Vec<Self::Event>, Self::Error> {
+            Ok(vec![])
+        }
+
+        fn apply_event(state: Self::State, _payload: &Self::Event) -> Self::State {
+            state
         }
     }
 
