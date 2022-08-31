@@ -4,7 +4,7 @@ pub mod state;
 pub mod store;
 
 #[cfg(any(feature = "postgres", feature = "sqlite"))]
-pub mod query;
+pub mod setup;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
