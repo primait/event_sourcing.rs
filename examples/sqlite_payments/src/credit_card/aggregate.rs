@@ -1,4 +1,4 @@
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, Sqlite, Transaction};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::Policy;
@@ -26,10 +26,11 @@ impl CreditCardAggregate {
     pub async fn new_store(
         pool: &Pool<Sqlite>,
     ) -> Result<SqliteStore<CreditCardEvent, CreditCardError>, CreditCardError> {
-        let projectors: Vec<Box<dyn Projector<Sqlite, CreditCardEvent, CreditCardError> + Send + Sync>> =
-            vec![Box::new(CreditCardsProjector)];
+        let projectors: Vec<
+            Box<dyn Projector<Transaction<'static, Sqlite>, CreditCardEvent, CreditCardError> + Send + Sync>,
+        > = vec![Box::new(CreditCardsProjector)];
 
-        let policies: Vec<Box<dyn Policy<Sqlite, CreditCardEvent, CreditCardError> + Send + Sync>> =
+        let policies: Vec<Box<dyn Policy<Pool<Sqlite>, CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(BankAccountPolicy)];
 
         SqliteStore::new::<Self>(pool, projectors, policies).await

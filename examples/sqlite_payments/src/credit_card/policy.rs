@@ -15,7 +15,7 @@ use crate::credit_card::event::CreditCardEvent;
 pub struct BankAccountPolicy;
 
 #[async_trait]
-impl Policy<Sqlite, CreditCardEvent, CreditCardError> for BankAccountPolicy {
+impl Policy<Pool<Sqlite>, CreditCardEvent, CreditCardError> for BankAccountPolicy {
     async fn handle_event(
         &self,
         event: &StoreEvent<CreditCardEvent>,

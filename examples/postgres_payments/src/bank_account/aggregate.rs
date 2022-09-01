@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Eraser};
@@ -15,7 +15,7 @@ use crate::bank_account::state::BankAccountState;
 pub type BankAccountStore = PgStore<
     BankAccountEvent,
     BankAccountError,
-    dyn ProjectorEraser<Postgres, BankAccountEvent, BankAccountError> + Send + Sync,
+    dyn ProjectorEraser<Transaction<'static, Postgres>, BankAccountEvent, BankAccountError> + Send + Sync,
 >;
 
 pub struct BankAccountAggregate {
@@ -30,8 +30,9 @@ impl BankAccountAggregate {
     }
 
     pub async fn new_store(pool: &Pool<Postgres>) -> Result<BankAccountStore, BankAccountError> {
-        let projectors: Vec<Box<dyn ProjectorEraser<Postgres, BankAccountEvent, BankAccountError> + Send + Sync>> =
-            vec![Box::new(BankAccountProjector)];
+        let projectors: Vec<
+            Box<dyn ProjectorEraser<Transaction<'static, Postgres>, BankAccountEvent, BankAccountError> + Send + Sync>,
+        > = vec![Box::new(BankAccountProjector)];
 
         PgStore::new::<Self>(pool, projectors, vec![]).await
     }

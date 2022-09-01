@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::Policy;
@@ -26,10 +26,11 @@ impl CreditCardAggregate {
     pub async fn new_store(
         pool: &Pool<Postgres>,
     ) -> Result<PgStore<CreditCardEvent, CreditCardError>, CreditCardError> {
-        let projectors: Vec<Box<dyn Projector<Postgres, CreditCardEvent, CreditCardError> + Send + Sync>> =
-            vec![Box::new(CreditCardsProjector)];
+        let projectors: Vec<
+            Box<dyn Projector<Transaction<'static, Postgres>, CreditCardEvent, CreditCardError> + Send + Sync>,
+        > = vec![Box::new(CreditCardsProjector)];
 
-        let policies: Vec<Box<dyn Policy<Postgres, CreditCardEvent, CreditCardError> + Send + Sync>> =
+        let policies: Vec<Box<dyn Policy<Pool<Postgres>, CreditCardEvent, CreditCardError> + Send + Sync>> =
             vec![Box::new(BankAccountPolicy)];
 
         PgStore::new::<Self>(pool, projectors, policies).await

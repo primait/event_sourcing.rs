@@ -11,7 +11,7 @@ use crate::credit_card::event::CreditCardEvent;
 pub struct CreditCardsProjector;
 
 #[async_trait]
-impl Projector<Sqlite, CreditCardEvent, CreditCardError> for CreditCardsProjector {
+impl Projector<Transaction<'static, Sqlite>, CreditCardEvent, CreditCardError> for CreditCardsProjector {
     async fn project(
         &self,
         event: &StoreEvent<CreditCardEvent>,
@@ -29,7 +29,7 @@ impl Projector<Sqlite, CreditCardEvent, CreditCardError> for CreditCardsProjecto
 }
 
 #[async_trait]
-impl ProjectorEraser<Sqlite, CreditCardEvent, CreditCardError> for CreditCardsProjector {
+impl ProjectorEraser<Transaction<'static, Sqlite>, CreditCardEvent, CreditCardError> for CreditCardsProjector {
     async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<Sqlite>) -> Result<(), CreditCardError> {
         Ok(CreditCard::delete(aggregate_id, transaction).await?)
     }

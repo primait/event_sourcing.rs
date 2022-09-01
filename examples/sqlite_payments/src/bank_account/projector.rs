@@ -11,7 +11,7 @@ use crate::bank_account::event::BankAccountEvent;
 pub struct BankAccountProjector;
 
 #[async_trait]
-impl Projector<Sqlite, BankAccountEvent, BankAccountError> for BankAccountProjector {
+impl Projector<Transaction<'static, Sqlite>, BankAccountEvent, BankAccountError> for BankAccountProjector {
     async fn project(
         &self,
         event: &StoreEvent<BankAccountEvent>,
@@ -47,7 +47,7 @@ impl Projector<Sqlite, BankAccountEvent, BankAccountError> for BankAccountProjec
 }
 
 #[async_trait]
-impl ProjectorEraser<Sqlite, BankAccountEvent, BankAccountError> for BankAccountProjector {
+impl ProjectorEraser<Transaction<'static, Sqlite>, BankAccountEvent, BankAccountError> for BankAccountProjector {
     async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<Sqlite>) -> Result<(), BankAccountError> {
         Ok(BankAccount::delete(aggregate_id, transaction).await?)
     }
