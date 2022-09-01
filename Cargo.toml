@@ -15,7 +15,8 @@ version = "0.6.2"
 members = [
     "examples/simple_projection",
     "examples/simple_side_effect",
-    "examples/simple_saga"
+    "examples/simple_saga",
+    "examples/aggregate_merging",
 ]
 
 [features]
