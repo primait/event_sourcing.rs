@@ -187,24 +187,13 @@ impl<
     where
         Self: Sync + 'a,
     {
-        async fn run<
-            Ev: Serialize + DeserializeOwned + Send + Sync,
-            Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: projector::Projector<Postgres, Ev, Er> + Send + Sync + ?Sized,
-            Plc: policy::Policy<Postgres, Ev, Er> + Send + Sync + ?Sized,
-        >(
-            me: &InnerPgStore<Ev, Er, Prj, Plc>,
-            store_event: &StoreEvent<Ev>,
-            executor: &mut Transaction<'_, Postgres>,
-        ) -> Result<(), Er> {
-            for projector in &me.projectors {
+        Box::pin(async move {
+            for projector in &self.projectors {
                 projector.project(store_event, executor).await?
             }
 
             Ok(())
-        }
-
-        Box::pin(run::<Event, Error, Projector, Policy>(self, store_event, executor))
+        })
     }
 }
 
