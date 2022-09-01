@@ -1,0 +1,1 @@
+This example implements a saga-style transaction, where an event is persisted and, after processing by a policy, another command run, indicating the outcome of the processing. See aggregate.rs for the bulk of the necessary logic, and main.rs for a note about the `AggregateState` invalidation that results from this approach.
