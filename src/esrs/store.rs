@@ -96,11 +96,11 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            id: self.id.clone(),
-            aggregate_id: self.aggregate_id.clone(),
+            id: self.id,
+            aggregate_id: self.aggregate_id,
             payload: self.payload.clone(),
-            occurred_on: self.occurred_on.clone(),
-            sequence_number: self.sequence_number.clone(),
+            occurred_on: self.occurred_on,
+            sequence_number: self.sequence_number,
         }
     }
 }
