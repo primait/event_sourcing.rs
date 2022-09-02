@@ -1,4 +1,5 @@
-use sqlx::{pool::PoolOptions, Pool, Sqlite};
+use sqlx::{pool::PoolOptions, Pool, Postgres};
+use sqlx::migrate::MigrateDatabase;
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState};
@@ -10,19 +11,15 @@ pub mod structs;
 
 #[tokio::main]
 async fn main() {
-    println!("Starting pool");
-    let pool: Pool<Sqlite> = PoolOptions::new()
-        .connect("sqlite::memory:")
+    let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL variable not set");
+
+    Postgres::drop_database(database_url.as_str()).await.unwrap();
+    Postgres::create_database(database_url.as_str()).await.unwrap();
+
+    let pool: Pool<Postgres> = PoolOptions::new()
+        .connect(database_url.as_str())
         .await
         .expect("Failed to create pool");
-
-    println!("Running migrations");
-    let () = sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    println!("Migrations run");
 
     let logger_id = Uuid::new_v4();
 

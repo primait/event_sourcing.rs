@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use sqlx::pool::PoolConnection;
-use sqlx::{Executor, Sqlite};
+use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use esrs::projector::SqliteProjector;
+use esrs::projector::PgProjector;
 use esrs::store::StoreEvent;
 
 use crate::structs::{CounterError, CounterEvent};
@@ -11,11 +11,11 @@ use crate::structs::{CounterError, CounterEvent};
 pub struct CounterProjector;
 
 #[async_trait]
-impl SqliteProjector<CounterEvent, CounterError> for CounterProjector {
+impl PgProjector<CounterEvent, CounterError> for CounterProjector {
     async fn project(
         &self,
         event: &StoreEvent<CounterEvent>,
-        connection: &mut PoolConnection<Sqlite>,
+        connection: &mut PoolConnection<Postgres>,
     ) -> Result<(), CounterError> {
         let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection)
             .await?
@@ -40,7 +40,10 @@ pub struct Counter {
 }
 
 impl Counter {
-    pub async fn by_id(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn by_id(
+        id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM counters WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)
@@ -50,7 +53,7 @@ impl Counter {
     pub async fn insert(
         id: Uuid,
         count: i32,
-        executor: impl Executor<'_, Database = Sqlite>,
+        executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("INSERT INTO counters (counter_id, count) VALUES ($1, $2)")
             .bind(id)
@@ -63,7 +66,7 @@ impl Counter {
     pub async fn update(
         id: Uuid,
         count: i32,
-        executor: impl Executor<'_, Database = Sqlite>,
+        executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("UPDATE counters SET count = $2 WHERE counter_id = $1")
             .bind(id)
@@ -73,7 +76,7 @@ impl Counter {
             .map(|_| ())
     }
 
-    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<(), sqlx::Error> {
+    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("DELETE FROM counter WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)

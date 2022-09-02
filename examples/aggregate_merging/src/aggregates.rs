@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
-use esrs::projector::SqliteProjector;
-use esrs::store::{EventStore, SqliteStore};
+use esrs::projector::PgProjector;
+use esrs::store::{EventStore, PgStore};
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
@@ -14,7 +14,7 @@ const A_EVENTS: &str = "A";
 const B_EVENTS: &str = "B";
 
 // A store of events
-type Store<E> = SqliteStore<E, CounterError>;
+type Store<E> = PgStore<E, CounterError>;
 
 // We use a template here to make instantiating the near-identical
 // AggregateA and AggregateB easier.
@@ -33,17 +33,17 @@ impl<
 where
     Aggregate<E>: Identifier,
 {
-    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, CounterError> {
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         Ok(Self {
             event_store: Self::new_store(pool).await?,
         })
     }
 
-    pub async fn new_store(pool: &Pool<Sqlite>) -> Result<Store<E>, CounterError> {
+    pub async fn new_store(pool: &Pool<Postgres>) -> Result<Store<E>, CounterError> {
         // Any aggregate based off this template will project to the CounterProjector
-        let projectors: Vec<Box<dyn SqliteProjector<E, CounterError> + Send + Sync>> = vec![Box::new(CounterProjector)];
+        let projectors: Vec<Box<dyn PgProjector<E, CounterError> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        SqliteStore::new::<Self>(pool, projectors, vec![]).await
+        PgStore::new::<Self>(pool, projectors, vec![]).await
     }
 }
 
