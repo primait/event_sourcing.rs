@@ -11,7 +11,7 @@ version = "0.1.0"
 # async main
 tokio = {version = "1.6", features = ["full"]}
 
-esrs = {version = "*", path = "../../", features = ["sqlite"]}
+esrs = {version = "*", path = "../../", features = ["postgres"]}
 # Sql library for async impl
 sqlx = {version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"]}
 

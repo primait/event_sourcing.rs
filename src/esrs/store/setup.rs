@@ -1,6 +1,5 @@
 use sqlx::postgres::PgQueryResult;
-use sqlx::sqlite::SqliteQueryResult;
-use sqlx::{Pool, Postgres, Sqlite};
+use sqlx::{Pool, Postgres};
 
 #[async_trait::async_trait]
 pub trait Setup<T: sqlx::Database> {
@@ -24,19 +23,6 @@ impl Setup<Postgres> for DatabaseSetup {
             .await?;
 
         let _: PgQueryResult = sqlx::query(create_aggregate_id_index_statement(aggregate_name).as_str())
-            .execute(pool)
-            .await?;
-
-        Ok(())
-    }
-}
-
-#[cfg(feature = "sqlite")]
-#[async_trait::async_trait]
-impl Setup<Sqlite> for DatabaseSetup {
-    async fn run(aggregate_name: &str, pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
-        // Create table if not exists
-        let _: SqliteQueryResult = sqlx::query(create_table_statement(aggregate_name).as_str())
             .execute(pool)
             .await?;
 

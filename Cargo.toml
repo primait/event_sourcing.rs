@@ -20,7 +20,6 @@ members = [
 
 [features]
 postgres = ["sqlx/postgres"]
-sqlite = ["sqlx/sqlite"]
 
 [dependencies]
 # Serialization/Deserialization

@@ -1,33 +1,32 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite, Transaction};
+use sqlx::{Pool, Postgres, Transaction};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::projector::Projector;
-use esrs::store::{EventStore, SqliteStore};
+use esrs::store::{EventStore, PgStore};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
 // A store of events
-pub type CounterStore = SqliteStore<CounterEvent, CounterError>;
+pub type CounterStore = PgStore<CounterEvent, CounterError>;
 
 pub struct CounterAggregate {
     event_store: CounterStore,
 }
 
 impl CounterAggregate {
-    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, CounterError> {
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         Ok(Self {
             event_store: Self::new_store(pool).await?,
         })
     }
 
-    async fn new_store(pool: &Pool<Sqlite>) -> Result<CounterStore, CounterError> {
-        let projectors: Vec<
-            Box<dyn Projector<Transaction<'static, Sqlite>, CounterEvent, CounterError> + Send + Sync>,
-        > = vec![Box::new(CounterProjector)];
+    async fn new_store(pool: &Pool<Postgres>) -> Result<CounterStore, CounterError> {
+        let projectors: Vec<Box<dyn Projector<CounterEvent, CounterError> + Send + Sync>> =
+            vec![Box::new(CounterProjector)];
 
-        SqliteStore::new::<Self>(pool, projectors, vec![]).await
+        PgStore::new::<Self>(pool, projectors, vec![]).await
     }
 }
 

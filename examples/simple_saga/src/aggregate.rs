@@ -1,36 +1,33 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Sqlite, Transaction};
+use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::Policy;
 use esrs::projector::Projector;
-use esrs::store::{EventStore, SqliteStore, StoreEvent};
+use esrs::store::{EventStore, PgStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
 // A store of events
-pub type LogStore = SqliteStore<LoggingEvent, LoggingError>;
+pub type LogStore = PgStore<LoggingEvent, LoggingError>;
 
 pub struct LoggingAggregate {
     event_store: LogStore,
 }
 
 impl LoggingAggregate {
-    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, LoggingError> {
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
         Ok(Self {
             event_store: Self::new_store(pool).await?,
         })
     }
 
-    async fn new_store(pool: &Pool<Sqlite>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<
-            Box<dyn Projector<Transaction<'static, Sqlite>, LoggingEvent, LoggingError> + Send + Sync>,
-        > = vec![]; // There are no projections here
+    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
+        let projectors: Vec<Box<dyn Projector<LoggingEvent, LoggingError> + Send + Sync>> = vec![]; // There are no projections here
 
-        let policies: Vec<Box<dyn Policy<Pool<Sqlite>, LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingPolicy {})];
+        let policies: Vec<Box<dyn Policy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
 
-        SqliteStore::new::<Self>(pool, projectors, policies).await
+        PgStore::new::<Self>(pool, projectors, policies).await
     }
 }
 
@@ -39,10 +36,10 @@ impl LoggingAggregate {
 struct LoggingPolicy;
 
 #[async_trait]
-impl Policy<Pool<Sqlite>, LoggingEvent, LoggingError> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, pool: &Pool<Sqlite>) -> Result<(), LoggingError> {
+impl Policy<LoggingEvent, LoggingError> for LoggingPolicy {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
-        let agg = LoggingAggregate::new(pool).await?;
+        let agg = LoggingAggregate::new(todo!()).await?;
         let state = agg
             .load(event.aggregate_id)
             .await

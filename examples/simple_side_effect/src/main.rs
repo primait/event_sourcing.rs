@@ -1,5 +1,5 @@
 use esrs::aggregate::{AggregateManager, AggregateState};
-use sqlx::{pool::PoolOptions, Pool, Sqlite};
+use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
@@ -9,7 +9,8 @@ pub mod structs;
 
 #[tokio::main]
 async fn main() {
-    let pool: Pool<Sqlite> = PoolOptions::new()
+    let pool: Pool<Postgres> = PoolOptions::new()
+        // FIXME: postgres connection url
         .connect("sqlite::memory:")
         .await
         .expect("Failed to create pool");

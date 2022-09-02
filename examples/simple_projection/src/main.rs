@@ -1,5 +1,5 @@
 use esrs::aggregate::{AggregateManager, AggregateState};
-use sqlx::{pool::PoolOptions, Pool, Sqlite};
+use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
@@ -7,7 +7,8 @@ use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs
 #[tokio::main]
 async fn main() {
     println!("Starting pool");
-    let pool: Pool<Sqlite> = PoolOptions::new()
+    let pool: Pool<Postgres> = PoolOptions::new()
+        // FIXME: postgres connection url
         .connect("sqlite::memory:")
         .await
         .expect("Failed to create pool");
@@ -34,7 +35,7 @@ async fn main() {
         .await
         .expect("Failed to handle increment command");
 
-    // Retrieve counter projection from sqlite and print
+    // Retrieve counter projection from postgres and print
     let counter = Counter::by_id(count_id, &pool)
         .await
         .expect("Failed to retrieve counter")
@@ -52,7 +53,7 @@ async fn main() {
         .await
         .expect("Failed to handle increment command");
 
-    // Retrieve counter projection from sqlite and print
+    // Retrieve counter projection from postgres and print
     let counter = Counter::by_id(count_id, &pool)
         .await
         .expect("Failed to retrieve counter")
@@ -66,7 +67,7 @@ async fn main() {
         .await
         .expect("Failed to handle increment command");
 
-    // Retrieve counter projection from sqlite and print
+    // Retrieve counter projection from postgres and print
     let counter = Counter::by_id(count_id, &pool)
         .await
         .expect("Failed to retrieve counter")

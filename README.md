@@ -16,9 +16,6 @@ Event Sourcing RS uses under the hood [`sqlx`].
 # postgres database
 esrs = { version = "0.6", features = ["postgres"] }
 sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
-# sqlite database
-esrs = { version = "0.6", features = ["sqlite"] }
-sqlx = { version = "0.6", features = ["sqlite", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
 ## Run examples, tests and linting
@@ -41,10 +38,7 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 Run examples.
 
 ```shell
-# Run payments example using postgres database
-cargo run --example postgres-payments
-# Run payments example using sqlite database
-cargo run --example sqlite-payments
+cargo run -p simple-saga
 ```
 
 Run tests and linting.

@@ -7,7 +7,7 @@ pub mod aggregate {
 
 pub mod error {
     pub use serde_json::Error as JsonError;
-    #[cfg(any(feature = "postgres", feature = "sqlite"))]
+    #[cfg(feature = "postgres")]
     pub use sqlx::Error as SqlxError;
 }
 
@@ -16,15 +16,13 @@ pub mod policy {
 }
 
 pub mod projector {
-    pub use crate::esrs::projector::{Projector, ProjectorEraser};
+    pub use crate::esrs::projector::Projector;
 }
 
 pub mod store {
     #[cfg(feature = "postgres")]
-    pub use crate::esrs::postgres::PgStore;
-    #[cfg(feature = "sqlite")]
-    pub use crate::esrs::sqlite::SqliteStore;
-    pub use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
+    pub use crate::esrs::store::postgres::PgStore;
+    pub use crate::esrs::store::{EventStore, StoreEvent};
 }
 
 pub mod types {

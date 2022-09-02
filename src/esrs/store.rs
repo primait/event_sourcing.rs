@@ -1,56 +1,63 @@
 use std::future::Future;
 use std::pin::Pin;
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::esrs::SequenceNumber;
+use crate::policy::Policy;
+use crate::projector::Projector;
+
+#[cfg(feature = "postgres")]
+pub mod postgres;
+#[cfg(feature = "postgres")]
+mod setup;
 
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
-#[async_trait]
 pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// Loads the events that an aggregate instance has emitted in the past.
-    async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
+    fn by_aggregate_id<'a>(
+        &'a self,
+        id: Uuid,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<StoreEvent<Event>>, Error>> + Send + 'a>>;
 
     /// Persists multiple events into the database.  This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
     ///
     /// Persisting events may additionally trigger configured Projectors.
-    async fn persist(
-        &self,
+    fn persist<'a>(
+        &'a self,
         aggregate_id: Uuid,
         events: Vec<Event>,
         starting_sequence_number: SequenceNumber,
-    ) -> Result<Vec<StoreEvent<Event>>, Error>;
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<StoreEvent<Event>>, Error>> + Send + 'a>>;
+
+    fn projectors(&self) -> &Vec<Box<dyn Projector<Event, Error> + Send + Sync>>;
+
+    /// Run any projector attached to this store against a set of events.
+    fn project_events<'a>(
+        &'a self,
+        store_event: &'a [StoreEvent<Event>],
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>;
+
+    fn policies(&self) -> &Vec<Box<dyn Policy<Event, Error> + Send + Sync>>;
 
     /// Run any policies attached to this store against a set of events.
     /// This should be called only after the events have successfully been persisted in the store.
-    async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error>;
-
-    async fn close(&self);
-}
-
-/// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
-/// form that is better suited to being read by other parts of the application.
-pub trait ProjectorStore<Executor, Event: Serialize + DeserializeOwned + Send + Sync, Error> {
-    fn project_event<'a>(
+    fn run_policies<'a>(
         &'a self,
-        store_event: &'a StoreEvent<Event>,
-        executor: &'a mut Executor,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
-    where
-        Self: Sync + 'a;
-}
+        events: &'a [StoreEvent<Event>],
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>;
 
-#[async_trait]
-/// An EraserStore is responsible for wiping an aggregate instance from history: it should delete the
-/// aggregate instance, along with all of its events, or fail.
-pub trait EraserStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
+    fn delete_by_aggregate_id<'a>(
+        &'a self,
+        aggregate_id: Uuid,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>;
+
+    fn close<'a>(&'a self) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 }
 
 /// A StoreEvent contains the payload (the original event) alongside the event's metadata.
