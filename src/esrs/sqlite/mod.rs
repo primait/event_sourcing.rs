@@ -10,6 +10,7 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
+use sqlx::types::Json;
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
@@ -22,7 +23,6 @@ use crate::esrs::query::Queries;
 use crate::esrs::sqlite::projector::SqliteProjectorEraser;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
-use sqlx::types::Json;
 
 pub mod policy;
 pub mod projector;

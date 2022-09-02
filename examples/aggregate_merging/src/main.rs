@@ -1,4 +1,3 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
@@ -8,6 +7,7 @@ use aggregate_merging::{
     projectors::Counter,
     structs::{CommandA, CommandB},
 };
+use esrs::aggregate::{AggregateManager, AggregateState};
 
 #[tokio::main]
 async fn main() {
@@ -36,12 +36,12 @@ async fn main() {
 
     // Increment each count once
     let _ = agg_a
-        .handle_command(a_state, CommandA::Inner)
+        .handle(a_state, CommandA::Inner)
         .await
         .expect("Failed to handle command a");
 
     let _ = agg_b
-        .handle_command(b_state, CommandB::Inner)
+        .handle(b_state, CommandB::Inner)
         .await
         .expect("Failed to handle command b");
 

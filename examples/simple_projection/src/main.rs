@@ -1,7 +1,7 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
+use esrs::aggregate::{AggregateManager, AggregateState};
 use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 
 #[tokio::main]
@@ -30,7 +30,7 @@ async fn main() {
 
     // Increment counter once
     let state = aggregate
-        .handle_command(state, CounterCommand::Increment)
+        .handle(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
 
@@ -44,11 +44,11 @@ async fn main() {
 
     // Increment counter twice
     let state = aggregate
-        .handle_command(state, CounterCommand::Increment)
+        .handle(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
     let state = aggregate
-        .handle_command(state, CounterCommand::Increment)
+        .handle(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
 
@@ -62,7 +62,7 @@ async fn main() {
 
     // Decrement counter once
     let _state = aggregate
-        .handle_command(state, CounterCommand::Decrement)
+        .handle(state, CounterCommand::Decrement)
         .await
         .expect("Failed to handle increment command");
 

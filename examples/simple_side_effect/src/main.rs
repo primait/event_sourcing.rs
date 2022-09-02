@@ -1,6 +1,7 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
+
+use esrs::aggregate::{AggregateManager, AggregateState};
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
 
@@ -29,22 +30,22 @@ async fn main() {
 
     // Log some messages
     let state = aggregate
-        .handle_command(state, LoggingCommand::Log(String::from("First logging message")))
+        .handle(state, LoggingCommand::Log(String::from("First logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle_command(state, LoggingCommand::Log(String::from("Second logging message")))
+        .handle(state, LoggingCommand::Log(String::from("Second logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle_command(state, LoggingCommand::Log(String::from("Third logging message")))
+        .handle(state, LoggingCommand::Log(String::from("Third logging message")))
         .await
         .expect("Failed to log message");
 
     // Lets cause a projection error, to illustrate the difference between
     // projection and policy errors, from an AggregateState perspective
     let res = aggregate
-        .handle_command(
+        .handle(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_projection")),
         )
@@ -58,7 +59,7 @@ async fn main() {
     // event store, so now when we reload the aggregate state, we'll see 4 events have
     // been applied
     let res = aggregate
-        .handle_command(
+        .handle(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_policy")),
         )

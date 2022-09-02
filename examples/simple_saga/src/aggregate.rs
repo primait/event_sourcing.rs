@@ -1,10 +1,9 @@
 use async_trait::async_trait;
+use sqlx::{Pool, Sqlite};
+
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
 use esrs::policy::SqlitePolicy;
 use esrs::projector::SqliteProjector;
-use sqlx::{Pool, Sqlite};
-use uuid::Uuid;
-
-use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
@@ -57,11 +56,11 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
         match event.payload() {
             LoggingEvent::Received(msg) => {
                 if msg.contains("fail_policy") {
-                    agg.handle_command(state, LoggingCommand::Fail).await?;
+                    agg.handle(state, LoggingCommand::Fail).await?;
                     return Err(LoggingError::Domain(msg.clone()));
                 }
                 println!("Logged via policy from {}: {}", id, msg);
-                agg.handle_command(state, LoggingCommand::Succeed).await?;
+                agg.handle(state, LoggingCommand::Succeed).await?;
             }
             _ => {}
         }
@@ -70,18 +69,25 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
 }
 
 #[async_trait]
-impl AggregateManager for LoggingAggregate {
+impl Aggregate for LoggingAggregate {
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
+    fn handle_command(
+        _state: &AggregateState<Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
+        match command {
+            Self::Command::TryLog(msg) => Ok(vec![Self::Event::Received(msg)]),
+            Self::Command::Succeed => Ok(vec![Self::Event::Succeeded]),
+            Self::Command::Fail => Ok(vec![Self::Event::Failed]),
+        }
     }
 
-    fn apply_event(_: &Uuid, state: Self::State, event: &StoreEvent<Self::Event>) -> Self::State {
-        match event.payload() {
+    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State {
+        match event {
             LoggingEvent::Received(_) => {
                 // Do nothing, since the logging policy is what carries out the side effect
                 // NOTE that, in this case, the Self::State we return isn't valid any more,
@@ -100,20 +106,10 @@ impl AggregateManager for LoggingAggregate {
         }
         state + 1
     }
+}
 
-    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
-        Ok(()) // No validation done on commands received in this aggregate
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        match cmd {
-            Self::Command::TryLog(msg) => self.persist(aggregate_state, vec![Self::Event::Received(msg)]).await,
-            Self::Command::Succeed => self.persist(aggregate_state, vec![Self::Event::Succeeded]).await,
-            Self::Command::Fail => self.persist(aggregate_state, vec![Self::Event::Failed]).await,
-        }
+impl AggregateManager for LoggingAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

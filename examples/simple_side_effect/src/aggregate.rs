@@ -1,11 +1,10 @@
 use async_trait::async_trait;
-use esrs::policy::SqlitePolicy;
-use esrs::projector::SqliteProjector;
 use sqlx::pool::PoolConnection;
 use sqlx::{Pool, Sqlite};
-use uuid::Uuid;
 
-use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::policy::SqlitePolicy;
+use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
@@ -95,32 +94,29 @@ impl Identifier for LoggingAggregate {
 }
 
 #[async_trait]
-impl AggregateManager for LoggingAggregate {
+impl Aggregate for LoggingAggregate {
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
-    fn apply_event(_: &Uuid, state: Self::State, _: &StoreEvent<Self::Event>) -> Self::State {
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
         // This aggregate state just counts the number of applied - equivalent to the number in the event store
         state + 1
     }
 
-    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
-        Ok(()) // No validation done on commands received in this aggregate
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        match cmd {
-            Self::Command::Log(msg) => self.persist(aggregate_state, vec![Self::Event::Logged(msg)]).await,
+    fn handle_command(
+        _state: &AggregateState<Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
+        match command {
+            Self::Command::Log(msg) => Ok(vec![Self::Event::Logged(msg)]),
         }
+    }
+}
+
+impl AggregateManager for LoggingAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

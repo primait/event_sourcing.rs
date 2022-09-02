@@ -1,10 +1,9 @@
 use async_trait::async_trait;
-use esrs::projector::SqliteProjector;
 use sqlx::{Pool, Sqlite};
-use uuid::Uuid;
 
-use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
-use esrs::store::{EventStore, SqliteStore, StoreEvent};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::projector::SqliteProjector;
+use esrs::store::{EventStore, SqliteStore};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
@@ -40,33 +39,30 @@ impl Identifier for CounterAggregate {
 }
 
 #[async_trait]
-impl AggregateManager for CounterAggregate {
+impl Aggregate for CounterAggregate {
     type State = ();
     type Command = CounterCommand;
     type Event = CounterEvent;
     type Error = CounterError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
+    fn handle_command(
+        _state: &AggregateState<Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
+        match command {
+            Self::Command::Increment => Ok(vec![Self::Event::Incremented]),
+            Self::Command::Decrement => Ok(vec![Self::Event::Decremented]),
+        }
     }
 
-    fn apply_event(_id: &Uuid, state: Self::State, _: &StoreEvent<Self::Event>) -> Self::State {
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection
         state
     }
+}
 
-    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
-        Ok(()) // No validation done on commands received in this aggregate
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        cmd: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        match cmd {
-            Self::Command::Increment => self.persist(aggregate_state, vec![Self::Event::Incremented]).await,
-            Self::Command::Decrement => self.persist(aggregate_state, vec![Self::Event::Decremented]).await,
-        }
+impl AggregateManager for CounterAggregate {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

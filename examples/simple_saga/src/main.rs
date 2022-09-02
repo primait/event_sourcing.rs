@@ -1,6 +1,7 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
+
+use esrs::aggregate::{AggregateManager, AggregateState};
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
 
@@ -33,7 +34,7 @@ async fn main() {
 
     // Log some messages
     let state = aggregate
-        .handle_command(state, LoggingCommand::TryLog(String::from("First logging message")))
+        .handle(state, LoggingCommand::TryLog(String::from("First logging message")))
         .await
         .expect("Failed to log message");
 
@@ -54,7 +55,7 @@ async fn main() {
 
     // Now we can use the newly loaded state to log another message, but we drop the invalid returned state
     let _ = aggregate
-        .handle_command(state, LoggingCommand::TryLog(String::from("Second logging message")))
+        .handle(state, LoggingCommand::TryLog(String::from("Second logging message")))
         .await
         .expect("Failed to log message");
 }

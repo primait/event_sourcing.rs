@@ -20,6 +20,7 @@ pub enum CounterError {
 pub enum EventA {
     Inner,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventB {
     Inner,
@@ -55,6 +56,7 @@ impl From<EventB> for ProjectorEvent {
 pub enum CommandA {
     Inner,
 }
+
 pub enum CommandB {
     Inner,
 }

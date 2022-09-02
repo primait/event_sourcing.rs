@@ -1,12 +1,11 @@
 use async_trait::async_trait;
-use esrs::projector::SqliteProjector;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::{Pool, Sqlite};
-use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
-use esrs::store::{EventStore, SqliteStore, StoreEvent};
+use esrs::projector::SqliteProjector;
+use esrs::store::{EventStore, SqliteStore};
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
@@ -28,8 +27,7 @@ impl<
             + Sync
             + Serialize
             + DeserializeOwned
-            + // EventStore bounds
-            Into<ProjectorEvent>
+            + Into<ProjectorEvent> // EventStore bounds
             + Clone, // for the CounterProjector
     > Aggregate<E>
 where
@@ -71,63 +69,57 @@ impl Identifier for AggregateB {
 }
 
 #[async_trait]
-impl AggregateManager for AggregateA {
+impl esrs::aggregate::Aggregate for AggregateA {
     type State = ();
     type Command = CommandA;
     type Event = EventA;
     type Error = CounterError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
+    fn handle_command(
+        _state: &AggregateState<Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
+        match command {
+            CommandA::Inner => Ok(vec![EventA::Inner]),
+        }
     }
 
-    fn apply_event(_id: &Uuid, state: Self::State, _: &StoreEvent<Self::Event>) -> Self::State {
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection is stateful
         state
     }
+}
 
-    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
-        Ok(()) // No validation done on commands received in this aggregate
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
-        match command {
-            CommandA::Inner => self.persist(aggregate_state, vec![EventA::Inner]).await,
-        }
+impl AggregateManager for AggregateA {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }
 
 #[async_trait]
-impl AggregateManager for AggregateB {
+impl esrs::aggregate::Aggregate for AggregateB {
     type State = ();
     type Command = CommandB;
     type Event = EventB;
     type Error = CounterError;
 
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
-        &self.event_store
-    }
-
-    fn apply_event(_id: &Uuid, state: Self::State, _: &StoreEvent<Self::Event>) -> Self::State {
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection is stateful
         state
     }
 
-    fn validate_command(_: &AggregateState<Self::State>, _: &Self::Command) -> Result<(), Self::Error> {
-        Ok(()) // No validation done on commands received in this aggregate
-    }
-
-    async fn do_handle_command(
-        &self,
-        aggregate_state: AggregateState<Self::State>,
+    fn handle_command(
+        _state: &AggregateState<Self::State>,
         command: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            CommandB::Inner => self.persist(aggregate_state, vec![EventB::Inner]).await,
+            CommandB::Inner => Ok(vec![EventB::Inner]),
         }
+    }
+}
+
+impl AggregateManager for AggregateB {
+    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+        &self.event_store
     }
 }

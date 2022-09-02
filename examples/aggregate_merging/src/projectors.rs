@@ -3,14 +3,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sqlx::pool::PoolConnection;
 use sqlx::{Executor, Sqlite};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use esrs::projector::SqliteProjector;
 use esrs::store::StoreEvent;
-
-use sqlx::pool::PoolConnection;
 
 use crate::structs::{CounterError, ProjectorEvent};
 

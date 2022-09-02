@@ -31,7 +31,7 @@ impl<S: Default + Debug + Clone> AggregateState<S> {
         }
     }
 
-    pub fn new_with_state(id: Uuid, inner: S) -> Self {
+    pub const fn new_with_state(id: Uuid, inner: S) -> Self {
         Self {
             id,
             inner,
@@ -39,15 +39,15 @@ impl<S: Default + Debug + Clone> AggregateState<S> {
         }
     }
 
-    pub fn id(&self) -> &Uuid {
+    pub const fn id(&self) -> &Uuid {
         &self.id
     }
 
-    pub fn inner(&self) -> &S {
+    pub const fn inner(&self) -> &S {
         &self.inner
     }
 
-    pub fn next_sequence_number(&self) -> SequenceNumber {
+    pub const fn next_sequence_number(&self) -> SequenceNumber {
         self.sequence_number + 1
     }
 }

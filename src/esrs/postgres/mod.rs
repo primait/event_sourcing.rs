@@ -10,6 +10,7 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
+use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
@@ -22,7 +23,6 @@ use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 use crate::projector::PgProjectorEraser;
-use sqlx::types::Json;
 
 mod index;
 pub mod policy;
@@ -109,7 +109,7 @@ impl<
         })
     }
 
-    pub fn pool(&self) -> &Pool<Postgres> {
+    pub const fn pool(&self) -> &Pool<Postgres> {
         &self.pool
     }
 
@@ -207,23 +207,23 @@ impl<
             }
         }
 
-        let store_events: Vec<_> = events
-            .into_iter()
-            .map(|((event_id, event), sequence_number)| StoreEvent {
+        let mut store_events: Vec<StoreEvent<Evt>> = vec![];
+
+        for ((event_id, event), sequence_number) in events {
+            let store_event: StoreEvent<Evt> = StoreEvent {
                 id: event_id,
                 aggregate_id,
                 payload: event,
                 occurred_on,
                 sequence_number,
-            })
-            .collect();
+            };
 
-        for store_event in store_events.iter() {
-            let result = self.project_event(store_event, &mut connection).await;
-
-            if let Err(err) = result {
-                self.rollback(connection).await?;
-                return Err(err);
+            match self.project_event(&store_event, &mut connection).await {
+                Ok(()) => store_events.push(store_event),
+                Err(err) => {
+                    self.rollback(connection).await?;
+                    return Err(err);
+                }
             }
         }
 
@@ -333,6 +333,7 @@ mod tests {
     }
 
     struct Hello;
+
     impl Identifier for Hello {
         fn name() -> &'static str
         where

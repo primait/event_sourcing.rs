@@ -13,6 +13,7 @@ pub enum CounterError {
     #[error(transparent)]
     Sql(#[from] esrs::error::SqlxError),
 }
+
 // The events to be projected
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CounterEvent {

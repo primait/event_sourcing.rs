@@ -13,6 +13,7 @@ pub enum LoggingError {
     #[error(transparent)]
     Sql(#[from] esrs::error::SqlxError),
 }
+
 // The events to be processed
 #[derive(Serialize, Deserialize, Debug)]
 pub enum LoggingEvent {
