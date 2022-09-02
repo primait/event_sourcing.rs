@@ -245,8 +245,6 @@ impl<
 
 #[cfg(test)]
 mod tests {
-    use sqlx::pool::PoolOptions;
-
     use super::*;
     use crate::aggregate::AggregateState;
 
