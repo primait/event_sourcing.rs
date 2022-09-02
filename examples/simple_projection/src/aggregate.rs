@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use esrs::projector::SqliteProjector;
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore};
 
 use crate::projector::CounterProjector;

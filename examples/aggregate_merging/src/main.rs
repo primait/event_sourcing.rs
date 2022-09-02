@@ -1,4 +1,3 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
 
@@ -8,6 +7,7 @@ use aggregate_merging::{
     projectors::Counter,
     structs::{CommandA, CommandB},
 };
+use esrs::aggregate::{AggregateManager, AggregateState};
 
 #[tokio::main]
 async fn main() {

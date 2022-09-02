@@ -13,6 +13,7 @@ pub enum LoggingError {
     #[error(transparent)]
     Sql(#[from] esrs::error::SqlxError),
 }
+
 // The events to be processed. On receipt of a new log message, the aggregate stores a Received event.
 // If the message contained within can be logged, it is, and then a Succeeded event is produced, otherwise
 // a Failed event is produced.

@@ -1,6 +1,7 @@
-use esrs::aggregate::{AggregateManager, AggregateState};
 use sqlx::{pool::PoolOptions, Pool, Sqlite};
 use uuid::Uuid;
+
+use esrs::aggregate::{AggregateManager, AggregateState};
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
 

@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use esrs::policy::SqlitePolicy;
-use esrs::projector::SqliteProjector;
 use sqlx::pool::PoolConnection;
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::policy::SqlitePolicy;
+use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};

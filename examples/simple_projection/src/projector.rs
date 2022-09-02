@@ -1,11 +1,10 @@
 use async_trait::async_trait;
+use sqlx::pool::PoolConnection;
 use sqlx::{Executor, Sqlite};
 use uuid::Uuid;
 
 use esrs::projector::SqliteProjector;
 use esrs::store::StoreEvent;
-
-use sqlx::pool::PoolConnection;
 
 use crate::structs::{CounterError, CounterEvent};
 

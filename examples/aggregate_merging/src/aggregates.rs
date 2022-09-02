@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use esrs::projector::SqliteProjector;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
+use esrs::projector::SqliteProjector;
 use esrs::store::{EventStore, SqliteStore};
 
 use crate::projectors::CounterProjector;

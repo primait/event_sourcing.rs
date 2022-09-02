@@ -10,6 +10,7 @@ use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::{PoolConnection, PoolOptions};
+use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
@@ -22,7 +23,6 @@ use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
 use crate::projector::PgProjectorEraser;
-use sqlx::types::Json;
 
 mod index;
 pub mod policy;
@@ -333,6 +333,7 @@ mod tests {
     }
 
     struct Hello;
+
     impl Identifier for Hello {
         fn name() -> &'static str
         where
