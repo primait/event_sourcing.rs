@@ -4,10 +4,15 @@ DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
 [config]
 default_to_workspace = false
 
+[tasks.check]
+description = "Run check."
+command = "cargo"
+args = ["check", "--workspace"]
+
 [tasks.build-ci]
 description = "Build prima_tracing.rs inside CI."
 command = "cargo"
-args = ["build", "-j", "2", "--all-features"]
+args = ["build", "-j", "2", "--all-features", "--workspace"]
 
 [tasks.format-ci]
 description = "Runs the cargo rustfmt plugin during CI."
@@ -17,11 +22,11 @@ args = ["fmt", "--all", "--", "--check"]
 [tasks.test]
 description = "Run tests."
 command = "cargo"
-args = ["test", "${@}", "--all"]
+args = ["test", "${@}", "--all", "--workspace"]
 
 [tasks.clippy-ci]
 command = "cargo"
-args = ["clippy", "--", "-D", "warnings"]
+args = ["clippy", "--workspace", "--", "-D", "warnings"]
 
 [tasks.cargo-prune]
 description = "Run cargo prune"

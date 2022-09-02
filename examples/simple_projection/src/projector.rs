@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use sqlx::pool::PoolConnection;
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
 use esrs::projector::PgProjector;
@@ -15,19 +14,18 @@ impl PgProjector<CounterEvent, CounterError> for CounterProjector {
     async fn project(
         &self,
         event: &StoreEvent<CounterEvent>,
-        connection: &mut PoolConnection<Postgres>,
+        transaction: &mut Transaction<'_, Postgres>,
     ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection)
-            .await?
-            .map(|existing| existing);
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *transaction).await?;
+
         match event.payload {
             CounterEvent::Incremented => match existing {
-                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count + 1, &mut *connection).await?),
-                None => Ok(Counter::insert(event.aggregate_id, 1, &mut *connection).await?),
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count + 1, &mut *transaction).await?),
+                None => Ok(Counter::insert(event.aggregate_id, 1, &mut *transaction).await?),
             },
             CounterEvent::Decremented => match existing {
-                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count - 1, &mut *connection).await?),
-                None => Ok(Counter::insert(event.aggregate_id, -1, &mut *connection).await?),
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count - 1, &mut *transaction).await?),
+                None => Ok(Counter::insert(event.aggregate_id, -1, &mut *transaction).await?),
             },
         }
     }

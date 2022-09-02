@@ -9,9 +9,8 @@ use futures::stream::BoxStream;
 use futures::TryStreamExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::pool::{PoolConnection, PoolOptions};
 use sqlx::types::Json;
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use policy::PgPolicy;
@@ -54,7 +53,6 @@ pub struct InnerPgStore<
     queries: Queries,
     evt: PhantomData<Evt>,
     err: PhantomData<Err>,
-    test: bool,
 }
 
 impl<
@@ -82,30 +80,6 @@ impl<
             queries: Queries::new(aggregate_name),
             evt: PhantomData::default(),
             err: PhantomData::default(),
-            test: false,
-        })
-    }
-
-    pub async fn test<T: Identifier + Sized>(
-        connection_url: &'a str,
-        projectors: Vec<Box<Projector>>,
-        policies: Vec<Box<Policy>>,
-    ) -> Result<Self, Err> {
-        let pool: Pool<Postgres> = PoolOptions::new().max_connections(1).connect(connection_url).await?;
-        sqlx::query("BEGIN").execute(&pool).await.map(|_| ())?;
-
-        let aggregate_name: &str = <T as Identifier>::name();
-        // Check if table and indexes exist and eventually create them
-        util::run_preconditions(&pool, aggregate_name).await?;
-
-        Ok(Self {
-            pool,
-            projectors,
-            policies,
-            queries: Queries::new(aggregate_name),
-            evt: PhantomData::default(),
-            err: PhantomData::default(),
-            test: true,
         })
     }
 
@@ -123,34 +97,15 @@ impl<
         self
     }
 
-    /// Begin a new transaction. Commit returned transaction or Drop will automatically rollback it
-    pub async fn begin(&self) -> Result<PoolConnection<Postgres>, sqlx::Error> {
-        let mut connection = self.pool.acquire().await?;
-        let _ = sqlx::query("BEGIN").execute(&mut connection).await?;
-        Ok(connection)
-    }
-
-    async fn commit(&self, mut connection: PoolConnection<Postgres>) -> Result<(), sqlx::Error> {
-        if !self.test {
-            let _ = sqlx::query("COMMIT").execute(&mut connection).await?;
-        }
-        Ok(())
-    }
-
-    async fn rollback(&self, mut connection: PoolConnection<Postgres>) -> Result<(), sqlx::Error> {
-        let _ = sqlx::query("ROLLBACK").execute(&mut connection).await?;
-        Ok(())
-    }
-
     pub async fn rebuild_events(&self) -> Result<(), Err> {
         let mut events: BoxStream<Result<Event, sqlx::Error>> =
             sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
 
-        let mut connection: PoolConnection<Postgres> = self.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         while let Some(event) = events.try_next().await? {
             let evt: StoreEvent<Evt> = event.try_into()?;
-            self.project_event(&evt, &mut connection).await?;
+            self.project_event(&evt, &mut transaction).await?;
         }
 
         Ok(())
@@ -181,54 +136,37 @@ impl<
         events: Vec<Evt>,
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Evt>>, Err> {
-        let mut connection: PoolConnection<Postgres> = self.begin().await?;
-
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
-
-        let events: Vec<_> = events
-            .into_iter()
-            .map(|e| (Uuid::new_v4(), e))
-            .zip(starting_sequence_number..)
-            .collect();
-
-        for ((event_id, event), sequence_number) in events.iter() {
-            let result = sqlx::query(self.queries.insert())
-                .bind(event_id)
-                .bind(aggregate_id)
-                .bind(Json(event))
-                .bind(occurred_on)
-                .bind(sequence_number)
-                .execute(&mut *connection)
-                .await;
-
-            if let Err(err) = result {
-                self.rollback(connection).await?;
-                return Err(err.into());
-            }
-        }
-
         let mut store_events: Vec<StoreEvent<Evt>> = vec![];
 
-        for ((event_id, event), sequence_number) in events {
-            let store_event: StoreEvent<Evt> = StoreEvent {
-                id: event_id,
+        for (index, event) in events.into_iter().enumerate() {
+            let id: Uuid = Uuid::new_v4();
+            let sequence_number: SequenceNumber = starting_sequence_number + index as i32;
+
+            let _ = sqlx::query(self.queries.insert())
+                .bind(id)
+                .bind(aggregate_id)
+                .bind(Json(&event))
+                .bind(occurred_on)
+                .bind(sequence_number)
+                .execute(&mut *transaction)
+                .await?;
+
+            store_events.push(StoreEvent {
+                id,
                 aggregate_id,
                 payload: event,
                 occurred_on,
                 sequence_number,
-            };
-
-            match self.project_event(&store_event, &mut connection).await {
-                Ok(()) => store_events.push(store_event),
-                Err(err) => {
-                    self.rollback(connection).await?;
-                    return Err(err);
-                }
-            }
+            });
         }
 
-        self.commit(connection).await?;
+        for store_event in store_events.iter() {
+            self.project_event(store_event, &mut transaction).await?;
+        }
 
+        transaction.commit().await?;
         Ok(store_events)
     }
 
@@ -255,12 +193,12 @@ impl<
         Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
         Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
-    > ProjectorStore<Evt, PoolConnection<Postgres>, Err> for InnerPgStore<Evt, Err, Projector, Policy>
+    > ProjectorStore<Evt, Transaction<'_, Postgres>, Err> for InnerPgStore<Evt, Err, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
         store_event: &'a StoreEvent<Evt>,
-        executor: &'a mut PoolConnection<Postgres>,
+        transaction: &'a mut Transaction<Postgres>,
     ) -> Pin<Box<dyn Future<Output = Result<(), Err>> + Send + 'a>>
     where
         Self: Sync + 'a,
@@ -273,16 +211,16 @@ impl<
         >(
             me: &InnerPgStore<Ev, Er, Prj, Plc>,
             store_event: &StoreEvent<Ev>,
-            executor: &mut PoolConnection<Postgres>,
+            transaction: &mut Transaction<'_, Postgres>,
         ) -> Result<(), Er> {
             for projector in &me.projectors {
-                projector.project(store_event, executor).await?
+                projector.project(store_event, transaction).await?
             }
 
             Ok(())
         }
 
-        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, executor))
+        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, transaction))
     }
 }
 
@@ -295,23 +233,25 @@ impl<
     > EraserStore<Evt, Err> for InnerPgStore<Evt, Err, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Err> {
-        let mut connection: PoolConnection<Postgres> = self.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
         let _ = sqlx::query(self.queries.delete())
             .bind(aggregate_id)
-            .execute(&mut *connection)
+            .execute(&mut *transaction)
             .await
             .map(|_| ());
 
         for projector in &self.projectors {
-            projector.delete(aggregate_id, &mut connection).await?
+            projector.delete(aggregate_id, &mut transaction).await?
         }
 
-        Ok(self.commit(connection).await?)
+        Ok(transaction.commit().await?)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use sqlx::pool::PoolOptions;
+
     use super::*;
 
     #[derive(Debug)]
@@ -359,8 +299,8 @@ mod tests {
     #[tokio::test]
     async fn test_transaction_in_test_store_test() {
         let database_url = std::env::var("DATABASE_URL").unwrap();
-        persist(database_url.as_str()).await;
         let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+        persist(&pool).await;
         // When
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())
@@ -371,9 +311,9 @@ mod tests {
         assert!(rows.is_empty());
     }
 
-    async fn persist(database_url: &str) {
+    async fn persist(pool: &Pool<Postgres>) {
         let aggregate_id: Uuid = Uuid::new_v4();
-        let test_store: PgStore<String, Error> = PgStore::test::<Hello>(database_url, vec![], vec![]).await.unwrap();
+        let test_store: PgStore<String, Error> = PgStore::new::<Hello>(pool, vec![], vec![]).await.unwrap();
         let _ = test_store
             .persist(aggregate_id, vec!["hello".to_string(), "goodbye".to_string()], 0)
             .await
