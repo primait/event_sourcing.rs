@@ -17,7 +17,7 @@ use policy::PgPolicy;
 use projector::PgProjector;
 
 use crate::esrs::aggregate::Identifier;
-use crate::esrs::event::Event;
+use crate::esrs::event;
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
@@ -31,44 +31,44 @@ mod util;
 /// Convenient alias. It needs 4 generics to instantiate `InnerPgStore`:
 /// - Event
 /// - Error
-/// - Projector: Default to `dyn PgProjector<Evt, Err>`
-/// - Policy: Default to `dyn PgPolicy<Evt, Err>`
+/// - Projector: Default to `dyn PgProjector<Event, Error>`
+/// - Policy: Default to `dyn PgPolicy<Event, Error>`
 pub type PgStore<
-    Evt,
-    Err,
-    Projector = dyn PgProjector<Evt, Err> + Send + Sync,
-    Policy = dyn PgPolicy<Evt, Err> + Send + Sync,
-> = InnerPgStore<Evt, Err, Projector, Policy>;
+    Event,
+    Error,
+    Projector = dyn PgProjector<Event, Error> + Send + Sync,
+    Policy = dyn PgPolicy<Event, Error> + Send + Sync,
+> = InnerPgStore<Event, Error, Projector, Policy>;
 
 /// TODO: some doc here
 pub struct InnerPgStore<
-    Evt: Serialize + DeserializeOwned + Send + Sync,
-    Err: From<sqlx::Error> + From<serde_json::Error>,
-    Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
-    Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
+    Event: Serialize + DeserializeOwned + Send + Sync,
+    Error: From<sqlx::Error> + From<serde_json::Error>,
+    Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
+    Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
 > {
     pool: Pool<Postgres>,
     projectors: Vec<Box<Projector>>,
     policies: Vec<Box<Policy>>,
     queries: Queries,
-    evt: PhantomData<Evt>,
-    err: PhantomData<Err>,
+    event: PhantomData<Event>,
+    error: PhantomData<Error>,
 }
 
 impl<
         'a,
-        Evt: 'a + Serialize + DeserializeOwned + Send + Sync,
-        Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
-    > InnerPgStore<Evt, Err, Projector, Policy>
+        Event: 'a + Serialize + DeserializeOwned + Send + Sync,
+        Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    > InnerPgStore<Event, Error, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
     pub async fn new<T: Identifier + Sized>(
         pool: &'a Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
-    ) -> Result<Self, Err> {
+    ) -> Result<Self, Error> {
         let aggregate_name: &str = <T as Identifier>::name();
         // Check if table and indexes exist and possibly create them
         util::run_preconditions(pool, aggregate_name).await?;
@@ -78,8 +78,8 @@ impl<
             projectors,
             policies,
             queries: Queries::new(aggregate_name),
-            evt: PhantomData::default(),
-            err: PhantomData::default(),
+            event: PhantomData::default(),
+            error: PhantomData::default(),
         })
     }
 
@@ -97,15 +97,15 @@ impl<
         self
     }
 
-    pub async fn rebuild_events(&self) -> Result<(), Err> {
-        let mut events: BoxStream<Result<Event, sqlx::Error>> =
-            sqlx::query_as::<_, Event>(self.queries.select_all()).fetch(&self.pool);
+    pub async fn rebuild_events(&self) -> Result<(), Error> {
+        let mut events: BoxStream<Result<event::Event, sqlx::Error>> =
+            sqlx::query_as::<_, event::Event>(self.queries.select_all()).fetch(&self.pool);
 
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         while let Some(event) = events.try_next().await? {
-            let evt: StoreEvent<Evt> = event.try_into()?;
-            self.project_event(&evt, &mut transaction).await?;
+            let store_event: StoreEvent<Event> = event.try_into()?;
+            self.project_event(&store_event, &mut transaction).await?;
         }
 
         Ok(())
@@ -114,31 +114,31 @@ impl<
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Send + Sync,
-        Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
-    > EventStore<Evt, Err> for InnerPgStore<Evt, Err, Projector, Policy>
+        Event: Serialize + DeserializeOwned + Send + Sync,
+        Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    > EventStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
-    async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Evt>>, Err> {
-        Ok(sqlx::query_as::<_, Event>(self.queries.select())
+    async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
+        Ok(sqlx::query_as::<_, event::Event>(self.queries.select())
             .bind(id)
             .fetch_all(&self.pool)
             .await?
             .into_iter()
             .map(|event| Ok(event.try_into()?))
-            .collect::<Result<Vec<StoreEvent<Evt>>, Err>>()?)
+            .collect::<Result<Vec<StoreEvent<Event>>, Error>>()?)
     }
 
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        events: Vec<Evt>,
+        events: Vec<Event>,
         starting_sequence_number: SequenceNumber,
-    ) -> Result<Vec<StoreEvent<Evt>>, Err> {
+    ) -> Result<Vec<StoreEvent<Event>>, Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
-        let mut store_events: Vec<StoreEvent<Evt>> = vec![];
+        let mut store_events: Vec<StoreEvent<Event>> = vec![];
 
         for (index, event) in events.into_iter().enumerate() {
             let id: Uuid = Uuid::new_v4();
@@ -171,7 +171,7 @@ impl<
     }
 
     /// Default `run_policies` strategy is to run all events against each policy in turn, returning on the first error.
-    async fn run_policies(&self, events: &[StoreEvent<Evt>]) -> Result<(), Err> {
+    async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error> {
         // TODO: This implies that potentially half of the policies would trigger, then one fails, and the rest wouldn't.
         // potentially we should be returning some other kind of error, that includes the errors from any failed policies?
         for policy in &self.policies {
@@ -189,50 +189,39 @@ impl<
 }
 
 impl<
-        Evt: Serialize + DeserializeOwned + Send + Sync,
-        Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Evt, Err> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
-    > ProjectorStore<Evt, Transaction<'_, Postgres>, Err> for InnerPgStore<Evt, Err, Projector, Policy>
+        Event: Serialize + DeserializeOwned + Send + Sync,
+        Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    > ProjectorStore<Event, Transaction<'_, Postgres>, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     fn project_event<'a>(
         &'a self,
-        store_event: &'a StoreEvent<Evt>,
+        store_event: &'a StoreEvent<Event>,
         transaction: &'a mut Transaction<Postgres>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Err>> + Send + 'a>>
+    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
     where
         Self: Sync + 'a,
     {
-        async fn run<
-            Ev: Serialize + DeserializeOwned + Send + Sync,
-            Er: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-            Prj: PgProjector<Ev, Er> + Send + Sync + ?Sized,
-            Plc: PgPolicy<Ev, Er> + Send + Sync + ?Sized,
-        >(
-            me: &InnerPgStore<Ev, Er, Prj, Plc>,
-            store_event: &StoreEvent<Ev>,
-            transaction: &mut Transaction<'_, Postgres>,
-        ) -> Result<(), Er> {
-            for projector in &me.projectors {
+        Box::pin(async move {
+            for projector in &self.projectors {
                 projector.project(store_event, transaction).await?
             }
 
             Ok(())
-        }
-
-        Box::pin(run::<Evt, Err, Projector, Policy>(self, store_event, transaction))
+        })
     }
 }
 
 #[async_trait]
 impl<
-        Evt: Serialize + DeserializeOwned + Send + Sync,
-        Err: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjectorEraser<Evt, Err> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Evt, Err> + Send + Sync + ?Sized,
-    > EraserStore<Evt, Err> for InnerPgStore<Evt, Err, Projector, Policy>
+        Event: Serialize + DeserializeOwned + Send + Sync,
+        Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+        Projector: PgProjectorEraser<Event, Error> + Send + Sync + ?Sized,
+        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    > EraserStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Err> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
         let _ = sqlx::query(self.queries.delete())
             .bind(aggregate_id)
