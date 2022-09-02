@@ -11,39 +11,33 @@ use sqlx::types::Json;
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::aggregate::Aggregate;
-use policy::PgPolicy;
-use projector::PgProjector;
-
-use crate::esrs::event;
+use crate::esrs::aggregate::Aggregate;
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
 use crate::esrs::SequenceNumber;
-use crate::projector::PgProjectorEraser;
+use crate::esrs::{event, policy, projector};
 
 mod index;
-pub mod policy;
-pub mod projector;
 mod util;
 
 /// Convenient alias. It needs 4 generics to instantiate `InnerPgStore`:
 /// - Event
 /// - Error
-/// - Projector: Default to `dyn PgProjector<Event, Error>`
-/// - Policy: Default to `dyn PgPolicy<Event, Error>`
+/// - Projector: Default to `dyn Projector<Event, Error>`
+/// - Policy: Default to `dyn policy::Policy<Event, Error>`
 pub type PgStore<
     Event,
     Error,
-    Projector = dyn PgProjector<Event, Error> + Send + Sync,
-    Policy = dyn PgPolicy<Event, Error> + Send + Sync,
+    Projector = dyn projector::Projector<Postgres, Event, Error> + Send + Sync,
+    Policy = dyn policy::Policy<Postgres, Event, Error> + Send + Sync,
 > = InnerPgStore<Event, Error, Projector, Policy>;
 
 /// TODO: some doc here
 pub struct InnerPgStore<
     Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error>,
-    Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-    Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+    Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+    Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
 > {
     pool: Pool<Postgres>,
     projectors: Vec<Box<Projector>>,
@@ -56,8 +50,8 @@ pub struct InnerPgStore<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > InnerPgStore<Event, Error, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
@@ -112,8 +106,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > EventStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
@@ -202,8 +196,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::Projector<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > ProjectorStore<Event, Transaction<'_, Postgres>, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     async fn project_event(
@@ -223,8 +217,8 @@ impl<
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-        Projector: PgProjectorEraser<Event, Error> + Send + Sync + ?Sized,
-        Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
+        Projector: projector::ProjectorEraser<Postgres, Event, Error> + Send + Sync + ?Sized,
+        Policy: policy::Policy<Postgres, Event, Error> + Send + Sync + ?Sized,
     > EraserStore<Event, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error> {
@@ -245,8 +239,9 @@ impl<
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::aggregate::AggregateState;
+
+    use super::*;
 
     #[derive(Debug)]
     pub enum Error {

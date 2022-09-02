@@ -13,12 +13,12 @@ pub mod error {
 
 #[cfg(feature = "postgres")]
 pub mod policy {
-    pub use crate::esrs::postgres::policy::PgPolicy;
+    pub use crate::esrs::policy::Policy;
 }
 
 #[cfg(feature = "postgres")]
 pub mod projector {
-    pub use crate::esrs::postgres::projector::{PgProjector, PgProjectorEraser};
+    pub use crate::esrs::projector::{Projector, ProjectorEraser};
 }
 
 pub mod store {

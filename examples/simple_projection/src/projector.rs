@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
-use esrs::projector::PgProjector;
+use esrs::projector::Projector;
 use esrs::store::StoreEvent;
 
 use crate::structs::{CounterError, CounterEvent};
@@ -10,7 +10,7 @@ use crate::structs::{CounterError, CounterEvent};
 pub struct CounterProjector;
 
 #[async_trait]
-impl PgProjector<CounterEvent, CounterError> for CounterProjector {
+impl Projector<Postgres, CounterEvent, CounterError> for CounterProjector {
     async fn project(
         &self,
         event: &StoreEvent<CounterEvent>,

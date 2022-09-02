@@ -1,29 +1,29 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Postgres, Transaction};
+use sqlx::Transaction;
 use uuid::Uuid;
 
 use crate::esrs::store::StoreEvent;
 
 /// Projector trait that takes a Postgres transaction in order to create a read model
 #[async_trait]
-pub trait PgProjector<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
+pub trait Projector<Database: sqlx::Database, Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.
     async fn project(
         &self,
         event: &StoreEvent<Event>,
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut Transaction<'_, Database>,
     ) -> Result<(), Error>;
 }
 
 /// Projector trait that takes a Postgres transaction in order to delete a read model
 #[async_trait]
-pub trait PgProjectorEraser<Event: Serialize + DeserializeOwned + Send + Sync, Error>:
-    PgProjector<Event, Error>
+pub trait ProjectorEraser<Database: sqlx::Database, Event: Serialize + DeserializeOwned + Send + Sync, Error>:
+    Projector<Database, Event, Error>
 {
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
-    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<'_, Postgres>) -> Result<(), Error>;
+    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<'_, Database>) -> Result<(), Error>;
 }
