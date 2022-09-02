@@ -1,4 +1,5 @@
-use sqlx::{pool::PoolOptions, Pool, Sqlite};
+use sqlx::migrate::MigrateDatabase;
+use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 use aggregate_merging::{
@@ -11,19 +12,20 @@ use esrs::aggregate::{AggregateManager, AggregateState};
 
 #[tokio::main]
 async fn main() {
-    println!("Starting pool");
-    let pool: Pool<Sqlite> = PoolOptions::new()
-        .connect("sqlite::memory:")
+    let database_url: String = std::env::var("DATABASE_URL").expect("DATABASE_URL variable not set");
+
+    Postgres::drop_database(database_url.as_str()).await.unwrap();
+    Postgres::create_database(database_url.as_str()).await.unwrap();
+
+    let pool: Pool<Postgres> = PoolOptions::new()
+        .connect(database_url.as_str())
         .await
         .expect("Failed to create pool");
 
-    println!("Running migrations");
     let () = sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");
-
-    println!("Migrations run");
 
     let count_id = Uuid::new_v4();
 
@@ -34,21 +36,37 @@ async fn main() {
     let agg_b = AggregateB::new(&pool).await.expect("Failed to construct aggregate");
     let b_state = AggregateState::new(count_id);
 
+    let counter = Counter::by_id(count_id, &pool)
+        .await
+        .expect("Failed to retrieve counter");
+
+    assert!(counter.is_none());
+
     // Increment each count once
     let _ = agg_a
         .handle(a_state, CommandA::Inner)
         .await
         .expect("Failed to handle command a");
 
+    let counter = Counter::by_id(count_id, &pool)
+        .await
+        .expect("Failed to retrieve counter")
+        .expect("Failed to find counter");
+
+    println!("Count A is {} and count B is {}", counter.count_a, counter.count_b);
+    assert!(counter.count_a == 1 && counter.count_b == 0);
+
     let _ = agg_b
         .handle(b_state, CommandB::Inner)
         .await
         .expect("Failed to handle command b");
 
-    // Retrieve counter projection from sqlite and print
+    // Retrieve counter projection from database and print
     let counter = Counter::by_id(count_id, &pool)
         .await
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
+
+    println!("Count A is {} and count B is {}", counter.count_a, counter.count_b);
     assert!(counter.count_a == 1 && counter.count_b == 1);
 }

@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::PoolConnection;
-use sqlx::{Executor, Sqlite};
+use sqlx::{Executor, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::projector::SqliteProjector;
+use esrs::projector::PgProjector;
 use esrs::store::StoreEvent;
 
 use crate::structs::{CounterError, ProjectorEvent};
@@ -26,13 +26,13 @@ pub struct CounterProjector;
 // model - in this case, using queries which only update count_a when EventA is received, and count_b
 // when EventB is received, would be sufficient to guarantee soundness.
 #[async_trait]
-impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> SqliteProjector<T, CounterError>
+impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> PgProjector<T, CounterError>
     for CounterProjector
 {
     async fn project(
         &self,
         event: &StoreEvent<T>,
-        connection: &mut PoolConnection<Sqlite>,
+        connection: &mut PoolConnection<Postgres>,
     ) -> Result<(), CounterError> {
         let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection)
             .await?
@@ -75,7 +75,10 @@ enum CounterUpdate {
 }
 
 impl Counter {
-    pub async fn by_id(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn by_id(
+        id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM counters WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)
@@ -86,7 +89,7 @@ impl Counter {
         id: Uuid,
         count_a: i32,
         count_b: i32,
-        executor: impl Executor<'_, Database = Sqlite>,
+        executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("INSERT INTO counters (counter_id, count_a, count_b) VALUES ($1, $2, $3)")
             .bind(id)
@@ -100,7 +103,7 @@ impl Counter {
     async fn update(
         id: Uuid,
         update: CounterUpdate,
-        executor: impl Executor<'_, Database = Sqlite>,
+        executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         let (val, query) = match update {
             CounterUpdate::A(val) => (
@@ -116,8 +119,8 @@ impl Counter {
         query.bind(id).bind(val).fetch_optional(executor).await.map(|_| ())
     }
 
-    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("DELETE FROM counter WHERE counter_id = $1")
+    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_id = $1")
             .bind(id)
             .fetch_optional(executor)
             .await
@@ -132,23 +135,23 @@ impl Counter {
 // an EventStore for each event type is constructed and passed the right SharedProjector for it's Event type,
 // before being passed into some Aggregate::new. It also, requires cloning every event
 pub struct SharedProjector<InnerEvent, InnerError> {
-    inner: Arc<Mutex<dyn SqliteProjector<InnerEvent, InnerError> + Send + Sync>>,
+    inner: Arc<Mutex<dyn PgProjector<InnerEvent, InnerError> + Send + Sync>>,
 }
 
 impl<InnerEvent, InnerError> SharedProjector<InnerEvent, InnerError> {
-    pub fn new(inner: Arc<Mutex<dyn SqliteProjector<InnerEvent, InnerError> + Send + Sync>>) -> Self {
+    pub fn new(inner: Arc<Mutex<dyn PgProjector<InnerEvent, InnerError> + Send + Sync>>) -> Self {
         SharedProjector { inner: inner }
     }
 }
 
 #[async_trait]
-impl<Event, Error, InnerEvent, InnerError> SqliteProjector<Event, Error> for SharedProjector<InnerEvent, InnerError>
+impl<Event, Error, InnerEvent, InnerError> PgProjector<Event, Error> for SharedProjector<InnerEvent, InnerError>
 where
     Event: Into<InnerEvent> + Clone + Send + Sync + Serialize + DeserializeOwned,
     InnerEvent: Send + Sync + Serialize + DeserializeOwned,
     InnerError: Into<Error>,
 {
-    async fn project(&self, event: &StoreEvent<Event>, connection: &mut PoolConnection<Sqlite>) -> Result<(), Error> {
+    async fn project(&self, event: &StoreEvent<Event>, connection: &mut PoolConnection<Postgres>) -> Result<(), Error> {
         let event: StoreEvent<InnerEvent> = event.clone().map(Event::into);
         let inner = self.inner.lock().await;
         let result = inner.project(&event, connection).await;

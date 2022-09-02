@@ -29,11 +29,11 @@ pub mod policy;
 pub mod projector;
 mod util;
 
-/// Convenient alias. It needs 4 generics to instantiate `InnerSqliteStore`:
+/// Convenient alias. It needs 4 generics to instantiate `InnerPgStore`:
 /// - Event
 /// - Error
-/// - Projector: Default to `dyn SqliteProjector<Evt, Err>`
-/// - Policy: Default to `dyn SqlitePolicy<Evt, Err>`
+/// - Projector: Default to `dyn PgProjector<Evt, Err>`
+/// - Policy: Default to `dyn PgPolicy<Evt, Err>`
 pub type PgStore<
     Evt,
     Err,

@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use sqlx::pool::PoolConnection;
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
-use esrs::policy::SqlitePolicy;
-use esrs::projector::SqliteProjector;
-use esrs::store::{EventStore, SqliteStore, StoreEvent};
+use esrs::policy::PgPolicy;
+use esrs::projector::PgProjector;
+use esrs::store::{EventStore, PgStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -16,11 +16,11 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 pub struct LoggingProjector;
 
 #[async_trait]
-impl SqliteProjector<LoggingEvent, LoggingError> for LoggingProjector {
+impl PgProjector<LoggingEvent, LoggingError> for LoggingProjector {
     async fn project(
         &self,
         event: &StoreEvent<LoggingEvent>,
-        _: &mut PoolConnection<Sqlite>,
+        _: &mut PoolConnection<Postgres>,
     ) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
@@ -45,8 +45,8 @@ impl SqliteProjector<LoggingEvent, LoggingError> for LoggingProjector {
 pub struct LoggingPolicy;
 
 #[async_trait]
-impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Sqlite>) -> Result<(), LoggingError> {
+impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Postgres>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -63,27 +63,26 @@ impl SqlitePolicy<LoggingEvent, LoggingError> for LoggingPolicy {
 const MESSAGES: &str = "message";
 
 // A store of events
-pub type LogStore = SqliteStore<LoggingEvent, LoggingError>;
+pub type LogStore = PgStore<LoggingEvent, LoggingError>;
 
 pub struct LoggingAggregate {
     event_store: LogStore,
 }
 
 impl LoggingAggregate {
-    pub async fn new(pool: &Pool<Sqlite>) -> Result<Self, LoggingError> {
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
         Ok(Self {
             event_store: Self::new_store(pool).await?,
         })
     }
 
-    async fn new_store(pool: &Pool<Sqlite>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn SqliteProjector<LoggingEvent, LoggingError> + Send + Sync>> =
+    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
+        let projectors: Vec<Box<dyn PgProjector<LoggingEvent, LoggingError> + Send + Sync>> =
             vec![Box::new(LoggingProjector)];
 
-        let policies: Vec<Box<dyn SqlitePolicy<LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingPolicy)];
+        let policies: Vec<Box<dyn PgPolicy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
 
-        SqliteStore::new::<Self>(pool, projectors, policies).await
+        PgStore::new::<Self>(pool, projectors, policies).await
     }
 }
 
