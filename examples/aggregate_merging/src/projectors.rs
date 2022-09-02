@@ -43,8 +43,7 @@ impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwne
             ProjectorEvent::A => match existing {
                 Some(counter) => Ok(Counter::update(
                     event.aggregate_id,
-                    counter.count_a + 1,
-                    counter.count_b,
+                    CounterUpdate::A(counter.count_a + 1),
                     &mut *connection,
                 )
                 .await?),
@@ -53,8 +52,7 @@ impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwne
             ProjectorEvent::B => match existing {
                 Some(counter) => Ok(Counter::update(
                     event.aggregate_id,
-                    counter.count_a,
-                    counter.count_b + 1,
+                    CounterUpdate::B(counter.count_b + 1),
                     &mut *connection,
                 )
                 .await?),
@@ -71,6 +69,12 @@ pub struct Counter {
     pub count_b: i32,
 }
 
+#[derive(Debug, Clone)]
+enum CounterUpdate {
+    A(i32),
+    B(i32),
+}
+
 impl Counter {
     pub async fn by_id(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as::<_, Self>("SELECT * FROM counters WHERE counter_id = $1")
@@ -79,7 +83,7 @@ impl Counter {
             .await
     }
 
-    pub async fn insert(
+    async fn insert(
         id: Uuid,
         count_a: i32,
         count_b: i32,
@@ -94,19 +98,23 @@ impl Counter {
             .map(|_| ())
     }
 
-    pub async fn update(
+    async fn update(
         id: Uuid,
-        count_a: i32,
-        count_b: i32,
+        update: CounterUpdate,
         executor: impl Executor<'_, Database = Sqlite>,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("UPDATE counters SET count_a = $2, count_b = $3 WHERE counter_id = $1")
-            .bind(id)
-            .bind(count_a)
-            .bind(count_b)
-            .fetch_optional(executor)
-            .await
-            .map(|_| ())
+        let (val, query) = match update {
+            CounterUpdate::A(val) => (
+                val,
+                sqlx::query_as::<_, Self>("UPDATE counters SET count_a = $2 WHERE counter_id = $1"),
+            ),
+            CounterUpdate::B(val) => (
+                val,
+                sqlx::query_as::<_, Self>("UPDATE counters SET count_b = $2 WHERE counter_id = $1"),
+            ),
+        };
+
+        query.bind(id).bind(val).fetch_optional(executor).await.map(|_| ())
     }
 
     pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Sqlite>) -> Result<(), sqlx::Error> {
