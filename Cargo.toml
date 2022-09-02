@@ -12,15 +12,12 @@ rust-version = "1.58.0"
 version = "0.6.2"
 
 [workspace]
-members = ["examples/postgres_payments", "examples/sqlite_payments"]
-
-[[example]]
-name = "postgres-payments"
-path = "examples/postgres_payments.rs"
-
-[[example]]
-name = "sqlite-payments"
-path = "examples/sqlite_payments.rs"
+members = [
+    "examples/simple_projection",
+    "examples/simple_side_effect",
+    "examples/simple_saga",
+    "examples/aggregate_merging",
+]
 
 [features]
 postgres = ["sqlx/postgres"]
@@ -43,6 +40,4 @@ sqlx = {version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json",
 futures = "0.3"
 
 [dev-dependencies]
-postgres-payments = {path = "examples/postgres_payments"}
-sqlite-payments = {path = "examples/sqlite_payments"}
 tokio = {version = "1.6", features = ["full"]}

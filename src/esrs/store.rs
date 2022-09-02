@@ -75,4 +75,32 @@ impl<Event: Serialize + DeserializeOwned + Send + Sync> StoreEvent<Event> {
     pub const fn payload(&self) -> &Event {
         &self.payload
     }
+
+    pub fn map<Other: Serialize + DeserializeOwned + Send + Sync, F: FnOnce(Event) -> Other>(
+        self,
+        mapper: F,
+    ) -> StoreEvent<Other> {
+        StoreEvent {
+            id: self.id,
+            aggregate_id: self.aggregate_id,
+            payload: mapper(self.payload),
+            occurred_on: self.occurred_on,
+            sequence_number: self.sequence_number,
+        }
+    }
+}
+
+impl<E: Serialize + DeserializeOwned + Send + Sync> Clone for StoreEvent<E>
+where
+    E: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            aggregate_id: self.aggregate_id,
+            payload: self.payload.clone(),
+            occurred_on: self.occurred_on,
+            sequence_number: self.sequence_number,
+        }
+    }
 }
