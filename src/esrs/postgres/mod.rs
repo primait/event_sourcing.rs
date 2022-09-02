@@ -239,8 +239,6 @@ impl<
 
 #[cfg(test)]
 mod tests {
-    use sqlx::pool::PoolOptions;
-
     use super::*;
 
     #[derive(Debug)]
@@ -272,10 +270,8 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn hello_table_do_not_exist_test() {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+    #[sqlx::test]
+    async fn hello_table_do_not_exist_test(pool: Pool<Postgres>) {
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
             .bind(Hello::name())
             .fetch_all(&pool)
@@ -285,10 +281,8 @@ mod tests {
         assert!(rows.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_transaction_in_test_store_test() {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        let pool: Pool<Postgres> = PoolOptions::new().connect(database_url.as_str()).await.unwrap();
+    #[sqlx::test]
+    async fn test_transaction_in_test_store_test(pool: Pool<Postgres>) {
         persist(&pool).await;
         // When
         let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
