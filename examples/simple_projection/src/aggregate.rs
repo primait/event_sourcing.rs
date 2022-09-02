@@ -1,14 +1,12 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
-
-const COUNTERS: &str = "counter";
 
 // A store of events
 pub type CounterStore = PgStore<CounterEvent, CounterError>;
@@ -32,18 +30,16 @@ impl CounterAggregate {
     }
 }
 
-impl Identifier for CounterAggregate {
-    fn name() -> &'static str {
-        COUNTERS
-    }
-}
-
 #[async_trait]
 impl Aggregate for CounterAggregate {
     type State = ();
     type Command = CounterCommand;
     type Event = CounterEvent;
     type Error = CounterError;
+
+    fn name() -> &'static str {
+        "counter"
+    }
 
     fn handle_command(
         _state: &AggregateState<Self::State>,

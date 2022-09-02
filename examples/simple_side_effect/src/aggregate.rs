@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres, Transaction};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore, StoreEvent};
@@ -59,8 +59,6 @@ impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
     }
 }
 
-const MESSAGES: &str = "message";
-
 // A store of events
 pub type LogStore = PgStore<LoggingEvent, LoggingError>;
 
@@ -85,12 +83,6 @@ impl LoggingAggregate {
     }
 }
 
-impl Identifier for LoggingAggregate {
-    fn name() -> &'static str {
-        MESSAGES
-    }
-}
-
 #[async_trait]
 impl Aggregate for LoggingAggregate {
     type State = u64;
@@ -98,9 +90,8 @@ impl Aggregate for LoggingAggregate {
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
-        // This aggregate state just counts the number of applied - equivalent to the number in the event store
-        state + 1
+    fn name() -> &'static str {
+        "message"
     }
 
     fn handle_command(
@@ -110,6 +101,11 @@ impl Aggregate for LoggingAggregate {
         match command {
             Self::Command::Log(msg) => Ok(vec![Self::Event::Logged(msg)]),
         }
+    }
+
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+        // This aggregate state just counts the number of applied - equivalent to the number in the event store
+        state + 1
     }
 }
 

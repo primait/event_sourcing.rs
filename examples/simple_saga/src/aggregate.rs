@@ -1,14 +1,12 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
-
-const MESSAGES: &str = "message";
 
 // A store of events
 pub type LogStore = PgStore<LoggingEvent, LoggingError>;
@@ -31,12 +29,6 @@ impl LoggingAggregate {
             vec![Box::new(LoggingPolicy {})];
 
         PgStore::new::<Self>(pool, projectors, policies).await
-    }
-}
-
-impl Identifier for LoggingAggregate {
-    fn name() -> &'static str {
-        MESSAGES
     }
 }
 
@@ -73,6 +65,10 @@ impl Aggregate for LoggingAggregate {
     type Command = LoggingCommand;
     type Event = LoggingEvent;
     type Error = LoggingError;
+
+    fn name() -> &'static str {
+        "message"
+    }
 
     fn handle_command(
         _state: &AggregateState<Self::State>,
