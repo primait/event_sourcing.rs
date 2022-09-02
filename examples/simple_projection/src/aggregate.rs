@@ -3,7 +3,7 @@ use esrs::projector::SqliteProjector;
 use sqlx::{Pool, Sqlite};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
-use esrs::store::{EventStore, SqliteStore };
+use esrs::store::{EventStore, SqliteStore};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
