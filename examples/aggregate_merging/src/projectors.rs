@@ -54,6 +54,14 @@ impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwne
             },
         }
     }
+
+    async fn delete(
+        &self,
+        _aggregate_id: Uuid,
+        _transaction: &mut Transaction<'_, Postgres>,
+    ) -> Result<(), CounterError> {
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow, Debug)]

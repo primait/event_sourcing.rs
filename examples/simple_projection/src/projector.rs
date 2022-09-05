@@ -29,6 +29,14 @@ impl Projector<Postgres, CounterEvent, CounterError> for CounterProjector {
             },
         }
     }
+
+    async fn delete(
+        &self,
+        _aggregate_id: Uuid,
+        _transaction: &mut Transaction<'_, Postgres>,
+    ) -> Result<(), CounterError> {
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow, Debug)]

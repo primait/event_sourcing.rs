@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres, Transaction};
+use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::Policy;
@@ -30,6 +31,14 @@ impl Projector<Postgres, LoggingEvent, LoggingError> for LoggingProjector {
                 println!("Logged via projector from {}: {}", id, msg);
             }
         }
+        Ok(())
+    }
+
+    async fn delete(
+        &self,
+        _aggregate_id: Uuid,
+        _transaction: &mut Transaction<'_, Postgres>,
+    ) -> Result<(), LoggingError> {
         Ok(())
     }
 }

@@ -46,6 +46,7 @@ async fn main() {
         .by_aggregate_id(logger_id)
         .await
         .expect("Failed to get events");
+
     assert!(events.len() == 2); // 2 events in the store, 1 from our command and 1 from the policy
     assert!(*state.inner() == 1); // However, the state we get back only has 1 event applied (it isn't valid)
     let state = aggregate.load(logger_id).await.expect("Failed to load state");
