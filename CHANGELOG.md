@@ -11,12 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Aggregate` should implement `name` function that act as `Identifier`.
 - `AggregateManager` should implement `EventStore` associated type.
+- `Projector` should implement `delete` function.
 
 ### Changed
 
 - `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
   order to handle persistence layer.
-- `Projector` and `ProjectorEraser` second parameter changed from `PoolConnection` to `Transaction`.
+- `Projector` second parameter changed from `PoolConnection` to `Transaction`.
 - `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
 - `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
 
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Aggregate::validate_command` is removed; now validation should be made in `handle_command`.
 - `Sqlite` feature and its implementation.
 - `Identifier` trait.
+- `ProjectorEraser` trait.
 
 ## [0.6.2]
 

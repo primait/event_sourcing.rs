@@ -16,13 +16,7 @@ pub trait Projector<Database: sqlx::Database, Event: Serialize + DeserializeOwne
         event: &StoreEvent<Event>,
         transaction: &mut Transaction<'_, Database>,
     ) -> Result<(), Error>;
-}
 
-/// Projector trait that takes a Postgres transaction in order to delete a read model
-#[async_trait]
-pub trait ProjectorEraser<Database: sqlx::Database, Event: Serialize + DeserializeOwned + Send + Sync, Error>:
-    Projector<Database, Event, Error>
-{
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
     async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<'_, Database>) -> Result<(), Error>;

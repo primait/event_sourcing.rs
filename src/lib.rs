@@ -18,7 +18,7 @@ pub mod policy {
 
 #[cfg(feature = "postgres")]
 pub mod projector {
-    pub use crate::esrs::projector::{Projector, ProjectorEraser};
+    pub use crate::esrs::projector::Projector;
 }
 
 pub mod store {
