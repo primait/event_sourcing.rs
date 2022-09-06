@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use sqlx::pool::PoolConnection;
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState, Identifier};
 use esrs::policy::PgPolicy;
@@ -20,7 +19,7 @@ impl PgProjector<LoggingEvent, LoggingError> for LoggingProjector {
     async fn project(
         &self,
         event: &StoreEvent<LoggingEvent>,
-        _: &mut PoolConnection<Postgres>,
+        _: &mut Transaction<'_, Postgres>,
     ) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {

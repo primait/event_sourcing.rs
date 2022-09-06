@@ -53,17 +53,16 @@ impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
             .load(event.aggregate_id)
             .await
             .unwrap_or_else(|| AggregateState::new(event.aggregate_id)); // This should never happen
-        match event.payload() {
-            LoggingEvent::Received(msg) => {
-                if msg.contains("fail_policy") {
-                    agg.handle(state, LoggingCommand::Fail).await?;
-                    return Err(LoggingError::Domain(msg.clone()));
-                }
-                println!("Logged via policy from {}: {}", id, msg);
-                agg.handle(state, LoggingCommand::Succeed).await?;
+
+        if let LoggingEvent::Received(msg) = event.payload() {
+            if msg.contains("fail_policy") {
+                agg.handle(state, LoggingCommand::Fail).await?;
+                return Err(LoggingError::Domain(msg.clone()));
             }
-            _ => {}
+            println!("Logged via policy from {}: {}", id, msg);
+            agg.handle(state, LoggingCommand::Succeed).await?;
         }
+
         Ok(())
     }
 }

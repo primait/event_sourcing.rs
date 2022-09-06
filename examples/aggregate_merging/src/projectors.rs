@@ -3,8 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::pool::PoolConnection;
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Postgres, Transaction};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -32,30 +31,29 @@ impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwne
     async fn project(
         &self,
         event: &StoreEvent<T>,
-        connection: &mut PoolConnection<Postgres>,
+        transaction: &mut Transaction<'_, Postgres>,
     ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection)
-            .await?
-            .map(|existing| existing);
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *transaction).await?;
         let payload: ProjectorEvent = event.payload.clone().into();
+
         match payload {
             ProjectorEvent::A => match existing {
                 Some(counter) => Ok(Counter::update(
                     event.aggregate_id,
                     CounterUpdate::A(counter.count_a + 1),
-                    &mut *connection,
+                    &mut *transaction,
                 )
                 .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 1, 0, &mut *connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, 1, 0, &mut *transaction).await?),
             },
             ProjectorEvent::B => match existing {
                 Some(counter) => Ok(Counter::update(
                     event.aggregate_id,
                     CounterUpdate::B(counter.count_b + 1),
-                    &mut *connection,
+                    &mut *transaction,
                 )
                 .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 0, 1, &mut *connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, 0, 1, &mut *transaction).await?),
             },
         }
     }
@@ -140,7 +138,7 @@ pub struct SharedProjector<InnerEvent, InnerError> {
 
 impl<InnerEvent, InnerError> SharedProjector<InnerEvent, InnerError> {
     pub fn new(inner: Arc<Mutex<dyn PgProjector<InnerEvent, InnerError> + Send + Sync>>) -> Self {
-        SharedProjector { inner: inner }
+        SharedProjector { inner }
     }
 }
 
@@ -151,10 +149,14 @@ where
     InnerEvent: Send + Sync + Serialize + DeserializeOwned,
     InnerError: Into<Error>,
 {
-    async fn project(&self, event: &StoreEvent<Event>, connection: &mut PoolConnection<Postgres>) -> Result<(), Error> {
+    async fn project(
+        &self,
+        event: &StoreEvent<Event>,
+        transaction: &mut Transaction<'_, Postgres>,
+    ) -> Result<(), Error> {
         let event: StoreEvent<InnerEvent> = event.clone().map(Event::into);
         let inner = self.inner.lock().await;
-        let result = inner.project(&event, connection).await;
+        let result = inner.project(&event, transaction).await;
         match result {
             Ok(()) => Ok(()),
             Err(e) => Err(e.into()),

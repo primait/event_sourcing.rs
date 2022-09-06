@@ -1,6 +1,3 @@
-use std::future::Future;
-use std::pin::Pin;
-
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
@@ -36,19 +33,14 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
 
 /// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
 /// form that is better suited to being read by other parts of the application.
+#[async_trait]
 pub trait ProjectorStore<Event: Serialize + DeserializeOwned + Send + Sync, Executor, Error> {
-    fn project_event<'a>(
-        &'a self,
-        store_event: &'a StoreEvent<Event>,
-        executor: &'a mut Executor,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
-    where
-        Self: Sync + 'a;
+    async fn project_event(&self, store_event: &StoreEvent<Event>, executor: &mut Executor) -> Result<(), Error>;
 }
 
-#[async_trait]
 /// An EraserStore is responsible for wiping an aggregate instance from history: it should delete the
 /// aggregate instance, along with all of its events, or fail.
+#[async_trait]
 pub trait EraserStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
