@@ -1,7 +1,5 @@
 use std::convert::TryInto;
-use std::future::Future;
 use std::marker::PhantomData;
-use std::pin::Pin;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -56,8 +54,7 @@ pub struct InnerPgStore<
 }
 
 impl<
-        'a,
-        Event: 'a + Serialize + DeserializeOwned + Send + Sync,
+        Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
         Projector: PgProjector<Event, Error> + Send + Sync + ?Sized,
         Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
@@ -65,7 +62,7 @@ impl<
 {
     /// Prefer this. Pool should be shared between stores
     pub async fn new<T: Identifier + Sized>(
-        pool: &'a Pool<Postgres>,
+        pool: &Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
@@ -188,6 +185,7 @@ impl<
     }
 }
 
+#[async_trait]
 impl<
         Event: Serialize + DeserializeOwned + Send + Sync,
         Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
@@ -195,21 +193,16 @@ impl<
         Policy: PgPolicy<Event, Error> + Send + Sync + ?Sized,
     > ProjectorStore<Event, Transaction<'_, Postgres>, Error> for InnerPgStore<Event, Error, Projector, Policy>
 {
-    fn project_event<'a>(
-        &'a self,
-        store_event: &'a StoreEvent<Event>,
-        transaction: &'a mut Transaction<Postgres>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), Error>> + Send + 'a>>
-    where
-        Self: Sync + 'a,
-    {
-        Box::pin(async move {
-            for projector in &self.projectors {
-                projector.project(store_event, transaction).await?
-            }
+    async fn project_event(
+        &self,
+        store_event: &StoreEvent<Event>,
+        executor: &mut Transaction<Postgres>,
+    ) -> Result<(), Error> {
+        for projector in &self.projectors {
+            projector.project(store_event, executor).await?
+        }
 
-            Ok(())
-        })
+        Ok(())
     }
 }
 
@@ -227,7 +220,7 @@ impl<
             .bind(aggregate_id)
             .execute(&mut *transaction)
             .await
-            .map(|_| ());
+            .map(|_| ())?;
 
         for projector in &self.projectors {
             projector.delete(aggregate_id, &mut transaction).await?
