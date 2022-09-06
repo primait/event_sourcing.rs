@@ -11,10 +11,10 @@ use sqlx::types::Json;
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
+use crate::aggregate::Aggregate;
 use policy::PgPolicy;
 use projector::PgProjector;
 
-use crate::esrs::aggregate::Identifier;
 use crate::esrs::event;
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
@@ -61,20 +61,19 @@ impl<
     > InnerPgStore<Event, Error, Projector, Policy>
 {
     /// Prefer this. Pool should be shared between stores
-    pub async fn new<T: Identifier + Sized>(
+    pub async fn new<T: Aggregate + Sized>(
         pool: &Pool<Postgres>,
         projectors: Vec<Box<Projector>>,
         policies: Vec<Box<Policy>>,
     ) -> Result<Self, Error> {
-        let aggregate_name: &str = <T as Identifier>::name();
         // Check if table and indexes exist and possibly create them
-        util::run_preconditions(pool, aggregate_name).await?;
+        util::run_preconditions(pool, T::name()).await?;
 
         Ok(Self {
             pool: pool.clone(),
             projectors,
             policies,
-            queries: Queries::new(aggregate_name),
+            queries: Queries::new(T::name()),
             event: PhantomData::default(),
             error: PhantomData::default(),
         })
@@ -233,6 +232,7 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aggregate::AggregateState;
 
     #[derive(Debug)]
     pub enum Error {
@@ -254,12 +254,28 @@ mod tests {
 
     struct Hello;
 
-    impl Identifier for Hello {
+    impl Aggregate for Hello {
+        type State = ();
+        type Command = ();
+        type Event = ();
+        type Error = ();
+
         fn name() -> &'static str
         where
             Self: Sized,
         {
             "hello"
+        }
+
+        fn handle_command(
+            _state: &AggregateState<Self::State>,
+            _command: Self::Command,
+        ) -> Result<Vec<Self::Event>, Self::Error> {
+            Ok(vec![])
+        }
+
+        fn apply_event(state: Self::State, _payload: &Self::Event) -> Self::State {
+            state
         }
     }
 

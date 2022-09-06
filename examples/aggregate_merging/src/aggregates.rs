@@ -3,22 +3,19 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{AggregateManager, AggregateState, Identifier};
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::projector::PgProjector;
 use esrs::store::{EventStore, PgStore};
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
 
-const A_EVENTS: &str = "A";
-const B_EVENTS: &str = "B";
-
 // A store of events
 type Store<E> = PgStore<E, CounterError>;
 
 // We use a template here to make instantiating the near-identical
 // AggregateA and AggregateB easier.
-pub struct Aggregate<E: Send + Sync + Serialize + DeserializeOwned> {
+pub struct GenericAggregate<E: Send + Sync + Serialize + DeserializeOwned> {
     event_store: Store<E>,
 }
 
@@ -29,9 +26,9 @@ impl<
             + DeserializeOwned
             + Into<ProjectorEvent> // EventStore bounds
             + Clone, // for the CounterProjector
-    > Aggregate<E>
+    > GenericAggregate<E>
 where
-    Aggregate<E>: Identifier,
+    GenericAggregate<E>: Aggregate,
 {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         Ok(Self {
@@ -47,33 +44,22 @@ where
     }
 }
 
-pub type AggregateA = Aggregate<EventA>;
-pub type AggregateB = Aggregate<EventB>;
-
-impl Identifier for AggregateA {
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        A_EVENTS
-    }
-}
-
-impl Identifier for AggregateB {
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        B_EVENTS
-    }
-}
+pub type AggregateA = GenericAggregate<EventA>;
+pub type AggregateB = GenericAggregate<EventB>;
 
 #[async_trait]
-impl esrs::aggregate::Aggregate for AggregateA {
+impl Aggregate for AggregateA {
     type State = ();
     type Command = CommandA;
     type Event = EventA;
     type Error = CounterError;
+
+    fn name() -> &'static str
+    where
+        Self: Sized,
+    {
+        "a"
+    }
 
     fn handle_command(
         _state: &AggregateState<Self::State>,
@@ -97,15 +83,14 @@ impl AggregateManager for AggregateA {
 }
 
 #[async_trait]
-impl esrs::aggregate::Aggregate for AggregateB {
+impl Aggregate for AggregateB {
     type State = ();
     type Command = CommandB;
     type Event = EventB;
     type Error = CounterError;
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
-        // Take no action as this aggregate has no in memory state - only the projection is stateful
-        state
+    fn name() -> &'static str {
+        "b"
     }
 
     fn handle_command(
@@ -115,6 +100,11 @@ impl esrs::aggregate::Aggregate for AggregateB {
         match command {
             CommandB::Inner => Ok(vec![EventB::Inner]),
         }
+    }
+
+    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+        // Take no action as this aggregate has no in memory state - only the projection is stateful
+        state
     }
 }
 

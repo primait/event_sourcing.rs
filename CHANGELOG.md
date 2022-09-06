@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Aggregate` should implement `name` function that act as `Identifier`.
+
 ### Changed
 
 - `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
@@ -17,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Aggregate::validate_command` is removed; now validation should be made in `handle_command`.
 - `Sqlite` feature and its implementation.
+- `Identifier` trait.
 
 ## [0.6.2]
 
