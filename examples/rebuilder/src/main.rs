@@ -35,10 +35,6 @@ async fn rebuild_all_at_once<E, Err, A>(
         );
     }
     let mut transaction = pool.begin().await.unwrap();
-    let _ = sqlx::query("BEGIN")
-        .execute(&mut transaction)
-        .await
-        .expect("Failed to begin transaction");
     for event in events {
         projector
             .project(&event, &mut transaction)
@@ -96,7 +92,7 @@ async fn main() {
         .connect(database_url.as_str())
         .await
         .expect("Failed to create pool");
-    let () = sqlx::migrate!("./migrations")
+    sqlx::migrate!("./migrations")
         .run(&pool)
         .await
         .expect("Failed to run migrations");

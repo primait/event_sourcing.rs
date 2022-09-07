@@ -24,7 +24,7 @@ async fn main() {
         .expect("Failed to create pool");
     let count_id = Uuid::new_v4();
 
-    setup(&pool, count_id.clone()).await;
+    setup(&pool, count_id).await;
     let agg_a = AggregateA::new(&pool).await.unwrap();
     let agg_b = AggregateB::new(&pool).await.unwrap();
     let store_a = agg_a.event_store();
@@ -65,7 +65,7 @@ async fn main() {
             }
             if b.is_none() {
                 projector
-                    .project(&a.as_ref().unwrap().as_ref().unwrap(), &mut transcation)
+                    .project(a.as_ref().unwrap().as_ref().unwrap(), &mut transcation)
                     .await
                     .unwrap();
                 a = None;
@@ -92,7 +92,7 @@ async fn main() {
 }
 
 async fn setup(pool: &Pool<Postgres>, count_id: Uuid) {
-    let () = sqlx::migrate!("./migrations")
+    sqlx::migrate!("./migrations")
         .run(pool)
         .await
         .expect("Failed to run migrations");
