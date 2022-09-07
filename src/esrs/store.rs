@@ -31,7 +31,7 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
 
     async fn close(&self);
 
-    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Event>, Error>>;
+    fn get_all(& self) -> BoxStream<Result<StoreEvent<Event>, Error>>;
 }
 
 /// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a

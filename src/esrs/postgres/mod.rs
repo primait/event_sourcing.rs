@@ -183,7 +183,7 @@ impl<
         self.pool.close().await
     }
 
-    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Event>, Error>> {
+    fn get_all(&self) -> BoxStream<Result<StoreEvent<Event>, Error>> {
         Box::pin(
             sqlx::query_as::<_, event::Event>(self.queries.select_all())
                 .fetch(&self.pool)
