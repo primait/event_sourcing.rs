@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
@@ -29,6 +30,8 @@ pub trait EventStore<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
     async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error>;
 
     async fn close(&self);
+
+    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Event>, Error>>;
 }
 
 /// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a

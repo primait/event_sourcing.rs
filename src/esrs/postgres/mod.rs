@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::types::Json;
@@ -181,6 +181,20 @@ impl<
 
     async fn close(&self) {
         self.pool.close().await
+    }
+
+    fn get_all<'a>(&'a self) -> BoxStream<'a, Result<StoreEvent<Event>, Error>> {
+        Box::pin(
+            sqlx::query_as::<_, event::Event>(self.queries.select_all())
+                .fetch(&self.pool)
+                .map(|res| match res {
+                    Ok(e) => match e.try_into() {
+                        Ok(e) => Ok(e),
+                        Err(e) => Err(Error::from(e)),
+                    },
+                    Err(e) => Err(e.into()),
+                }),
+        )
     }
 }
 
