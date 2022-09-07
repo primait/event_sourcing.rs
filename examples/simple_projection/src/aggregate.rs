@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore};
+use esrs::store::PgStore;
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
@@ -51,14 +51,16 @@ impl Aggregate for CounterAggregate {
         }
     }
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection
         state
     }
 }
 
 impl AggregateManager for CounterAggregate {
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+    type EventStore = CounterStore;
+
+    fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }

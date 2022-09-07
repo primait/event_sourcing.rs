@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::esrs::state::AggregateState;
 use crate::esrs::store::{EventStore, StoreEvent};
+use crate::types::SequenceNumber;
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
@@ -43,7 +44,7 @@ pub trait Aggregate {
     /// to the state.
     ///
     /// If this is not the case, this function is allowed to panic.
-    fn apply_event(state: Self::State, payload: &Self::Event) -> Self::State;
+    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State;
 }
 
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
@@ -55,8 +56,10 @@ pub trait Aggregate {
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Aggregate {
+    type EventStore: EventStore<Self::Event, Self::Error> + Send + Sync;
+
     /// Returns the event store, configured for the aggregate
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync);
+    fn event_store(&self) -> &Self::EventStore;
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     async fn handle(
@@ -79,14 +82,15 @@ pub trait AggregateManager: Aggregate {
         aggregate_state: AggregateState<Self::State>,
         events: Vec<StoreEvent<Self::Event>>,
     ) -> AggregateState<Self::State> {
-        let inner: Self::State = events.iter().fold(
+        let sequence_number: SequenceNumber = events.last().map_or(0, StoreEvent::sequence_number);
+        let inner: Self::State = events.into_iter().fold(
             aggregate_state.inner,
-            |acc: Self::State, event: &StoreEvent<Self::Event>| Self::apply_event(acc, event.payload()),
+            |acc: Self::State, event: StoreEvent<Self::Event>| Self::apply_event(acc, event.payload),
         );
 
         AggregateState {
             inner,
-            sequence_number: events.last().map_or(0, |e| e.sequence_number()),
+            sequence_number,
             ..aggregate_state
         }
     }

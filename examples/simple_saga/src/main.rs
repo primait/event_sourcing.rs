@@ -3,6 +3,7 @@ use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{AggregateManager, AggregateState};
+use esrs::store::EventStore;
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
 
