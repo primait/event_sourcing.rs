@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore, StoreEvent};
+use esrs::store::{PgStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -103,14 +103,16 @@ impl Aggregate for LoggingAggregate {
         }
     }
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // This aggregate state just counts the number of applied - equivalent to the number in the event store
         state + 1
     }
 }
 
 impl AggregateManager for LoggingAggregate {
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+    type EventStore = LogStore;
+
+    fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }

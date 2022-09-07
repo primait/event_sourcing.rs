@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres};
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::policy::PgPolicy;
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore, StoreEvent};
+use esrs::store::{PgStore, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -81,7 +81,7 @@ impl Aggregate for LoggingAggregate {
         }
     }
 
-    fn apply_event(state: Self::State, event: &Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, event: Self::Event) -> Self::State {
         match event {
             LoggingEvent::Received(_) => {
                 // Do nothing, since the logging policy is what carries out the side effect
@@ -104,7 +104,9 @@ impl Aggregate for LoggingAggregate {
 }
 
 impl AggregateManager for LoggingAggregate {
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+    type EventStore = LogStore;
+
+    fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }

@@ -5,7 +5,7 @@ use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::projector::PgProjector;
-use esrs::store::{EventStore, PgStore};
+use esrs::store::PgStore;
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
@@ -70,14 +70,16 @@ impl Aggregate for AggregateA {
         }
     }
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection is stateful
         state
     }
 }
 
 impl AggregateManager for AggregateA {
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+    type EventStore = Store<Self::Event>;
+
+    fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }
@@ -102,14 +104,16 @@ impl Aggregate for AggregateB {
         }
     }
 
-    fn apply_event(state: Self::State, _: &Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection is stateful
         state
     }
 }
 
 impl AggregateManager for AggregateB {
-    fn event_store(&self) -> &(dyn EventStore<Self::Event, Self::Error> + Send + Sync) {
+    type EventStore = Store<Self::Event>;
+
+    fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }
