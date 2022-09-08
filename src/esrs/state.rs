@@ -4,14 +4,20 @@ use uuid::Uuid;
 
 use crate::esrs::SequenceNumber;
 
-#[derive(Debug, Clone)]
-pub struct AggregateState<S: Default + Debug + Clone> {
+#[derive(Clone, Debug)]
+pub struct AggregateState<S>
+where
+    S: Default + Clone + Debug,
+{
     pub(crate) id: Uuid,
     pub(crate) sequence_number: SequenceNumber,
     pub(crate) inner: S,
 }
 
-impl<S: Default + Debug + Clone> Default for AggregateState<S> {
+impl<S> Default for AggregateState<S>
+where
+    S: Default + Clone + Debug,
+{
     fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -21,7 +27,10 @@ impl<S: Default + Debug + Clone> Default for AggregateState<S> {
     }
 }
 
-impl<S: Default + Debug + Clone> AggregateState<S> {
+impl<S> AggregateState<S>
+where
+    S: Default + Debug + Clone,
+{
     #[must_use]
     pub fn new(id: Uuid) -> Self {
         Self {

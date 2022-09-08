@@ -38,11 +38,6 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 Run examples.
 
 ```shell
-# Startup database and export `DATABASE_URL`
-docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
-
-# Run examples
 cargo run -p simple_projection
 cargo run -p simple_side_effect
 cargo run -p simple_saga

@@ -130,23 +130,18 @@ pub trait AggregateManager: Aggregate {
         aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        let events: Vec<StoreEvent<Self::Event>> = self
-            .event_store()
+        self.event_store()
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
-            .await?;
-
-        let _ = self.event_store().run_policies(&events).await;
-
-        Ok(events)
+            .await
     }
 }
 
 /// The Eraser trait is responsible for erasing an aggregate instance from history.
 #[async_trait]
-pub trait Eraser<
+pub trait Eraser<Event, Error>
+where
     Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
->
 {
     /// `delete` should either complete the aggregate instance, along with all its associated events, or fail.
     /// If the deletion succeeds only partially, it _must_ return an error.

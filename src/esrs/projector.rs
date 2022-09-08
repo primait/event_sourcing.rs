@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
-use serde::Serialize;
 use sqlx::Transaction;
 use uuid::Uuid;
 
@@ -8,7 +7,11 @@ use crate::esrs::store::StoreEvent;
 
 /// Projector trait that takes a Postgres transaction in order to create a read model
 #[async_trait]
-pub trait Projector<Database: sqlx::Database, Event: Serialize + DeserializeOwned + Send + Sync, Error> {
+pub trait Projector<Database, Event, Error>
+where
+    Database: sqlx::Database,
+    Event: DeserializeOwned,
+{
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.
     async fn project(

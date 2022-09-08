@@ -1,14 +1,14 @@
 pub mod aggregate;
-pub mod event;
+mod event;
 pub mod policy;
 pub mod projector;
 pub mod state;
 pub mod store;
 
 #[cfg(feature = "postgres")]
-pub mod query;
+pub mod postgres;
 
 #[cfg(feature = "postgres")]
-pub mod postgres;
+mod query;
 
 pub type SequenceNumber = i32;
