@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use sqlx::{Executor, Postgres, Transaction};
+use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
-use esrs::projector::Projector;
+use esrs::store::postgres::Projector;
 use esrs::store::StoreEvent;
 
 use crate::structs::{CounterError, CounterEvent};
@@ -10,32 +10,28 @@ use crate::structs::{CounterError, CounterEvent};
 pub struct CounterProjector;
 
 #[async_trait]
-impl Projector<Postgres, CounterEvent, CounterError> for CounterProjector {
+impl Projector<CounterEvent, CounterError> for CounterProjector {
     async fn project(
         &self,
         event: &StoreEvent<CounterEvent>,
-        transaction: &mut Transaction<'_, Postgres>,
+        connection: &mut PgConnection,
     ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *transaction).await?;
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection).await?;
 
         match event.payload {
             CounterEvent::Incremented => match existing {
-                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count + 1, &mut *transaction).await?),
-                None => Ok(Counter::insert(event.aggregate_id, 1, &mut *transaction).await?),
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count + 1, connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, 1, connection).await?),
             },
             CounterEvent::Decremented => match existing {
-                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count - 1, &mut *transaction).await?),
-                None => Ok(Counter::insert(event.aggregate_id, -1, &mut *transaction).await?),
+                Some(counter) => Ok(Counter::update(event.aggregate_id, counter.count - 1, connection).await?),
+                None => Ok(Counter::insert(event.aggregate_id, -1, connection).await?),
             },
         }
     }
 
-    async fn delete(
-        &self,
-        _aggregate_id: Uuid,
-        _transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), CounterError> {
-        Ok(())
+    async fn delete(&self, _: Uuid, _: &mut PgConnection) -> Result<(), CounterError> {
+        todo!()
     }
 }
 

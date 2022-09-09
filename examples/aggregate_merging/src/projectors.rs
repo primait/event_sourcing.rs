@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::{Executor, Postgres, Transaction};
+use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
-use esrs::projector::Projector;
+use esrs::store::postgres::Projector;
 use esrs::store::StoreEvent;
 
 use crate::structs::{CounterError, ProjectorEvent};
@@ -22,45 +22,31 @@ pub struct CounterProjector;
 // model - in this case, using queries which only update count_a when EventA is received, and count_b
 // when EventB is received, would be sufficient to guarantee soundness.
 #[async_trait]
-impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> Projector<Postgres, T, CounterError>
+impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> Projector<T, CounterError>
     for CounterProjector
 {
-    async fn project(
-        &self,
-        event: &StoreEvent<T>,
-        transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *transaction).await?;
+    async fn project(&self, event: &StoreEvent<T>, connection: &mut PgConnection) -> Result<(), CounterError> {
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection).await?;
         let payload: ProjectorEvent = event.payload.clone().into();
 
         match payload {
             ProjectorEvent::A => match existing {
-                Some(counter) => Ok(Counter::update(
-                    event.aggregate_id,
-                    CounterUpdate::A(counter.count_a + 1),
-                    &mut *transaction,
-                )
-                .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 1, 0, &mut *transaction).await?),
+                Some(counter) => {
+                    Ok(Counter::update(event.aggregate_id, CounterUpdate::A(counter.count_a + 1), connection).await?)
+                }
+                None => Ok(Counter::insert(event.aggregate_id, 1, 0, connection).await?),
             },
             ProjectorEvent::B => match existing {
-                Some(counter) => Ok(Counter::update(
-                    event.aggregate_id,
-                    CounterUpdate::B(counter.count_b + 1),
-                    &mut *transaction,
-                )
-                .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 0, 1, &mut *transaction).await?),
+                Some(counter) => {
+                    Ok(Counter::update(event.aggregate_id, CounterUpdate::B(counter.count_b + 1), connection).await?)
+                }
+                None => Ok(Counter::insert(event.aggregate_id, 0, 1, connection).await?),
             },
         }
     }
 
-    async fn delete(
-        &self,
-        _aggregate_id: Uuid,
-        _transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), CounterError> {
-        Ok(())
+    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), CounterError> {
+        todo!()
     }
 }
 

@@ -11,20 +11,15 @@ pub mod error {
     pub use sqlx::Error as SqlxError;
 }
 
-#[cfg(feature = "postgres")]
-pub mod policy {
-    pub use crate::esrs::policy::Policy;
-}
-
-#[cfg(feature = "postgres")]
-pub mod projector {
-    pub use crate::esrs::projector::Projector;
-}
-
 pub mod store {
+    pub use crate::esrs::store::{EventStore, StoreEvent};
+
     #[cfg(feature = "postgres")]
-    pub use crate::esrs::postgres::PgStore;
-    pub use crate::esrs::store::{EraserStore, EventStore, ProjectorStore, StoreEvent};
+    pub mod postgres {
+        pub use crate::esrs::postgres::policy::Policy;
+        pub use crate::esrs::postgres::projector::Projector;
+        pub use crate::esrs::postgres::PgStore;
+    }
 }
 
 pub mod types {

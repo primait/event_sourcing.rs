@@ -17,7 +17,7 @@ where
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
-    /// Persists multiple events into the database.  This should be done in a single transaction - either
+    /// Persists multiple events into the database. This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
     ///
     /// Persisting events may additionally trigger configured Projectors.
@@ -28,30 +28,7 @@ where
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Event>>, Error>;
 
-    // /// Run any policies attached to this store against a set of events.
-    // /// This should be called only after the events have successfully been persisted in the store.
-    // async fn run_policies(&self, events: &[StoreEvent<Event>]) -> Result<(), Error>;
-
-    async fn close(&self);
-
-    fn get_all(&self) -> BoxStream<Result<StoreEvent<Event>, Error>>;
-}
-
-/// A ProjectorStore is responsible for projecting an event (that has been persisted to the database) into a
-/// form that is better suited to being read by other parts of the application.
-#[async_trait]
-pub trait ProjectorStore<Executor, Event, Error>
-where
-    Event: DeserializeOwned,
-{
-    async fn project_event(&self, store_event: &StoreEvent<Event>, executor: &mut Executor) -> Result<(), Error>;
-}
-
-/// An EraserStore is responsible for wiping an aggregate instance from history: it should delete the
-/// aggregate instance, along with all of its events, or fail.
-#[async_trait]
-pub trait EraserStore<Event, Error> {
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid) -> Result<(), Error>;
 }
 
 /// A StoreEvent contains the payload (the original event) alongside the event's metadata.

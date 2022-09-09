@@ -1,11 +1,11 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::policy::Policy;
-use esrs::projector::Projector;
-use esrs::store::{PgStore, StoreEvent};
+use esrs::store::postgres::Projector;
+use esrs::store::postgres::{PgStore, Policy};
+use esrs::store::StoreEvent;
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -16,12 +16,8 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 pub struct LoggingProjector;
 
 #[async_trait]
-impl Projector<Postgres, LoggingEvent, LoggingError> for LoggingProjector {
-    async fn project(
-        &self,
-        event: &StoreEvent<LoggingEvent>,
-        _: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), LoggingError> {
+impl Projector<LoggingEvent, LoggingError> for LoggingProjector {
+    async fn project(&self, event: &StoreEvent<LoggingEvent>, _: &mut PgConnection) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -34,12 +30,8 @@ impl Projector<Postgres, LoggingEvent, LoggingError> for LoggingProjector {
         Ok(())
     }
 
-    async fn delete(
-        &self,
-        _aggregate_id: Uuid,
-        _transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), LoggingError> {
-        Ok(())
+    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), LoggingError> {
+        todo!()
     }
 }
 
@@ -53,7 +45,7 @@ impl Projector<Postgres, LoggingEvent, LoggingError> for LoggingProjector {
 pub struct LoggingPolicy;
 
 #[async_trait]
-impl Policy<Postgres, LoggingEvent, LoggingError> for LoggingPolicy {
+impl Policy<LoggingEvent, LoggingError> for LoggingPolicy {
     async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Postgres>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
@@ -83,11 +75,10 @@ impl LoggingAggregate {
     }
 
     async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn Projector<Postgres, LoggingEvent, LoggingError> + Send + Sync>> =
+        let projectors: Vec<Box<dyn Projector<LoggingEvent, LoggingError> + Send + Sync>> =
             vec![Box::new(LoggingProjector)];
 
-        let policies: Vec<Box<dyn Policy<Postgres, LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingPolicy)];
+        let policies: Vec<Box<dyn Policy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
 
         PgStore::new::<Self>(pool, projectors, policies).await
     }

@@ -4,8 +4,8 @@ use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::projector::Projector;
-use esrs::store::PgStore;
+use esrs::store::postgres::PgStore;
+use esrs::store::postgres::Projector;
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
@@ -38,8 +38,7 @@ where
 
     pub async fn new_store(pool: &Pool<Postgres>) -> Result<Store<E>, CounterError> {
         // Any aggregate based off this template will project to the CounterProjector
-        let projectors: Vec<Box<dyn Projector<Postgres, E, CounterError> + Send + Sync>> =
-            vec![Box::new(CounterProjector)];
+        let projectors: Vec<Box<dyn Projector<E, CounterError> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
         PgStore::new::<Self>(pool, projectors, vec![]).await
     }

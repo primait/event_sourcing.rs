@@ -12,12 +12,14 @@ use uuid::Uuid;
 use crate::aggregate::Aggregate;
 use crate::esrs::query::Queries;
 use crate::esrs::store::{EventStore, StoreEvent};
-use crate::esrs::{event, policy, projector, SequenceNumber};
+use crate::esrs::{event, SequenceNumber};
 
+pub mod policy;
+pub mod projector;
 mod setup;
 
-type Projector<Event, Error> = Box<dyn projector::Projector<Postgres, Event, Error> + Send + Sync>;
-type Policy<Event, Error> = Box<dyn policy::Policy<Postgres, Event, Error> + Send + Sync>;
+type Projector<Event, Error> = Box<dyn projector::Projector<Event, Error> + Send + Sync>;
+type Policy<Event, Error> = Box<dyn policy::Policy<Event, Error> + Send + Sync>;
 
 pub struct PgStore<Event, Error> {
     pool: Pool<Postgres>,
@@ -74,7 +76,7 @@ where
         })
     }
 
-    pub async fn delete_by_aggregate_id(
+    async fn delete_by_aggregate_id(
         &self,
         aggregate_id: Uuid,
         executor: impl Executor<'_, Database = Postgres>,
@@ -100,6 +102,10 @@ where
         T: Future<Output = Result<Vec<StoreEvent<Event>>, Error>> + Send,
     {
         fun(&self.pool).await
+    }
+
+    pub async fn close(&self) {
+        self.pool.close().await
     }
 }
 
@@ -158,8 +164,18 @@ where
         Ok(store_events)
     }
 
-    async fn close(&self) {
-        self.pool.close().await
+    async fn delete(&self, id: Uuid) -> Result<(), Error> {
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
+
+        self.delete_by_aggregate_id(id, &mut *transaction).await?;
+
+        for projector in &self.projectors {
+            projector.delete(id, &mut *transaction).await?;
+        }
+
+        transaction.commit().await?;
+
+        Ok(())
     }
 
     fn get_all(&self) -> BoxStream<Result<StoreEvent<Event>, Error>> {

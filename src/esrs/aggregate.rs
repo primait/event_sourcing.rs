@@ -137,6 +137,7 @@ pub trait AggregateManager: Aggregate {
 }
 
 /// The Eraser trait is responsible for erasing an aggregate instance from history.
+/// TODO: better name for this?
 #[async_trait]
 pub trait Eraser<Event, Error>
 where
