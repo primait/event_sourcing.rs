@@ -40,7 +40,7 @@ where
         // Any aggregate based off this template will project to the CounterProjector
         let projectors: Vec<Box<dyn Projector<E, CounterError> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        PgStore::new::<Self>(pool, projectors, vec![]).await
+        PgStore::new::<Self>(pool, projectors, vec![]).setup().await
     }
 }
 

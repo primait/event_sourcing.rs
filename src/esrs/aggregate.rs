@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -20,7 +18,7 @@ use crate::types::SequenceNumber;
 /// should not have any side effects. If you need additional information to handle commands correctly, then
 /// consider looking up that information and placing it in the command.
 pub trait Aggregate {
-    type State: Default + Clone + Debug + Send + Sync;
+    type State: Default + Clone + Send + Sync;
     type Command: Send + Sync;
     type Event: Serialize + DeserializeOwned + Send + Sync;
     type Error: Send + Sync;
@@ -134,17 +132,12 @@ pub trait AggregateManager: Aggregate {
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
             .await
     }
-}
 
-/// The Eraser trait is responsible for erasing an aggregate instance from history.
-/// TODO: better name for this?
-#[async_trait]
-pub trait Eraser<Event, Error>
-where
-    Event: Serialize + DeserializeOwned + Send + Sync,
-    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
-{
-    /// `delete` should either complete the aggregate instance, along with all its associated events, or fail.
+    /// `delete` should either complete the aggregate instance, along with all its associated events
+    /// and projections, or fail.
+    ///
     /// If the deletion succeeds only partially, it _must_ return an error.
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error> {
+        self.event_store().delete_by_aggregate_id(aggregate_id).await
+    }
 }

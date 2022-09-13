@@ -5,25 +5,27 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::aggregate::Aggregate;
-use crate::esrs::query::Queries;
 use crate::esrs::store::{EventStore, StoreEvent};
 use crate::esrs::{event, SequenceNumber};
 
 pub mod policy;
 pub mod projector;
-mod setup;
+
+#[cfg(test)]
+mod tests;
 
 type Projector<Event, Error> = Box<dyn projector::Projector<Event, Error> + Send + Sync>;
 type Policy<Event, Error> = Box<dyn policy::Policy<Event, Error> + Send + Sync>;
 
 pub struct PgStore<Event, Error> {
+    table_name: String,
     pool: Pool<Postgres>,
-    queries: Queries,
     projectors: Vec<Projector<Event, Error>>,
     policies: Vec<Policy<Event, Error>>,
 }
@@ -31,34 +33,45 @@ pub struct PgStore<Event, Error> {
 impl<Event, Error> PgStore<Event, Error>
 where
     Event: Serialize + DeserializeOwned + Send + Sync,
-    Error: From<sqlx::Error>,
+    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
 {
-    pub async fn new<T: Aggregate>(
+    // TODO: doc
+    pub fn new<A: Aggregate>(
         pool: &Pool<Postgres>,
         projectors: Vec<Projector<Event, Error>>,
         policies: Vec<Policy<Event, Error>>,
-    ) -> Result<Self, Error> {
-        setup::run(pool, T::name()).await?;
-
-        Ok(Self {
+    ) -> Self {
+        Self {
+            table_name: format!("{}_events", A::name()),
             pool: pool.clone(),
-            queries: Queries::new(T::name()),
             projectors,
             policies,
-        })
+        }
     }
 
+    // TODO: doc
+    pub async fn setup(self) -> Result<Self, Error> {
+        create_table::<Error>(&self.table_name, &self.pool).await?;
+        Ok(self)
+    }
+
+    // TODO: doc
     pub async fn insert(
         &self,
         aggregate_id: Uuid,
         event: Event,
-        occurred_on: &DateTime<Utc>,
+        occurred_on: DateTime<Utc>,
         sequence_number: SequenceNumber,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<StoreEvent<Event>, Error> {
         let id: Uuid = Uuid::new_v4();
 
-        let _ = sqlx::query(self.queries.insert())
+        let insert_query: String = format!(
+            "INSERT INTO {} (id, aggregate_id, payload, occurred_on, sequence_number) VALUES ($1, $2, $3, $4, $5)",
+            &self.table_name
+        );
+
+        let _ = sqlx::query(insert_query.as_str())
             .bind(id)
             .bind(aggregate_id)
             .bind(Json(&event))
@@ -71,31 +84,22 @@ where
             id,
             aggregate_id,
             payload: event,
-            occurred_on: *occurred_on,
+            occurred_on,
             sequence_number,
         })
     }
 
-    async fn delete_by_aggregate_id(
-        &self,
-        aggregate_id: Uuid,
-        executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<(), Error> {
-        Ok(sqlx::query(self.queries.delete())
-            .bind(aggregate_id)
-            .execute(executor)
-            .await
-            .map(|_| ())?)
-    }
-
+    // TODO: doc
     pub fn projectors(&self) -> &Vec<Projector<Event, Error>> {
         &self.projectors
     }
 
+    // TODO: doc
     pub fn policies(&self) -> &Vec<Policy<Event, Error>> {
         &self.policies
     }
 
+    // TODO: doc
     pub async fn persist_fn<'a, F: Send, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Event>>, Error>
     where
         F: FnOnce(&'a Pool<Postgres>) -> T,
@@ -104,6 +108,7 @@ where
         fun(&self.pool).await
     }
 
+    // TODO: doc
     pub async fn close(&self) {
         self.pool.close().await
     }
@@ -115,9 +120,14 @@ where
     Event: Serialize + DeserializeOwned + Send + Sync,
     Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
 {
-    async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
-        Ok(sqlx::query_as::<_, event::Event>(self.queries.select())
-            .bind(id)
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
+        let by_aggregate_id_query: String = format!(
+            "SELECT * FROM {} WHERE aggregate_id = $1 ORDER BY sequence_number ASC",
+            &self.table_name
+        );
+
+        Ok(sqlx::query_as::<_, event::Event>(by_aggregate_id_query.as_str())
+            .bind(aggregate_id)
             .fetch_all(&self.pool)
             .await?
             .into_iter()
@@ -140,7 +150,7 @@ where
                 self.insert(
                     aggregate_id,
                     event,
-                    &occurred_on,
+                    occurred_on,
                     starting_sequence_number + index as i32,
                     &mut *transaction,
                 )
@@ -161,16 +171,23 @@ where
                 policy.handle_event(store_event, &self.pool).await?;
             }
         }
+
         Ok(store_events)
     }
 
-    async fn delete(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
-        self.delete_by_aggregate_id(id, &mut *transaction).await?;
+        let delete_by_aggregate_id_query: String = format!("DELETE FROM {} WHERE aggregate_id = $1", &self.table_name);
+
+        let _ = sqlx::query(delete_by_aggregate_id_query.as_str())
+            .bind(aggregate_id)
+            .execute(&mut *transaction)
+            .await
+            .map(|_| ())?;
 
         for projector in &self.projectors {
-            projector.delete(id, &mut *transaction).await?;
+            projector.delete(aggregate_id, &mut *transaction).await?;
         }
 
         transaction.commit().await?;
@@ -191,4 +208,52 @@ where
                 }),
         )
     }
+}
+
+async fn create_table<Error>(table_name: &str, pool: &Pool<Postgres>) -> Result<(), Error>
+where
+    Error: From<sqlx::Error> + Send + Sync,
+{
+    // Create events table if not exists
+    let create_table_query: String = format!(
+        "CREATE TABLE IF NOT EXISTS {0}
+            (
+              id uuid NOT NULL,
+              aggregate_id uuid NOT NULL,
+              payload jsonb NOT NULL,
+              occurred_on TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+              sequence_number INT NOT NULL DEFAULT 1,
+              CONSTRAINT {0}_pkey PRIMARY KEY (id)
+            )",
+        table_name
+    );
+
+    let _: PgQueryResult = sqlx::query(create_table_query.as_str())
+        .bind(table_name)
+        .execute(pool)
+        .await?;
+
+    // Create index on aggregate_id for `by_aggregate_id` query.
+    let create_aggregate_id_index_query: String = format!(
+        "CREATE INDEX IF NOT EXISTS {0}_aggregate_id ON {0} USING btree (((payload ->> 'id'::text)))",
+        table_name
+    );
+
+    let _: PgQueryResult = sqlx::query(create_aggregate_id_index_query.as_str())
+        .bind(table_name)
+        .execute(pool)
+        .await?;
+
+    // Create unique constraint `aggregate_id`-`sequence_number` to avoid race conditions.
+    let create_aggregate_id_sequence_number_unique_constraint_query: String = format!(
+        "CREATE UNIQUE INDEX IF NOT EXISTS {0}_aggregate_id_sequence_number ON {0}(aggregate_id, sequence_number)",
+        table_name
+    );
+
+    let _: PgQueryResult = sqlx::query(create_aggregate_id_sequence_number_unique_constraint_query.as_str())
+        .bind(table_name)
+        .execute(pool)
+        .await?;
+
+    Ok(())
 }

@@ -8,7 +8,8 @@ use uuid::Uuid;
 use crate::esrs::store::StoreEvent;
 use crate::esrs::SequenceNumber;
 
-#[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[cfg_attr(feature = "sql", derive(sqlx::FromRow))]
 pub struct Event {
     pub id: Uuid,
     pub aggregate_id: Uuid,

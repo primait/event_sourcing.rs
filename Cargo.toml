@@ -22,7 +22,8 @@ members = [
 ]
 
 [features]
-postgres = ["sqlx/postgres"]
+postgres = ["sql", "sqlx/postgres"]
+sql = ["sqlx"]
 
 [dependencies]
 # Serialization/Deserialization
@@ -36,7 +37,7 @@ chrono = {version = "0.4", features = ["serde"]}
 async-trait = "0.1.50"
 
 # Sql library for async impl
-sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"]}
+sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
 # To stream over sqlx results
 futures = "0.3"
 

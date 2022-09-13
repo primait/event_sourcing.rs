@@ -15,7 +15,7 @@ where
     Event: Serialize + DeserializeOwned,
 {
     /// Loads the events that an aggregate instance has emitted in the past.
-    async fn by_aggregate_id(&self, id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error>;
 
     /// Persists multiple events into the database. This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
@@ -28,7 +28,8 @@ where
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Event>>, Error>;
 
-    async fn delete(&self, id: Uuid) -> Result<(), Error>;
+    // TODO: doc
+    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Error>;
 }
 
 /// A StoreEvent contains the payload (the original event) alongside the event's metadata.

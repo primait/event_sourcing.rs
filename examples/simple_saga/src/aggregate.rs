@@ -26,7 +26,7 @@ impl LoggingAggregate {
 
         let policies: Vec<Box<dyn Policy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
 
-        PgStore::new::<Self>(pool, projectors, policies).await
+        PgStore::new::<Self>(pool, projectors, policies).setup().await
     }
 }
 

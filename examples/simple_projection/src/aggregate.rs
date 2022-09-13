@@ -26,7 +26,7 @@ impl CounterAggregate {
         let projectors: Vec<Box<dyn Projector<CounterEvent, CounterError> + Send + Sync>> =
             vec![Box::new(CounterProjector)];
 
-        PgStore::new::<Self>(pool, projectors, vec![]).await
+        PgStore::new::<Self>(pool, projectors, vec![]).setup().await
     }
 }
 

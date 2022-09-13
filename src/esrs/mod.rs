@@ -6,7 +6,7 @@ pub mod store;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 
-#[cfg(feature = "postgres")]
-mod query;
+#[cfg(test)]
+mod tests;
 
 pub type SequenceNumber = i32;
