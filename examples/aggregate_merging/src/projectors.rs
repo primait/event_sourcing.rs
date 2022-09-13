@@ -22,7 +22,7 @@ pub struct CounterProjector;
 // model - in this case, using queries which only update count_a when EventA is received, and count_b
 // when EventB is received, would be sufficient to guarantee soundness.
 #[async_trait]
-impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> Projector<T, CounterError>
+impl<T: Into<ProjectorEvent> + Serialize + DeserializeOwned + Send + Sync + Clone> Projector<T, CounterError>
     for CounterProjector
 {
     async fn project(&self, event: &StoreEvent<T>, connection: &mut PgConnection) -> Result<(), CounterError> {

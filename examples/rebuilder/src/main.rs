@@ -1,15 +1,17 @@
 use std::fmt::Debug;
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::projector::PgProjector;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use simple_projection::aggregate::CounterAggregate;
-use simple_projection::projector::{Counter, CounterProjector};
-use simple_projection::structs::*;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
+
+use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
+use esrs::store::postgres::Projector;
+use esrs::store::EventStore;
+use simple_projection::aggregate::CounterAggregate;
+use simple_projection::projector::{Counter, CounterProjector};
+use simple_projection::structs::*;
 
 // Rebuild the projection of a single aggregation, given the aggregate, an aggregate ID, a projector to rebuild and a pool connection
 // This rebuilds the projection for all aggregate ids in a single transaction. An alternative (see _rebuild_per_id, below) is
@@ -17,7 +19,7 @@ use uuid::Uuid;
 async fn rebuild_all_at_once<E, Err, A>(
     aggregate: &A,
     ids: Vec<Uuid>,
-    projector: &dyn PgProjector<E, Err>,
+    projector: &dyn Projector<E, Err>,
     pool: &Pool<Postgres>,
 ) where
     A: AggregateManager<Event = E, Error = Err>,
@@ -49,7 +51,7 @@ async fn rebuild_all_at_once<E, Err, A>(
 async fn _rebuild_per_id<E, Err, A>(
     aggregate: &A,
     ids: Vec<Uuid>,
-    projector: &dyn PgProjector<E, Err>,
+    projector: &dyn Projector<E, Err>,
     pool: &Pool<Postgres>,
 ) where
     A: AggregateManager<Event = E, Error = Err>,
@@ -65,7 +67,7 @@ async fn _rebuild_per_id<E, Err, A>(
 async fn _rebuild_multiple_projectors<'a, E, Err, A>(
     aggregate: &'a A,
     ids: Vec<Uuid>,
-    projectors: Vec<Box<dyn PgProjector<E, Err>>>,
+    projectors: Vec<Box<dyn Projector<E, Err>>>,
     pool: &'a Pool<Postgres>,
 ) where
     A: AggregateManager<Event = E, Error = Err>,

@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use futures::stream::BoxStream;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
