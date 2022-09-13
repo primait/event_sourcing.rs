@@ -98,7 +98,7 @@ where
     }
 
     // TODO: doc
-    pub fn get_all<'a>(&self) -> BoxStream<Result<StoreEvent<Event>, Error>> {
+    pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Event>, Error>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.statements.select_all())
                 .fetch(&self.pool)
