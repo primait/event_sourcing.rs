@@ -55,15 +55,24 @@ where
 
     // TODO: doc
     pub async fn setup(self) -> Result<Self, Error> {
+        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
+
         // Create events table if not exists
-        let _: PgQueryResult = sqlx::query(self.statements.create_table()).execute(&self.pool).await?;
+        let _: PgQueryResult = sqlx::query(self.statements.create_table())
+            .execute(&mut *transaction)
+            .await?;
+
         // Create index on aggregate_id for `by_aggregate_id` query.
-        let _: PgQueryResult = sqlx::query(self.statements.create_index()).execute(&self.pool).await?;
+        let _: PgQueryResult = sqlx::query(self.statements.create_index())
+            .execute(&mut *transaction)
+            .await?;
 
         // Create unique constraint `aggregate_id`-`sequence_number` to avoid race conditions.
         let _: PgQueryResult = sqlx::query(self.statements.create_unique_constraint())
-            .execute(&self.pool)
+            .execute(&mut *transaction)
             .await?;
+
+        transaction.commit().await?;
 
         Ok(self)
     }
@@ -110,12 +119,12 @@ where
     }
 
     // TODO: doc
-    pub fn projectors(&self) -> &Vec<Projector<Event, Error>> {
+    pub fn projectors(&self) -> &[Projector<Event, Error>] {
         &self.projectors
     }
 
     // TODO: doc
-    pub fn policies(&self) -> &Vec<Policy<Event, Error>> {
+    pub fn policies(&self) -> &[Policy<Event, Error>] {
         &self.policies
     }
 

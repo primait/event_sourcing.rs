@@ -18,6 +18,6 @@ where
 
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
-    /// TODO: doc for implementation; doc for pg connection
+    /// TODO: doc for pg connection
     async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), Error>;
 }
