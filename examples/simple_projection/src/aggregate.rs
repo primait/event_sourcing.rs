@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
@@ -26,7 +25,6 @@ impl CounterAggregate {
     }
 }
 
-#[async_trait]
 impl Aggregate for CounterAggregate {
     type State = ();
     type Command = CounterCommand;

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
@@ -28,7 +27,6 @@ impl AggregateA {
     }
 }
 
-#[async_trait]
 impl Aggregate for AggregateA {
     type State = ();
     type Command = CommandA;
@@ -83,7 +81,6 @@ impl AggregateB {
     }
 }
 
-#[async_trait]
 impl Aggregate for AggregateB {
     type State = ();
     type Command = CommandB;

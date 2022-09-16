@@ -78,7 +78,6 @@ impl LoggingAggregate {
     }
 }
 
-#[async_trait]
 impl Aggregate for LoggingAggregate {
     type State = u64;
     type Command = LoggingCommand;

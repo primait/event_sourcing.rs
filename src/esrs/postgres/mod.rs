@@ -139,7 +139,7 @@ where
     /// let the policies return or not an error if one of them fails.
     ///
     /// An example of how to use this function is in `examples/customize_persistence_flow` example
-    /// folder (todo).
+    /// folder.
     pub async fn persist_fn<'a, F: Send, T>(
         &'a self,
         fun: F,
