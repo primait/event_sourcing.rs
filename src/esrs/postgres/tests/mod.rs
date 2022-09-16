@@ -53,7 +53,7 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
     assert!(store_events.is_empty());
 
     let store_event: StoreEvent<TestEvent> = store
-        .insert(aggregate_id, TestEvent { id: event_internal_id }, occurred_on, 0, &pool)
+        .save_event(aggregate_id, TestEvent { id: event_internal_id }, occurred_on, 0, &pool)
         .await
         .unwrap();
 
@@ -63,7 +63,7 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
     assert_eq!(store_event.sequence_number, 0);
 
     let store_event: Result<StoreEvent<TestEvent>, TestError> = store
-        .insert(aggregate_id, TestEvent { id: event_internal_id }, occurred_on, 0, &pool)
+        .save_event(aggregate_id, TestEvent { id: event_internal_id }, occurred_on, 0, &pool)
         .await;
 
     // Violation of aggregate_id - sequence_number unique constraint

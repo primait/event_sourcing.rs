@@ -69,7 +69,7 @@ fn create_table_statement(table_name: &str) -> String {
 
 fn create_index_statement(table_name: &str) -> String {
     format!(
-        "CREATE INDEX IF NOT EXISTS {0}_aggregate_id ON {0} USING btree (((payload ->> 'id'::text)))",
+        "CREATE INDEX IF NOT EXISTS {0}_aggregate_id ON {0}(aggregate_id)",
         table_name
     )
 }

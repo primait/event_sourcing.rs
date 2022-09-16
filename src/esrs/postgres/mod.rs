@@ -41,7 +41,7 @@ impl<Aggregate> PgStore<Aggregate>
 where
     Aggregate: aggregate::Aggregate,
 {
-    // TODO: doc
+    /// Creates a new implementation of an aggregate
     pub fn new(pool: &Pool<Postgres>, projectors: Vec<Projector<Aggregate>>, policies: Vec<Policy<Aggregate>>) -> Self {
         Self {
             pool: pool.clone(),
@@ -51,7 +51,12 @@ where
         }
     }
 
-    // TODO: doc
+    /// This function setup the database in a transaction, creating the event store table (if not exists)
+    /// and two indexes (always if not exist). The first one is over the `aggregate_id` field to
+    /// speed up `by_aggregate_id` query. The second one is a unique constraint over the tuple
+    /// `(aggregate_id, sequence_number)` to avoid race conditions.
+    ///
+    /// This function should be used once, possibly in the main.
     pub async fn setup(self) -> Result<Self, Aggregate::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
@@ -75,8 +80,8 @@ where
         Ok(self)
     }
 
-    // TODO: doc
-    pub async fn insert(
+    /// Save an event in the event store and return a new `StoreEvent` instance.
+    pub async fn save_event(
         &self,
         aggregate_id: Uuid,
         event: Aggregate::Event,
@@ -104,7 +109,8 @@ where
         })
     }
 
-    // TODO: doc
+    /// This function returns a stream representing the full event store table content. This should
+    /// be mainly used to rebuild read models.
     pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Aggregate::Event>, Aggregate::Error>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.statements.select_all())
@@ -116,17 +122,24 @@ where
         })
     }
 
-    // TODO: doc
+    /// This function returns the list of all projections added to this store. This function should
+    /// mostly used while creating a custom persistence flow using `persist_fn`.
     pub fn projectors(&self) -> &[Projector<Aggregate>] {
         &self.projectors
     }
 
-    // TODO: doc
+    /// This function returns the list of all policies added to this store. This function should
+    /// mostly used while creating a custom persistence flow using `persist_fn`.
     pub fn policies(&self) -> &[Policy<Aggregate>] {
         &self.policies
     }
 
-    // TODO: doc
+    /// This function could be used in order to customize the way the store persist the events.
+    /// For example could be used to avoid having projectors in transaction with event saving. Or to
+    /// let the policies return or not an error if one of them fails.
+    ///
+    /// An example of how to use this function is in `examples/customize_persistence_flow` example
+    /// folder (todo).
     pub async fn persist_fn<'a, F: Send, T>(
         &'a self,
         fun: F,
@@ -138,7 +151,7 @@ where
         fun(&self.pool).await
     }
 
-    // TODO: doc
+    /// This function closes the inner pool.
     pub async fn close(&self) {
         self.pool.close().await
     }
@@ -171,7 +184,7 @@ where
 
         for (index, event) in events.into_iter().enumerate() {
             store_events.push(
-                self.insert(
+                self.save_event(
                     aggregate_id,
                     event,
                     occurred_on,

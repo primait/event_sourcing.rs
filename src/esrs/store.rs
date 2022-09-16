@@ -26,7 +26,9 @@ where
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>;
 
-    // TODO: doc
+    /// Delete all events from events store related to given `aggregate_id`.
+    ///
+    /// Moreover it should delete all the projections.
     async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Aggregate::Error>;
 }
 

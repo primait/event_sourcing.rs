@@ -13,7 +13,10 @@ where
 {
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.
-    /// TODO: doc for pg connection
+    ///
+    /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
+    /// of sqlx package this could be changed. At this time the connection could be a simple connection
+    /// acquired by a pool or a deref of a transaction.
     async fn project(
         &self,
         event: &StoreEvent<Aggregate::Event>,
@@ -22,6 +25,9 @@ where
 
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
-    /// TODO: doc for pg connection
+    ///
+    /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
+    /// of sqlx package this could be changed. At this time the connection could be a simple connection
+    /// acquired by a pool or a deref of a transaction.
     async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), Aggregate::Error>;
 }
