@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   order to handle persistence layer.
 - `Projector` second parameter changed from `Transaction` to `PgConnection`.
 - `PgStore` moved to `esrs::store::postgres` module.
-- `PgStore::new` function is now sync and its return value is no longer a `Result` but `Self`.
+- `PgStore::new` function is now sync and its return value is no longer a `Result` but `Self`. Removed type param.
+- `PgStore<Event, Error>` became `PgStore<Aggregate>`.
 - `Projector` moved to `esrs::store::postgres` module.
 - `Policy` moved to `esrs::store::postgres` module.
 - `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
