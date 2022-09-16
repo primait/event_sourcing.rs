@@ -7,29 +7,69 @@ DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
 [config]
 default_to_workspace = false
 
+# Check
 [tasks.check]
-description = "Run check."
+description = "Run checks"
+dependencies = ["check-no-features", "check-postgres"]
+
+[tasks.check-no-features]
+description = "Run check without features"
 command = "cargo"
 args = ["check", "--workspace"]
 
+[tasks.check-postgres]
+description = "Run check with `postgres` feature on"
+command = "cargo"
+args = ["check", "--workspace", "--features=postgres"]
+
+# Build
 [tasks.build-ci]
+description = "Build prima_tracing.rs inside CI."
+dependencies = ["build-ci-no-features", "build-ci-postgres"]
+
+[tasks.build-ci-no-features]
 description = "Build prima_tracing.rs inside CI."
 command = "cargo"
 args = ["build", "-j", "2", "--all-features", "--workspace"]
 
+[tasks.build-ci-postgres]
+description = "Build prima_tracing.rs inside CI."
+command = "cargo"
+args = ["build", "-j", "2", "--all-features", "--workspace"]
+
+# Format
 [tasks.format-ci]
 description = "Runs the cargo rustfmt plugin during CI."
 command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
+# Tests
 [tasks.test]
 description = "Run tests."
-command = "cargo"
-args = ["test", "${@}", "--all", "--workspace"]
+dependencies = ["test-no-features", "test-postgres"]
 
+[tasks.test-no-features]
+description = "Run tests."
+command = "cargo"
+args = ["test", "${@}", "--workspace"]
+
+[tasks.test-postgres]
+description = "Run tests."
+command = "cargo"
+args = ["test", "${@}", "--workspace", "--features=postgres"]
+
+# Clippy
 [tasks.clippy-ci]
+description = "Run clippy linter."
+dependencies = ["clippy-ci-no-features", "clippy-ci-postgres"]
+
+[tasks.clippy-ci-no-features]
 command = "cargo"
 args = ["clippy", "--workspace", "--", "-D", "warnings"]
+
+[tasks.clippy-ci-postgres]
+command = "cargo"
+args = ["clippy", "--workspace", "--features", "postgres", "--", "-D", "warnings"]
 
 [tasks.cargo-prune]
 description = "Run cargo prune"

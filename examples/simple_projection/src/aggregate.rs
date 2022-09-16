@@ -8,11 +8,8 @@ use esrs::store::postgres::Projector;
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
-// A store of events
-pub type CounterStore = PgStore<CounterEvent, CounterError>;
-
 pub struct CounterAggregate {
-    event_store: CounterStore,
+    event_store: PgStore<Self>,
 }
 
 impl CounterAggregate {
@@ -22,11 +19,10 @@ impl CounterAggregate {
         })
     }
 
-    async fn new_store(pool: &Pool<Postgres>) -> Result<CounterStore, CounterError> {
-        let projectors: Vec<Box<dyn Projector<CounterEvent, CounterError> + Send + Sync>> =
-            vec![Box::new(CounterProjector)];
+    async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, CounterError> {
+        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        PgStore::new::<Self>(pool, projectors, vec![]).setup().await
+        PgStore::new(pool, projectors, vec![]).setup().await
     }
 }
 
@@ -58,7 +54,7 @@ impl Aggregate for CounterAggregate {
 }
 
 impl AggregateManager for CounterAggregate {
-    type EventStore = CounterStore;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

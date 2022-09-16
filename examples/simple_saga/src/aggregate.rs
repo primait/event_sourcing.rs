@@ -7,11 +7,8 @@ use esrs::store::StoreEvent;
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
-// A store of events
-pub type LogStore = PgStore<LoggingEvent, LoggingError>;
-
 pub struct LoggingAggregate {
-    event_store: LogStore,
+    event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
@@ -21,12 +18,12 @@ impl LoggingAggregate {
         })
     }
 
-    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn Projector<LoggingEvent, LoggingError> + Send + Sync>> = vec![]; // There are no projections here
+    async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, LoggingError> {
+        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![]; // There are no projections here
 
-        let policies: Vec<Box<dyn Policy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
+        let policies: Vec<Box<dyn Policy<Self> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
 
-        PgStore::new::<Self>(pool, projectors, policies).setup().await
+        PgStore::new(pool, projectors, policies).setup().await
     }
 }
 
@@ -35,7 +32,7 @@ impl LoggingAggregate {
 struct LoggingPolicy;
 
 #[async_trait]
-impl Policy<LoggingEvent, LoggingError> for LoggingPolicy {
+impl Policy<LoggingAggregate> for LoggingPolicy {
     async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, pool: &Pool<Postgres>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         let agg = LoggingAggregate::new(pool).await?;
@@ -102,7 +99,7 @@ impl Aggregate for LoggingAggregate {
 }
 
 impl AggregateManager for LoggingAggregate {
-    type EventStore = LogStore;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

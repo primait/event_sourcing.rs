@@ -5,12 +5,13 @@ use uuid::Uuid;
 use esrs::store::postgres::Projector;
 use esrs::store::StoreEvent;
 
+use crate::aggregate::CounterAggregate;
 use crate::structs::{CounterError, CounterEvent};
 
 pub struct CounterProjector;
 
 #[async_trait]
-impl Projector<CounterEvent, CounterError> for CounterProjector {
+impl Projector<CounterAggregate> for CounterProjector {
     async fn project(
         &self,
         event: &StoreEvent<CounterEvent>,

@@ -1,42 +1,43 @@
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
 use esrs::store::postgres::Projector;
 use esrs::store::StoreEvent;
 
-use crate::structs::{CounterError, ProjectorEvent};
+use crate::aggregates::{AggregateA, AggregateB};
+use crate::structs::{CounterError, EventA, EventB};
 
 pub struct CounterProjector;
 
-// This is a projector template that will project any events that implement Into<ProjectorEvent>
-// into a shared projection (DB table). This behaviour - consuming events from more than one aggregate,
-// and projecting them to a shared table, is RACE PRONE - if the projector writes to the same column
-// when consuming more than one kind of event (as it does in this example, writing to both count_a and
-// count_b when updating the counts, regardless of if it received and EventA or an EventB), then it is
-// possible for two simultaneous transactions, updating the same projection, to occur. If the projector
-// also relies on previous state to calculate next state (as this one does), this is a data race. The fix
-// (not implemented here, for demonstration purposes) is dependant on your database transaction isolation
-// model - in this case, using queries which only update count_a when EventA is received, and count_b
-// when EventB is received, would be sufficient to guarantee soundness.
+// This is a projector template that will project AggregateA events into a shared projection (DB table).
 #[async_trait]
-impl<T: Into<ProjectorEvent> + Serialize + DeserializeOwned + Send + Sync + Clone> Projector<T, CounterError>
-    for CounterProjector
-{
-    async fn project(&self, event: &StoreEvent<T>, connection: &mut PgConnection) -> Result<(), CounterError> {
+impl Projector<AggregateA> for CounterProjector {
+    async fn project(&self, event: &StoreEvent<EventA>, connection: &mut PgConnection) -> Result<(), CounterError> {
         let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection).await?;
-        let payload: ProjectorEvent = event.payload.clone().into();
 
-        match payload {
-            ProjectorEvent::A => match existing {
+        match event.payload() {
+            EventA::Inner => match existing {
                 Some(counter) => {
                     Ok(Counter::update(event.aggregate_id, CounterUpdate::A(counter.count_a + 1), connection).await?)
                 }
                 None => Ok(Counter::insert(event.aggregate_id, 1, 0, connection).await?),
             },
-            ProjectorEvent::B => match existing {
+        }
+    }
+
+    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), CounterError> {
+        todo!()
+    }
+}
+
+#[async_trait]
+impl Projector<AggregateB> for CounterProjector {
+    async fn project(&self, event: &StoreEvent<EventB>, connection: &mut PgConnection) -> Result<(), CounterError> {
+        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *connection).await?;
+
+        match event.payload() {
+            EventB::Inner => match existing {
                 Some(counter) => {
                     Ok(Counter::update(event.aggregate_id, CounterUpdate::B(counter.count_b + 1), connection).await?)
                 }

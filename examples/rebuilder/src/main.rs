@@ -1,7 +1,5 @@
 use std::fmt::Debug;
 
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
@@ -16,15 +14,10 @@ use simple_projection::structs::*;
 // Rebuild the projection of a single aggregation, given the aggregate, an aggregate ID, a projector to rebuild and a pool connection
 // This rebuilds the projection for all aggregate ids in a single transaction. An alternative (see _rebuild_per_id, below) is
 // to rebuild on a per-id basis.
-async fn rebuild_all_at_once<E, Err, A>(
-    aggregate: &A,
-    ids: Vec<Uuid>,
-    projector: &dyn Projector<E, Err>,
-    pool: &Pool<Postgres>,
-) where
-    A: AggregateManager<Event = E, Error = Err>,
-    E: Serialize + DeserializeOwned + Send + Sync,
-    Err: Debug,
+async fn rebuild_all_at_once<A>(aggregate: &A, ids: Vec<Uuid>, projector: &dyn Projector<A>, pool: &Pool<Postgres>)
+where
+    A: AggregateManager,
+    <A as Aggregate>::Error: Debug,
 {
     let mut events = Vec::new();
     for id in ids {
@@ -48,15 +41,10 @@ async fn rebuild_all_at_once<E, Err, A>(
 
 // An alternative approach to rebuilding that rebuilds the projected table for a given projection one
 // aggregate ID at a time, rather than committing the entire table all at once
-async fn _rebuild_per_id<E, Err, A>(
-    aggregate: &A,
-    ids: Vec<Uuid>,
-    projector: &dyn Projector<E, Err>,
-    pool: &Pool<Postgres>,
-) where
-    A: AggregateManager<Event = E, Error = Err>,
+async fn _rebuild_per_id<A>(aggregate: &A, ids: Vec<Uuid>, projector: &dyn Projector<A>, pool: &Pool<Postgres>)
+where
+    A: AggregateManager,
     <A as Aggregate>::Error: Debug,
-    E: Serialize + DeserializeOwned + Send + Sync,
 {
     for id in ids {
         rebuild_all_at_once(aggregate, vec![id], projector, pool).await;
@@ -64,15 +52,14 @@ async fn _rebuild_per_id<E, Err, A>(
 }
 
 // Rebuild a number of boxed projectors at once, for a single aggregate, for a number of aggregate ids
-async fn _rebuild_multiple_projectors<'a, E, Err, A>(
+async fn _rebuild_multiple_projectors<'a, A>(
     aggregate: &'a A,
     ids: Vec<Uuid>,
-    projectors: Vec<Box<dyn Projector<E, Err>>>,
+    projectors: Vec<Box<dyn Projector<A>>>,
     pool: &'a Pool<Postgres>,
 ) where
-    A: AggregateManager<Event = E, Error = Err>,
+    A: AggregateManager,
     <A as Aggregate>::Error: Debug,
-    E: Serialize + DeserializeOwned + Send + Sync,
 {
     for projector in projectors {
         for id in &ids {

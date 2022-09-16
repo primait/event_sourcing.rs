@@ -1,6 +1,4 @@
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::esrs::state::AggregateState;
@@ -18,10 +16,28 @@ use crate::types::SequenceNumber;
 /// should not have any side effects. If you need additional information to handle commands correctly, then
 /// consider looking up that information and placing it in the command.
 pub trait Aggregate {
+    /// Internal aggregate state. This will be wrapped in `AggregateState` and could be used to validate
+    /// commands.
     type State: Default + Clone + Send + Sync;
+
+    /// A command is an action that the caller can execute over an aggregate in order to let it emit
+    /// an event.
     type Command: Send + Sync;
-    type Event: Serialize + DeserializeOwned + Send + Sync;
-    type Error: Send + Sync;
+
+    /// An event represents a fact that took place in the domain. They are the source of truth;
+    /// your current state is derived from the events.
+    #[cfg(feature = "postgres")]
+    type Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync;
+    #[cfg(not(feature = "postgres"))]
+    type Event: Send + Sync;
+
+    /// This associated type is used to get errors while handling a command and eventually (if postgres
+    /// feature is enabled) to get back errors returning from database while querying or deserializing
+    /// and event.
+    #[cfg(feature = "postgres")]
+    type Error: From<sqlx::Error> + From<serde_json::Error>;
+    #[cfg(not(feature = "postgres"))]
+    type Error;
 
     /// The `name` function is responsible for naming an aggregate type.
     /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
@@ -53,8 +69,8 @@ pub trait Aggregate {
 /// 2. load
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
-pub trait AggregateManager: Aggregate {
-    type EventStore: EventStore<Self::Event, Self::Error> + Send + Sync;
+pub trait AggregateManager: Aggregate + Sized {
+    type EventStore: EventStore<Self> + Send + Sync;
 
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;

@@ -5,18 +5,16 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::aggregate::Aggregate;
 use crate::esrs::postgres::statement::Statements;
 use crate::esrs::store::{EventStore, StoreEvent};
-use crate::esrs::{event, SequenceNumber};
+use crate::esrs::SequenceNumber;
 
+mod event;
 pub mod policy;
 pub mod projector;
 
@@ -24,37 +22,35 @@ mod statement;
 #[cfg(test)]
 mod tests;
 
-type Projector<Event, Error> = Box<dyn projector::Projector<Event, Error> + Send + Sync>;
-type Policy<Event, Error> = Box<dyn policy::Policy<Event, Error> + Send + Sync>;
+type Projector<A> = Box<dyn projector::Projector<A> + Send + Sync>;
+type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;
 
-pub struct PgStore<Event, Error> {
+pub struct PgStore<Aggregate>
+where
+    Aggregate: crate::aggregate::Aggregate,
+{
     pool: Pool<Postgres>,
     statements: Statements,
-    projectors: Vec<Projector<Event, Error>>,
-    policies: Vec<Policy<Event, Error>>,
+    projectors: Vec<Projector<Aggregate>>,
+    policies: Vec<Policy<Aggregate>>,
 }
 
-impl<Event, Error> PgStore<Event, Error>
+impl<Aggregate> PgStore<Aggregate>
 where
-    Event: Serialize + DeserializeOwned + Send + Sync,
-    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+    Aggregate: crate::aggregate::Aggregate,
 {
     // TODO: doc
-    pub fn new<A: Aggregate>(
-        pool: &Pool<Postgres>,
-        projectors: Vec<Projector<Event, Error>>,
-        policies: Vec<Policy<Event, Error>>,
-    ) -> Self {
+    pub fn new(pool: &Pool<Postgres>, projectors: Vec<Projector<Aggregate>>, policies: Vec<Policy<Aggregate>>) -> Self {
         Self {
             pool: pool.clone(),
-            statements: Statements::new(A::name()),
+            statements: Statements::new(Aggregate::name()),
             projectors,
             policies,
         }
     }
 
     // TODO: doc
-    pub async fn setup(self) -> Result<Self, Error> {
+    pub async fn setup(self) -> Result<Self, Aggregate::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         // Create events table if not exists
@@ -81,11 +77,11 @@ where
     pub async fn insert(
         &self,
         aggregate_id: Uuid,
-        event: Event,
+        event: Aggregate::Event,
         occurred_on: DateTime<Utc>,
         sequence_number: SequenceNumber,
         executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<StoreEvent<Event>, Error> {
+    ) -> Result<StoreEvent<Aggregate::Event>, Aggregate::Error> {
         let id: Uuid = Uuid::new_v4();
 
         let _ = sqlx::query(self.statements.insert())
@@ -107,7 +103,7 @@ where
     }
 
     // TODO: doc
-    pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Event>, Error>> {
+    pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Aggregate::Event>, Aggregate::Error>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.statements.select_all())
                 .fetch(&self.pool)
@@ -119,20 +115,23 @@ where
     }
 
     // TODO: doc
-    pub fn projectors(&self) -> &[Projector<Event, Error>] {
+    pub fn projectors(&self) -> &[Projector<Aggregate>] {
         &self.projectors
     }
 
     // TODO: doc
-    pub fn policies(&self) -> &[Policy<Event, Error>] {
+    pub fn policies(&self) -> &[Policy<Aggregate>] {
         &self.policies
     }
 
     // TODO: doc
-    pub async fn persist_fn<'a, F: Send, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Event>>, Error>
+    pub async fn persist_fn<'a, F: Send, T>(
+        &'a self,
+        fun: F,
+    ) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>
     where
         F: FnOnce(&'a Pool<Postgres>) -> T,
-        T: Future<Output = Result<Vec<StoreEvent<Event>>, Error>> + Send,
+        T: Future<Output = Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>> + Send,
     {
         fun(&self.pool).await
     }
@@ -144,30 +143,29 @@ where
 }
 
 #[async_trait]
-impl<Event, Error> EventStore<Event, Error> for PgStore<Event, Error>
+impl<Aggregate> EventStore<Aggregate> for PgStore<Aggregate>
 where
-    Event: Serialize + DeserializeOwned + Send + Sync,
-    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
+    Aggregate: crate::aggregate::Aggregate,
 {
-    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Event>>, Error> {
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error> {
         Ok(sqlx::query_as::<_, event::Event>(self.statements.by_aggregate_id())
             .bind(aggregate_id)
             .fetch_all(&self.pool)
             .await?
             .into_iter()
             .map(|event| Ok(event.try_into()?))
-            .collect::<Result<Vec<StoreEvent<Event>>, Error>>()?)
+            .collect::<Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>>()?)
     }
 
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        events: Vec<Event>,
+        events: Vec<Aggregate::Event>,
         starting_sequence_number: SequenceNumber,
-    ) -> Result<Vec<StoreEvent<Event>>, Error> {
+    ) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
-        let mut store_events: Vec<StoreEvent<Event>> = vec![];
+        let mut store_events: Vec<StoreEvent<Aggregate::Event>> = vec![];
 
         for (index, event) in events.into_iter().enumerate() {
             store_events.push(
@@ -199,7 +197,7 @@ where
         Ok(store_events)
     }
 
-    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Error> {
+    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Aggregate::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         let _ = sqlx::query(self.statements.delete_by_aggregate_id())

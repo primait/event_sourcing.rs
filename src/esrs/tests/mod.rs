@@ -50,13 +50,13 @@ fn load_aggregate_state_test(pool: Pool<Postgres>) {
 }
 
 struct TestAggregate {
-    event_store: PgStore<TestEvent, TestError>,
+    event_store: PgStore<Self>,
 }
 
 impl TestAggregate {
     async fn new(pool: &Pool<Postgres>) -> Self {
         Self {
-            event_store: PgStore::new::<Self>(pool, vec![], vec![]).setup().await.unwrap(),
+            event_store: PgStore::new(pool, vec![], vec![]).setup().await.unwrap(),
         }
     }
 }
@@ -103,7 +103,7 @@ impl Aggregate for TestAggregate {
 }
 
 impl AggregateManager for TestAggregate {
-    type EventStore = PgStore<TestEvent, TestError>;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

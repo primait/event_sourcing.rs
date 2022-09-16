@@ -16,7 +16,7 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 pub struct LoggingProjector;
 
 #[async_trait]
-impl Projector<LoggingEvent, LoggingError> for LoggingProjector {
+impl Projector<LoggingAggregate> for LoggingProjector {
     async fn project(&self, event: &StoreEvent<LoggingEvent>, _: &mut PgConnection) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
@@ -45,7 +45,7 @@ impl Projector<LoggingEvent, LoggingError> for LoggingProjector {
 pub struct LoggingPolicy;
 
 #[async_trait]
-impl Policy<LoggingEvent, LoggingError> for LoggingPolicy {
+impl Policy<LoggingAggregate> for LoggingPolicy {
     async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Postgres>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
@@ -60,11 +60,8 @@ impl Policy<LoggingEvent, LoggingError> for LoggingPolicy {
     }
 }
 
-// A store of events
-pub type LogStore = PgStore<LoggingEvent, LoggingError>;
-
 pub struct LoggingAggregate {
-    event_store: LogStore,
+    event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
@@ -74,13 +71,10 @@ impl LoggingAggregate {
         })
     }
 
-    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn Projector<LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingProjector)];
-
-        let policies: Vec<Box<dyn Policy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
-
-        PgStore::new::<Self>(pool, projectors, policies).setup().await
+    async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, LoggingError> {
+        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(LoggingProjector)];
+        let policies: Vec<Box<dyn Policy<Self> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
+        PgStore::new(pool, projectors, policies).setup().await
     }
 }
 
@@ -111,7 +105,7 @@ impl Aggregate for LoggingAggregate {
 }
 
 impl AggregateManager for LoggingAggregate {
-    type EventStore = LogStore;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

@@ -22,8 +22,7 @@ members = [
 ]
 
 [features]
-postgres = ["sql", "sqlx/postgres"]
-sql = ["sqlx"]
+postgres = ["sqlx/postgres"]
 
 [dependencies]
 # Serialization/Deserialization

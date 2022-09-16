@@ -1,6 +1,4 @@
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
@@ -8,44 +6,27 @@ use esrs::store::postgres::PgStore;
 use esrs::store::postgres::Projector;
 
 use crate::projectors::CounterProjector;
-use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB, ProjectorEvent};
-
-// A store of events
-type Store<E> = PgStore<E, CounterError>;
+use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
 
 // We use a template here to make instantiating the near-identical
 // AggregateA and AggregateB easier.
-pub struct GenericAggregate<E: Send + Sync + Serialize + DeserializeOwned> {
-    event_store: Store<E>,
+pub struct AggregateA {
+    event_store: PgStore<Self>,
 }
 
-impl<
-        E: Send
-            + Sync
-            + Serialize
-            + DeserializeOwned
-            + Into<ProjectorEvent> // EventStore bounds
-            + Clone, // for the CounterProjector
-    > GenericAggregate<E>
-where
-    GenericAggregate<E>: Aggregate,
-{
+impl AggregateA {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         Ok(Self {
             event_store: Self::new_store(pool).await?,
         })
     }
 
-    pub async fn new_store(pool: &Pool<Postgres>) -> Result<Store<E>, CounterError> {
-        // Any aggregate based off this template will project to the CounterProjector
-        let projectors: Vec<Box<dyn Projector<E, CounterError> + Send + Sync>> = vec![Box::new(CounterProjector)];
+    pub async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, CounterError> {
+        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        PgStore::new::<Self>(pool, projectors, vec![]).setup().await
+        PgStore::new(pool, projectors, vec![]).setup().await
     }
 }
-
-pub type AggregateA = GenericAggregate<EventA>;
-pub type AggregateB = GenericAggregate<EventB>;
 
 #[async_trait]
 impl Aggregate for AggregateA {
@@ -77,10 +58,28 @@ impl Aggregate for AggregateA {
 }
 
 impl AggregateManager for AggregateA {
-    type EventStore = Store<Self::Event>;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store
+    }
+}
+
+pub struct AggregateB {
+    event_store: PgStore<Self>,
+}
+
+impl AggregateB {
+    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
+        Ok(Self {
+            event_store: Self::new_store(pool).await?,
+        })
+    }
+
+    pub async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, CounterError> {
+        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
+
+        PgStore::new(pool, projectors, vec![]).setup().await
     }
 }
 
@@ -111,7 +110,7 @@ impl Aggregate for AggregateB {
 }
 
 impl AggregateManager for AggregateB {
-    type EventStore = Store<Self::Event>;
+    type EventStore = PgStore<Self>;
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store
