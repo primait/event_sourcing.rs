@@ -2,14 +2,15 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::esrs::SequenceNumber;
+use crate::aggregate;
+use crate::types::SequenceNumber;
 
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
 pub trait EventStore<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>;

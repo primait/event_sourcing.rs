@@ -1,12 +1,13 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use crate::esrs::store::StoreEvent;
+use crate::aggregate;
+use crate::store::StoreEvent;
 
 #[async_trait]
 pub trait Policy<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     /// This function intercepts the event and, matching on the type of such event
     /// produces the appropriate side effects.

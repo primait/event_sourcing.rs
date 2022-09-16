@@ -2,13 +2,14 @@ use async_trait::async_trait;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::esrs::store::StoreEvent;
+use crate::aggregate;
+use crate::store::StoreEvent;
 
 /// Projector trait that takes a Postgres transaction in order to create a read model
 #[async_trait]
 pub trait Projector<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.

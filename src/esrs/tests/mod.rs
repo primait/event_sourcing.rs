@@ -1,7 +1,8 @@
-use crate::aggregate::{Aggregate, AggregateManager, AggregateState};
-use crate::esrs::postgres::PgStore;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
+
+use crate::aggregate::{Aggregate, AggregateManager, AggregateState};
+use crate::store::postgres::PgStore;
 
 #[sqlx::test]
 fn handle_command_test(pool: Pool<Postgres>) {

@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::esrs::SequenceNumber;
+use crate::types::SequenceNumber;
 
 #[derive(Clone)]
 pub struct AggregateState<S> {

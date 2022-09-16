@@ -10,15 +10,17 @@ use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::esrs::postgres::statement::Statements;
-use crate::esrs::store::{EventStore, StoreEvent};
-use crate::esrs::SequenceNumber;
+use statement::Statements;
+
+use crate::aggregate;
+use crate::store::{EventStore, StoreEvent};
+use crate::types::SequenceNumber;
 
 mod event;
 pub mod policy;
 pub mod projector;
-
 mod statement;
+
 #[cfg(test)]
 mod tests;
 
@@ -27,7 +29,7 @@ type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;
 
 pub struct PgStore<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     pool: Pool<Postgres>,
     statements: Statements,
@@ -37,7 +39,7 @@ where
 
 impl<Aggregate> PgStore<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     // TODO: doc
     pub fn new(pool: &Pool<Postgres>, projectors: Vec<Projector<Aggregate>>, policies: Vec<Policy<Aggregate>>) -> Self {
@@ -145,7 +147,7 @@ where
 #[async_trait]
 impl<Aggregate> EventStore<Aggregate> for PgStore<Aggregate>
 where
-    Aggregate: crate::aggregate::Aggregate,
+    Aggregate: aggregate::Aggregate,
 {
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error> {
         Ok(sqlx::query_as::<_, event::Event>(self.statements.by_aggregate_id())

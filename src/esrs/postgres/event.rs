@@ -5,8 +5,8 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::esrs::store::StoreEvent;
-use crate::esrs::SequenceNumber;
+use crate::store::StoreEvent;
+use crate::types::SequenceNumber;
 
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
 pub struct Event {

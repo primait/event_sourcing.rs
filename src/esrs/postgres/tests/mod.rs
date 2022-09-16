@@ -5,8 +5,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::aggregate::{Aggregate, AggregateManager, AggregateState};
-use crate::esrs::postgres::PgStore;
-use crate::store::postgres::{Policy, Projector};
+use crate::store::postgres::{PgStore, Policy, Projector};
 use crate::store::{EventStore, StoreEvent};
 
 #[sqlx::test]
