@@ -26,8 +26,8 @@ async fn main() {
 
     setup(&pool, count_id).await;
 
-    let store_a = AggregateA::new_store(&pool).await.unwrap();
-    let store_b = AggregateB::new_store(&pool).await.unwrap();
+    let store_a = AggregateA::new(&pool).await.unwrap().event_store;
+    let store_b = AggregateB::new(&pool).await.unwrap().event_store;
 
     let mut events_a = store_a.get_all();
     let mut events_b = store_b.get_all();

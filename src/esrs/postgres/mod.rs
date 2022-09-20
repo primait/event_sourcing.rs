@@ -42,7 +42,7 @@ where
     Manager: AggregateManager,
 {
     /// Creates a new implementation of an aggregate
-    pub fn new(pool: &Pool<Postgres>, projectors: Vec<Projector<Manager>>, policies: Vec<Policy<Manager>>) -> Self {
+    pub fn new(pool: Pool<Postgres>, projectors: Vec<Projector<Manager>>, policies: Vec<Policy<Manager>>) -> Self {
         Self {
             pool: pool.clone(),
             statements: Statements::new(Manager::name()),

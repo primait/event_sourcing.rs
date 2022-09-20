@@ -10,20 +10,16 @@ use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
 // We use a template here to make instantiating the near-identical
 // AggregateA and AggregateB easier.
 pub struct AggregateA {
-    event_store: PgStore<Self>,
+    pub event_store: PgStore<Self>,
 }
 
 impl AggregateA {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
-
-    pub async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, CounterError> {
         let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        PgStore::new(pool, projectors, vec![]).setup().await
+        Ok(Self {
+            event_store: PgStore::new(pool.clone(), projectors, vec![]).setup().await?,
+        })
     }
 }
 
@@ -64,20 +60,16 @@ impl AggregateManager for AggregateA {
 }
 
 pub struct AggregateB {
-    event_store: PgStore<Self>,
+    pub event_store: PgStore<Self>,
 }
 
 impl AggregateB {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
-
-    pub async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, CounterError> {
         let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
 
-        PgStore::new(pool, projectors, vec![]).setup().await
+        Ok(Self {
+            event_store: PgStore::new(pool.clone(), projectors, vec![]).setup().await?,
+        })
     }
 }
 

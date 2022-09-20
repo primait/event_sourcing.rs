@@ -66,15 +66,12 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
-
-    async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, LoggingError> {
         let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(LoggingProjector)];
         let policies: Vec<Box<dyn Policy<Self> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
-        PgStore::new(pool, projectors, policies).setup().await
+
+        Ok(Self {
+            event_store: PgStore::new(pool.clone(), projectors, policies).setup().await?,
+        })
     }
 }
 

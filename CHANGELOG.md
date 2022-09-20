@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Aggregate` should implement `name` function that act as `Identifier`.
+- `AggregateManager` should implement `name` function that act as `Identifier`.
 - `AggregateManager` should implement `EventStore` associated type.
 - `Projector` should implement `delete` function.
 - `PgStore::setup` function to create table and indexes if not exists.
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
   order to handle persistence layer.
+- `PgStore::new` takes ownership of pool.
 - `Projector` second parameter changed from `Transaction` to `PgConnection`.
 - `PgStore` moved to `esrs::store::postgres` module.
 - `PgStore::new` function is now sync and its return value is no longer a `Result` but `Self`. Removed type param.

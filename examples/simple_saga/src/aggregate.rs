@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::store::postgres::{PgStore, Policy, Projector};
+use esrs::store::postgres::{PgStore, Policy};
 use esrs::store::StoreEvent;
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
@@ -13,17 +13,11 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
-
-    async fn new_store(pool: &Pool<Postgres>) -> Result<PgStore<Self>, LoggingError> {
-        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![]; // There are no projections here
-
         let policies: Vec<Box<dyn Policy<Self> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
 
-        PgStore::new(pool, projectors, policies).setup().await
+        Ok(Self {
+            event_store: PgStore::new(pool.clone(), vec![], policies).setup().await?,
+        })
     }
 }
 
