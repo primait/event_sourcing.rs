@@ -4,9 +4,8 @@ use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::store::postgres::Projector;
-use esrs::store::EventStore;
+use esrs::postgres::Projector;
+use esrs::{Aggregate, AggregateManager, AggregateState, EventStore};
 use simple_projection::aggregate::CounterAggregate;
 use simple_projection::projector::{Counter, CounterProjector};
 use simple_projection::structs::*;

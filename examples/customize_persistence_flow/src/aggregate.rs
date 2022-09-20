@@ -3,10 +3,10 @@ use chrono::{DateTime, Utc};
 use sqlx::pool::PoolConnection;
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::store::postgres::PgStore;
-use esrs::store::StoreEvent;
+use esrs::postgres::PgStore;
 use esrs::types::SequenceNumber;
+use esrs::StoreEvent;
+use esrs::{Aggregate, AggregateManager, AggregateState};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};

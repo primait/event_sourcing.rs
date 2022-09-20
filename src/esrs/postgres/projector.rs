@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::aggregate::AggregateManager;
-use crate::store::StoreEvent;
+use crate::{AggregateManager, StoreEvent};
 
 /// Projector trait that takes a Postgres transaction in order to create a read model
 #[async_trait]

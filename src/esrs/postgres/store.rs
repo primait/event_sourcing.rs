@@ -10,11 +10,10 @@ use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::aggregate::AggregateManager;
-use crate::esrs::postgres::statement::Statements;
-use crate::esrs::postgres::{event, policy, projector};
-use crate::store::{EventStore, StoreEvent};
 use crate::types::SequenceNumber;
+use crate::{AggregateManager, EventStore, StoreEvent};
+
+use super::{event, policy, projector, statement::Statements};
 
 type Projector<A> = Box<dyn projector::Projector<A> + Send + Sync>;
 type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;

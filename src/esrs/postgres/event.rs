@@ -1,12 +1,11 @@
 use std::convert::TryInto;
 
 use chrono::{DateTime, Utc};
-use serde::de::DeserializeOwned;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
+use crate::StoreEvent;
 
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
 pub struct Event {
@@ -17,7 +16,7 @@ pub struct Event {
     pub sequence_number: SequenceNumber,
 }
 
-impl<Payload: DeserializeOwned> TryInto<StoreEvent<Payload>> for Event {
+impl<Payload: serde::de::DeserializeOwned> TryInto<StoreEvent<Payload>> for Event {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<Payload>, Self::Error> {

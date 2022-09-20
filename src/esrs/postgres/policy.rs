@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 
-use crate::aggregate::AggregateManager;
-use crate::store::StoreEvent;
+use crate::{AggregateManager, StoreEvent};
 
 #[async_trait]
 pub trait Policy<Manager>

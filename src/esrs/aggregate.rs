@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::aggregate::AggregateState;
-use crate::store::{EventStore, StoreEvent};
 use crate::types::SequenceNumber;
+use crate::{AggregateState, EventStore, StoreEvent};
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.

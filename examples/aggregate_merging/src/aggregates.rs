@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::store::postgres::PgStore;
+use esrs::postgres::PgStore;
+use esrs::{Aggregate, AggregateManager, AggregateState};
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};

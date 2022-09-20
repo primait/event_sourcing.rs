@@ -8,7 +8,7 @@ use aggregate_merging::{
     projectors::Counter,
     structs::{CommandA, CommandB},
 };
-use esrs::aggregate::{AggregateManager, AggregateState};
+use esrs::{AggregateManager, AggregateState};
 
 #[tokio::main]
 async fn main() {

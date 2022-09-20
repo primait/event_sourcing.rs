@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Note: this version contains hard breaking changes
+
 ### Added
 
 - `AggregateManager` should implement `name` function that act as `Identifier`.
@@ -34,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instantiation time.
 - `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
 - `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
+- Aliases of exposed traits and struct are hardly changed. Now most of internal objects are flatten in `esrs` module.
 
 ### Removed
 

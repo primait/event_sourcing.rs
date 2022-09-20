@@ -6,8 +6,7 @@ use uuid::Uuid;
 use aggregate_merging::aggregates::{AggregateA, AggregateB};
 use aggregate_merging::projectors::Counter;
 use aggregate_merging::structs::{CommandA, CommandB, CounterError, EventA, EventB};
-use esrs::aggregate::{AggregateManager, AggregateState};
-use esrs::store::StoreEvent;
+use esrs::{AggregateManager, AggregateState, StoreEvent};
 
 // A simple example demonstrating rebuilding a read-side projection from an event
 // stream
