@@ -42,13 +42,35 @@ where
     Manager: AggregateManager,
 {
     /// Creates a new implementation of an aggregate
-    pub fn new(pool: Pool<Postgres>, projectors: Vec<Projector<Manager>>, policies: Vec<Policy<Manager>>) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self {
             pool: pool.clone(),
             statements: Statements::new(Manager::name()),
-            projectors,
-            policies,
+            projectors: vec![],
+            policies: vec![],
         }
+    }
+
+    /// Append a projector to projectors list
+    pub fn add_projector(mut self, projector: Projector<Manager>) -> Self {
+        self.projectors.push(projector);
+        self
+    }
+
+    /// Set the list of projectors to the store
+    pub fn set_projectors(self, projectors: Vec<Projector<Manager>>) -> Self {
+        Self { projectors, ..self }
+    }
+
+    /// Append a policy to policies list
+    pub fn add_policy(mut self, policy: Policy<Manager>) -> Self {
+        self.policies.push(policy);
+        self
+    }
+
+    /// Set the list of policies to the store
+    pub fn set_policies(self, policies: Vec<Policy<Manager>>) -> Self {
+        Self { policies, ..self }
     }
 
     /// This function setup the database in a transaction, creating the event store table (if not exists)

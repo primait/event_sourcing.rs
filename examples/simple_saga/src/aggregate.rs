@@ -13,11 +13,12 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let policies: Vec<Box<dyn Policy<Self> + Send + Sync>> = vec![Box::new(LoggingPolicy {})];
+        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
+            .setup()
+            .await?
+            .add_policy(Box::new(LoggingPolicy {}));
 
-        Ok(Self {
-            event_store: PgStore::new(pool.clone(), vec![], policies).setup().await?,
-        })
+        Ok(Self { event_store })
     }
 }
 

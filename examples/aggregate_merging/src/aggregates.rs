@@ -2,7 +2,6 @@ use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::store::postgres::PgStore;
-use esrs::store::postgres::Projector;
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
@@ -15,11 +14,12 @@ pub struct AggregateA {
 
 impl AggregateA {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
+        let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
+            .setup()
+            .await?
+            .add_projector(Box::new(CounterProjector));
 
-        Ok(Self {
-            event_store: PgStore::new(pool.clone(), projectors, vec![]).setup().await?,
-        })
+        Ok(Self { event_store })
     }
 }
 
@@ -65,11 +65,12 @@ pub struct AggregateB {
 
 impl AggregateB {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
+        let event_store: PgStore<AggregateB> = PgStore::new(pool.clone())
+            .setup()
+            .await?
+            .add_projector(Box::new(CounterProjector));
 
-        Ok(Self {
-            event_store: PgStore::new(pool.clone(), projectors, vec![]).setup().await?,
-        })
+        Ok(Self { event_store })
     }
 }
 

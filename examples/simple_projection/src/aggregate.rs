@@ -2,7 +2,6 @@ use sqlx::{Pool, Postgres};
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::store::postgres::PgStore;
-use esrs::store::postgres::Projector;
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
@@ -13,11 +12,12 @@ pub struct CounterAggregate {
 
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let projectors: Vec<Box<dyn Projector<Self> + Send + Sync>> = vec![Box::new(CounterProjector)];
+        let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
+            .setup()
+            .await?
+            .add_projector(Box::new(CounterProjector));
 
-        Ok(Self {
-            event_store: PgStore::new(pool.clone(), projectors, vec![]).setup().await?,
-        })
+        Ok(Self { event_store })
     }
 }
 

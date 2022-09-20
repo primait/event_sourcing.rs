@@ -13,12 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AggregateManager` should implement `EventStore` associated type.
 - `Projector` should implement `delete` function.
 - `PgStore::setup` function to create table and indexes if not exists.
+- `PgStore::add_projector` function to add a projector to store projectors list.
+- `PgStore::add_policy` function to add a policy to store policies list.
+- `PgStore::set_projectors` function to set the store projectors list.
+- `PgStore::set_policies` function to set the store policies list.
 
 ### Changed
 
 - `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
   order to handle persistence layer.
-- `PgStore::new` takes ownership of pool.
+- `PgStore::new` takes ownership of pool; removed projectors and policies from params.
 - `Projector` second parameter changed from `Transaction` to `PgConnection`.
 - `PgStore` moved to `esrs::store::postgres` module.
 - `PgStore::new` function is now sync and its return value is no longer a `Result` but `Self`. Removed type param.
