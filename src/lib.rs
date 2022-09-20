@@ -18,7 +18,7 @@ pub mod store {
     pub mod postgres {
         pub use crate::esrs::postgres::policy::Policy;
         pub use crate::esrs::postgres::projector::Projector;
-        pub use crate::esrs::postgres::PgStore;
+        pub use crate::esrs::postgres::store::PgStore;
     }
 }
 
