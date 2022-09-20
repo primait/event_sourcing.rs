@@ -17,11 +17,8 @@ pub struct CounterAggregate {
 
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
-            .setup()
-            .await?
-            .add_projector(Box::new(CounterProjector));
-
+        let mut event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone()).setup().await?;
+        event_store.add_projector(Box::new(CounterProjector));
         Ok(Self { event_store })
     }
 }
@@ -95,7 +92,7 @@ impl AggregateManager for CounterAggregate {
                 for store_event in store_events.iter() {
                     for policy in self.event_store.policies() {
                         // We want to just log errors instead of return them
-                        match policy.handle_event(store_event, pool).await {
+                        match policy.handle_event(store_event).await {
                             Ok(_) => (),
                             Err(error) => println!("{:?}", error),
                         }

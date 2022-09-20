@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Statements {
     create_table: String,
     create_index: String,

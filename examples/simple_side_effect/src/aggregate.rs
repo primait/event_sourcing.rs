@@ -13,6 +13,7 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 // causing the event not to be written to the event store. In this case the
 // failure is due to a simple log message filter rule, but you can imagine a
 // side effect which interacts with some 3rd party service in a failable way instead
+#[derive(Clone)]
 pub struct LoggingProjector;
 
 #[async_trait]
@@ -42,11 +43,12 @@ impl Projector<LoggingAggregate> for LoggingProjector {
 // failure in a policy, from an aggregate perspective, is that a failed projection
 // stops the event from being persisted to the event store, whereas a failure in
 // a policy does not.
+#[derive(Clone)]
 pub struct LoggingPolicy;
 
 #[async_trait]
 impl Policy<LoggingAggregate> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Postgres>) -> Result<(), LoggingError> {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -66,11 +68,9 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
-            .setup()
-            .await?
-            .add_projector(Box::new(LoggingProjector))
-            .add_policy(Box::new(LoggingPolicy));
+        let mut event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone()).setup().await?;
+        event_store.add_projector(Box::new(LoggingProjector));
+        event_store.add_policy(Box::new(LoggingPolicy));
 
         Ok(Self { event_store })
     }

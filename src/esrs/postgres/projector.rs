@@ -9,6 +9,7 @@ use crate::store::StoreEvent;
 #[async_trait]
 pub trait Projector<Manager>
 where
+    Self: ProjectorClone<Manager>,
     Manager: AggregateManager,
 {
     /// This function projects one event in each read model that implements this trait.
@@ -30,4 +31,30 @@ where
     /// of sqlx package this could be changed. At this time the connection could be a simple connection
     /// acquired by a pool or a deref of a transaction.
     async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), Manager::Error>;
+}
+
+pub trait ProjectorClone<Manager>
+where
+    Manager: AggregateManager,
+{
+    fn clone_box(&self) -> Box<dyn Projector<Manager> + Send + Sync>;
+}
+
+impl<T, Manager> ProjectorClone<Manager> for T
+where
+    T: 'static + Projector<Manager> + Clone + Send + Sync,
+    Manager: AggregateManager,
+{
+    fn clone_box(&self) -> Box<dyn Projector<Manager> + Send + Sync> {
+        Box::new(self.clone())
+    }
+}
+
+impl<Manager> Clone for Box<dyn Projector<Manager> + Send + Sync>
+where
+    Manager: AggregateManager,
+{
+    fn clone(&self) -> Box<dyn Projector<Manager> + Send + Sync> {
+        self.clone_box()
+    }
 }

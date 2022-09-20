@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
+use uuid::Uuid;
 
 use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
 use esrs::store::postgres::{PgStore, Policy};
@@ -7,42 +8,49 @@ use esrs::store::StoreEvent;
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
+#[derive(Clone)]
 pub struct LoggingAggregate {
     event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
-            .setup()
-            .await?
-            .add_policy(Box::new(LoggingPolicy {}));
+        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone()).setup().await?;
+        let mut this: Self = Self { event_store };
 
-        Ok(Self { event_store })
+        this.event_store.add_policy(Box::new(LoggingPolicy {
+            aggregate: Box::new(this.clone()),
+        }));
+
+        Ok(this)
     }
 }
 
 // A very simply policy, which tries to log an event, and creates another command after it finishes
 // which indicates success or failure to log
-struct LoggingPolicy;
+#[derive(Clone)]
+struct LoggingPolicy {
+    aggregate: Box<LoggingAggregate>,
+}
 
 #[async_trait]
 impl Policy<LoggingAggregate> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, pool: &Pool<Postgres>) -> Result<(), LoggingError> {
-        let id = event.aggregate_id;
-        let agg = LoggingAggregate::new(pool).await?;
-        let state = agg
-            .load(event.aggregate_id)
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
+        let aggregate_id: Uuid = event.aggregate_id;
+
+        let aggregate_state: AggregateState<u64> = self
+            .aggregate
+            .load(aggregate_id)
             .await
-            .unwrap_or_else(|| AggregateState::new(event.aggregate_id)); // This should never happen
+            .unwrap_or_else(|| AggregateState::new(aggregate_id)); // This should never happen
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {
-                agg.handle(state, LoggingCommand::Fail).await?;
+                self.aggregate.handle(aggregate_state, LoggingCommand::Fail).await?;
                 return Err(LoggingError::Domain(msg.clone()));
             }
-            println!("Logged via policy from {}: {}", id, msg);
-            agg.handle(state, LoggingCommand::Succeed).await?;
+            println!("Logged via policy from {}: {}", aggregate_id, msg);
+            self.aggregate.handle(aggregate_state, LoggingCommand::Succeed).await?;
         }
 
         Ok(())

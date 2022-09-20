@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PgStore::add_policy` function to add a policy to store policies list.
 - `PgStore::set_projectors` function to set the store projectors list.
 - `PgStore::set_policies` function to set the store policies list.
+- `PgStore` and all its dependencies are now cloneable.
 
 ### Changed
 
@@ -29,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PgStore<Event, Error>` became `PgStore<Aggregate>`.
 - `Projector` moved to `esrs::store::postgres` module.
 - `Policy` moved to `esrs::store::postgres` module.
+- `Policy::handle_event` does not have `Pool<Postgres` anymore as param. Executor should be put in the policy at 
+  instantiation time.
 - `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
 - `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
 

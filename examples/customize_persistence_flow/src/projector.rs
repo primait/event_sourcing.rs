@@ -8,6 +8,7 @@ use esrs::store::StoreEvent;
 use crate::aggregate::CounterAggregate;
 use crate::structs::{CounterError, CounterEvent};
 
+#[derive(Clone)]
 pub struct CounterProjector;
 
 #[async_trait]

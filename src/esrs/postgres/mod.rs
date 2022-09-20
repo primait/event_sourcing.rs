@@ -27,6 +27,7 @@ mod tests;
 type Projector<A> = Box<dyn projector::Projector<A> + Send + Sync>;
 type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;
 
+#[derive(Clone)]
 pub struct PgStore<Manager>
 where
     Manager: AggregateManager,
@@ -52,9 +53,8 @@ where
     }
 
     /// Append a projector to projectors list
-    pub fn add_projector(mut self, projector: Projector<Manager>) -> Self {
+    pub fn add_projector(&mut self, projector: Projector<Manager>) {
         self.projectors.push(projector);
-        self
     }
 
     /// Set the list of projectors to the store
@@ -63,9 +63,8 @@ where
     }
 
     /// Append a policy to policies list
-    pub fn add_policy(mut self, policy: Policy<Manager>) -> Self {
+    pub fn add_policy(&mut self, policy: Policy<Manager>) {
         self.policies.push(policy);
-        self
     }
 
     /// Set the list of policies to the store
@@ -224,7 +223,7 @@ where
 
         for store_event in store_events.iter() {
             for policy in self.policies() {
-                policy.handle_event(store_event, &self.pool).await?;
+                policy.handle_event(store_event).await?;
             }
         }
 

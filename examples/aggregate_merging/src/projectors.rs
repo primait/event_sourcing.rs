@@ -8,6 +8,7 @@ use esrs::store::StoreEvent;
 use crate::aggregates::{AggregateA, AggregateB};
 use crate::structs::{CounterError, EventA, EventB};
 
+#[derive(Clone)]
 pub struct CounterProjector;
 
 // This is a projector template that will project AggregateA events into a shared projection (DB table).

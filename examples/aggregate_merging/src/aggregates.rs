@@ -14,10 +14,8 @@ pub struct AggregateA {
 
 impl AggregateA {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
-            .setup()
-            .await?
-            .add_projector(Box::new(CounterProjector));
+        let mut event_store: PgStore<AggregateA> = PgStore::new(pool.clone()).setup().await?;
+        event_store.add_projector(Box::new(CounterProjector));
 
         Ok(Self { event_store })
     }
@@ -65,10 +63,8 @@ pub struct AggregateB {
 
 impl AggregateB {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<AggregateB> = PgStore::new(pool.clone())
-            .setup()
-            .await?
-            .add_projector(Box::new(CounterProjector));
+        let mut event_store: PgStore<AggregateB> = PgStore::new(pool.clone()).setup().await?;
+        event_store.add_projector(Box::new(CounterProjector));
 
         Ok(Self { event_store })
     }
