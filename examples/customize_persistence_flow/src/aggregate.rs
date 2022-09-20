@@ -36,10 +36,6 @@ impl Aggregate for CounterAggregate {
     type Event = CounterEvent;
     type Error = CounterError;
 
-    fn name() -> &'static str {
-        "counter"
-    }
-
     fn handle_command(
         _state: &AggregateState<Self::State>,
         command: Self::Command,
@@ -59,6 +55,10 @@ impl Aggregate for CounterAggregate {
 #[async_trait]
 impl AggregateManager for CounterAggregate {
     type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str {
+        "counter"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

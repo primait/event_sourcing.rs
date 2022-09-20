@@ -33,13 +33,6 @@ impl Aggregate for AggregateA {
     type Event = EventA;
     type Error = CounterError;
 
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "a"
-    }
-
     fn handle_command(
         _state: &AggregateState<Self::State>,
         command: Self::Command,
@@ -57,6 +50,13 @@ impl Aggregate for AggregateA {
 
 impl AggregateManager for AggregateA {
     type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str
+    where
+        Self: Sized,
+    {
+        "a"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store
@@ -87,10 +87,6 @@ impl Aggregate for AggregateB {
     type Event = EventB;
     type Error = CounterError;
 
-    fn name() -> &'static str {
-        "b"
-    }
-
     fn handle_command(
         _state: &AggregateState<Self::State>,
         command: Self::Command,
@@ -108,6 +104,13 @@ impl Aggregate for AggregateB {
 
 impl AggregateManager for AggregateB {
     type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str
+    where
+        Self: Sized,
+    {
+        "a"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

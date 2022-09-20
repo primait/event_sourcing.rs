@@ -84,10 +84,6 @@ impl Aggregate for LoggingAggregate {
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn name() -> &'static str {
-        "message"
-    }
-
     fn handle_command(
         _state: &AggregateState<Self::State>,
         command: Self::Command,
@@ -105,6 +101,10 @@ impl Aggregate for LoggingAggregate {
 
 impl AggregateManager for LoggingAggregate {
     type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str {
+        "message"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

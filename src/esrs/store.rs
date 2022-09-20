@@ -2,18 +2,18 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::aggregate;
+use crate::aggregate::AggregateManager;
 use crate::types::SequenceNumber;
 
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
-pub trait EventStore<Aggregate>
+pub trait EventStore<Manager>
 where
-    Aggregate: aggregate::Aggregate,
+    Manager: AggregateManager,
 {
     /// Loads the events that an aggregate instance has emitted in the past.
-    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>;
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>;
 
     /// Persists multiple events into the database. This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
@@ -22,14 +22,14 @@ where
     async fn persist(
         &self,
         aggregate_id: Uuid,
-        events: Vec<Aggregate::Event>,
+        events: Vec<Manager::Event>,
         starting_sequence_number: SequenceNumber,
-    ) -> Result<Vec<StoreEvent<Aggregate::Event>>, Aggregate::Error>;
+    ) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>;
 
     /// Delete all events from events store related to given `aggregate_id`.
     ///
     /// Moreover it should delete all the projections.
-    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Aggregate::Error>;
+    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Manager::Error>;
 }
 
 /// A StoreEvent contains the payload (the original event) alongside the event's metadata.

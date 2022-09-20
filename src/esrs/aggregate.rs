@@ -39,15 +39,6 @@ pub trait Aggregate {
     #[cfg(not(feature = "postgres"))]
     type Error;
 
-    /// The `name` function is responsible for naming an aggregate type.
-    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
-    ///
-    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
-    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
-    fn name() -> &'static str
-    where
-        Self: Sized;
-
     /// Handles, validate a command and emits events.
     fn handle_command(
         state: &AggregateState<Self::State>,
@@ -71,6 +62,15 @@ pub trait Aggregate {
 #[async_trait]
 pub trait AggregateManager: Aggregate + Sized {
     type EventStore: EventStore<Self> + Send + Sync;
+
+    /// The `name` function is responsible for naming an aggregate type.
+    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
+    ///
+    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
+    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
+    fn name() -> &'static str
+    where
+        Self: Sized;
 
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;
