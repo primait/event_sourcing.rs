@@ -135,13 +135,13 @@ where
     }
 
     /// This function returns the list of all projections added to this store. This function should
-    /// mostly used while creating a custom persistence flow using `persist_fn`.
+    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
     pub fn projectors(&self) -> &[Projector<Manager>] {
         &self.projectors
     }
 
     /// This function returns the list of all policies added to this store. This function should
-    /// mostly used while creating a custom persistence flow using `persist_fn`.
+    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
     pub fn policies(&self) -> &[Policy<Manager>] {
         &self.policies
     }
