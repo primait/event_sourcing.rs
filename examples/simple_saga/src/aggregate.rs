@@ -66,10 +66,7 @@ impl Aggregate for LoggingAggregate {
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::TryLog(msg) => Ok(vec![Self::Event::Received(msg)]),
             Self::Command::Succeed => Ok(vec![Self::Event::Succeeded]),

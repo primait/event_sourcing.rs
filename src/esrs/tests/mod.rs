@@ -86,10 +86,7 @@ impl Aggregate for TestAggregate {
     type Event = TestEvent;
     type Error = TestError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             TestCommand::Single => Ok(vec![TestEvent { add: 1 }]),
             TestCommand::Multi => Ok(vec![TestEvent { add: 1 }, TestEvent { add: 1 }]),

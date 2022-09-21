@@ -3,7 +3,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::postgres::{PgStore, Policy, Projector};
-use esrs::{Aggregate, AggregateManager, AggregateState, StoreEvent};
+use esrs::{Aggregate, AggregateManager, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -80,10 +80,7 @@ impl Aggregate for LoggingAggregate {
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::Log(msg) => Ok(vec![Self::Event::Logged(msg)]),
         }

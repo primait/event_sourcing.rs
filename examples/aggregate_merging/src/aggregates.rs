@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 
 use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager, AggregateState};
+use esrs::{Aggregate, AggregateManager};
 
 use crate::projectors::CounterProjector;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
@@ -27,10 +27,7 @@ impl Aggregate for AggregateA {
     type Event = EventA;
     type Error = CounterError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             CommandA::Inner => Ok(vec![EventA::Inner]),
         }
@@ -76,10 +73,7 @@ impl Aggregate for AggregateB {
     type Event = EventB;
     type Error = CounterError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             CommandB::Inner => Ok(vec![EventB::Inner]),
         }

@@ -6,7 +6,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::postgres::{PgStore, Policy, Projector};
-use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
 
 #[sqlx::test]
 fn setup_database_test(pool: Pool<Postgres>) {
@@ -279,10 +279,7 @@ impl Aggregate for TestAggregate {
     type Event = TestEvent;
     type Error = TestError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        _command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         todo!()
     }
 

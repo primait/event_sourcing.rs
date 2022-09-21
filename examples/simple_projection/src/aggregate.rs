@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 
 use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager, AggregateState};
+use esrs::{Aggregate, AggregateManager};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
@@ -25,10 +25,7 @@ impl Aggregate for CounterAggregate {
     type Event = CounterEvent;
     type Error = CounterError;
 
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::Increment => Ok(vec![Self::Event::Incremented]),
             Self::Command::Decrement => Ok(vec![Self::Event::Decremented]),

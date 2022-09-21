@@ -25,6 +25,10 @@ Note: this version contains hard breaking changes
 
 - `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
   order to handle persistence layer.
+- `Aggregate::handle_command` state argument changed from `&AggregateState<Self::State>` to `&Self::State`.
+- `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
+- `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
+- Aliases of exposed traits and struct are hardly changed. Now most of internal objects are flatten in `esrs` module.
 - `PgStore::new` takes ownership of pool; removed projectors and policies from params.
 - `Projector` second parameter changed from `Transaction` to `PgConnection`.
 - `PgStore` moved to `esrs::store::postgres` module.
@@ -34,9 +38,6 @@ Note: this version contains hard breaking changes
 - `Policy` moved to `esrs::store::postgres` module.
 - `Policy::handle_event` does not have `Pool<Postgres` anymore as param. Executor should be put in the policy at 
   instantiation time.
-- `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
-- `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
-- Aliases of exposed traits and struct are hardly changed. Now most of internal objects are flatten in `esrs` module.
 
 ### Removed
 

@@ -31,10 +31,7 @@ pub trait Aggregate {
     type Error: std::error::Error;
 
     /// Handles, validate a command and emits events.
-    fn handle_command(
-        state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error>;
+    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
     /// to the state.
@@ -72,7 +69,7 @@ pub trait AggregateManager: Aggregate + Sized {
         aggregate_state: AggregateState<Self::State>,
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(&aggregate_state, command)?;
+        let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, stored_events))
