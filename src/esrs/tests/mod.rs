@@ -1,4 +1,5 @@
 use sqlx::{Pool, Postgres};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 use crate::postgres::PgStore;
@@ -129,6 +130,14 @@ struct TestEvent {
 
 #[derive(Debug)]
 pub struct TestError;
+
+impl Display for TestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "test error")
+    }
+}
+
+impl std::error::Error for TestError {}
 
 impl From<sqlx::Error> for TestError {
     fn from(_: sqlx::Error) -> Self {

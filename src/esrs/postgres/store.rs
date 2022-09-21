@@ -32,6 +32,10 @@ where
 impl<Manager> PgStore<Manager>
 where
     Manager: AggregateManager,
+    Manager::State: Default + Clone + Send + Sync,
+    Manager::Command: Send,
+    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    Manager::Error: From<sqlx::Error> + From<serde_json::Error>,
 {
     /// Creates a new implementation of an aggregate
     pub fn new(pool: Pool<Postgres>) -> Self {
@@ -170,6 +174,10 @@ where
 impl<Manager> EventStore<Manager> for PgStore<Manager>
 where
     Manager: AggregateManager,
+    Manager::State: Default + Clone + Send + Sync,
+    Manager::Command: Send,
+    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    Manager::Error: From<sqlx::Error> + From<serde_json::Error>,
 {
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
         Ok(sqlx::query_as::<_, event::Event>(self.statements.by_aggregate_id())

@@ -25,18 +25,10 @@ pub trait Aggregate {
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    #[cfg(feature = "postgres")]
-    type Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync;
-    #[cfg(not(feature = "postgres"))]
     type Event: Send + Sync;
 
-    /// This associated type is used to get errors while handling a command and eventually (if postgres
-    /// feature is enabled) to get back errors returning from database while querying or deserializing
-    /// and event.
-    #[cfg(feature = "postgres")]
-    type Error: From<sqlx::Error> + From<serde_json::Error>;
-    #[cfg(not(feature = "postgres"))]
-    type Error;
+    /// This associated type is used to get errors while handling a command..
+    type Error: std::error::Error;
 
     /// Handles, validate a command and emits events.
     fn handle_command(
