@@ -100,12 +100,12 @@ async fn setup(pool: &Pool<Postgres>, count_id: Uuid) {
 
     // Increment each count once
     let _ = agg_a
-        .handle(a_state, CommandA::Inner)
+        .handle_command(a_state, CommandA::Inner)
         .await
         .expect("Failed to handle command a");
 
     let _ = agg_b
-        .handle(b_state, CommandB::Inner)
+        .handle_command(b_state, CommandB::Inner)
         .await
         .expect("Failed to handle command b");
 

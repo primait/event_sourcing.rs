@@ -44,7 +44,7 @@ async fn main() {
 
     // Increment each count once
     let _ = agg_a
-        .handle(a_state, CommandA::Inner)
+        .handle_command(a_state, CommandA::Inner)
         .await
         .expect("Failed to handle command a");
 
@@ -57,7 +57,7 @@ async fn main() {
     assert!(counter.count_a == 1 && counter.count_b == 0);
 
     let _ = agg_b
-        .handle(b_state, CommandB::Inner)
+        .handle_command(b_state, CommandB::Inner)
         .await
         .expect("Failed to handle command b");
 

@@ -36,7 +36,7 @@ where
     /// Creates a new implementation of an aggregate
     pub fn new(pool: Pool<Postgres>) -> Self {
         Self {
-            pool: pool.clone(),
+            pool,
             statements: Statements::new(Manager::name()),
             projectors: vec![],
             policies: vec![],
@@ -152,7 +152,7 @@ where
     ///
     /// An example of how to use this function is in `examples/customize_persistence_flow` example
     /// folder.
-    pub async fn persist_fn<'a, F: Send, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>
+    pub async fn persist<'a, F: Send, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>
     where
         F: FnOnce(&'a Pool<Postgres>) -> T,
         T: Future<Output = Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>> + Send,
@@ -214,7 +214,7 @@ where
 
         for store_event in store_events.iter() {
             for policy in self.policies() {
-                policy.handle_event(store_event).await?;
+                let _ = policy.handle_event(store_event).await;
             }
         }
 

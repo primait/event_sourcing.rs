@@ -21,7 +21,7 @@ pub trait Aggregate {
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
     /// an event.
-    type Command: Send + Sync;
+    type Command: Send;
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
@@ -75,12 +75,12 @@ pub trait AggregateManager: Aggregate + Sized {
     fn event_store(&self) -> &Self::EventStore;
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
-    async fn handle(
+    async fn handle_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let events: Vec<Self::Event> = Self::handle_command(&aggregate_state, command)?;
+        let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(&aggregate_state, command)?;
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, stored_events))

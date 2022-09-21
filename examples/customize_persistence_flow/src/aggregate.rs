@@ -63,7 +63,7 @@ impl AggregateManager for CounterAggregate {
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
         self.event_store
-            .persist_fn(|pool| async move {
+            .persist(|pool| async move {
                 let mut connection: PoolConnection<Postgres> = pool.acquire().await?;
                 let occurred_on: DateTime<Utc> = Utc::now();
                 let mut store_events: Vec<StoreEvent<Self::Event>> = vec![];

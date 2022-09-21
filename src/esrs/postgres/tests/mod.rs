@@ -4,13 +4,12 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
-use crate::aggregate::{Aggregate, AggregateManager, AggregateState};
-use crate::store::postgres::{PgStore, Policy, Projector};
-use crate::store::{EventStore, StoreEvent};
+use crate::postgres::{PgStore, Policy, Projector};
+use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
 #[sqlx::test]
 fn setup_database_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![]);
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone());
     let table_name: String = format!("{}_events", TestAggregate::name());
 
     let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
@@ -43,7 +42,7 @@ fn setup_database_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![]).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
@@ -85,15 +84,15 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
 
 #[sqlx::test]
 fn persist_single_event_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![]).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let store_event: Vec<StoreEvent<TestEvent>> = store
-        .persist(aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
-        .await
-        .unwrap();
+    let store_event: Vec<StoreEvent<TestEvent>> =
+        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+            .await
+            .unwrap();
 
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
     assert_eq!(store_event[0].payload.id, event_internal_id);
@@ -105,16 +104,20 @@ fn persist_single_event_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn persist_multiple_events_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![]).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
 
     let test_event_1: TestEvent = TestEvent { id: Uuid::new_v4() };
     let test_event_2: TestEvent = TestEvent { id: Uuid::new_v4() };
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let store_event: Vec<StoreEvent<TestEvent>> = store
-        .persist(aggregate_id, vec![test_event_1.clone(), test_event_2.clone()], 0)
-        .await
-        .unwrap();
+    let store_event: Vec<StoreEvent<TestEvent>> = EventStore::<TestAggregate>::persist(
+        &store,
+        aggregate_id,
+        vec![test_event_1.clone(), test_event_2.clone()],
+        0,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(store_event.len(), 2);
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
@@ -130,20 +133,19 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn event_projection_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![Box::new(TestProjector {})], vec![])
-        .setup()
-        .await
-        .unwrap();
+    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+
+    store.add_projector(Box::new(TestProjector {}));
 
     create_test_projection_table(&pool).await;
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let _store_event: Vec<StoreEvent<TestEvent>> = store
-        .persist(aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
-        .await
-        .unwrap();
+    let _store_event: Vec<StoreEvent<TestEvent>> =
+        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+            .await
+            .unwrap();
 
     let projection_rows = sqlx::query_as::<_, ProjectionRow>("SELECT * FROM test_projection")
         .fetch_all(&pool)
@@ -157,20 +159,19 @@ fn event_projection_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![Box::new(TestProjector {})], vec![])
-        .setup()
-        .await
-        .unwrap();
+    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+
+    store.add_projector(Box::new(TestProjector {}));
 
     create_test_projection_table(&pool).await;
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let _store_event: Vec<StoreEvent<TestEvent>> = store
-        .persist(aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
-        .await
-        .unwrap();
+    let _store_event: Vec<StoreEvent<TestEvent>> =
+        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+            .await
+            .unwrap();
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 1);
@@ -204,14 +205,16 @@ fn policy_test(pool: Pool<Postgres>) {
         last_id: last_id.clone(),
     });
 
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![policy]).setup().await.unwrap();
+    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+    store.add_policy(policy);
+
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let _store_event: Vec<StoreEvent<TestEvent>> = store
-        .persist(aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
-        .await
-        .unwrap();
+    let _store_event: Vec<StoreEvent<TestEvent>> =
+        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+            .await
+            .unwrap();
 
     let guard: MutexGuard<Uuid> = last_id.lock().unwrap();
     assert_eq!(*guard, event_internal_id)
@@ -220,7 +223,7 @@ fn policy_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 fn close_test(pool: Pool<Postgres>) {
     assert!(!pool.is_closed());
-    let store: PgStore<TestAggregate> = PgStore::new(&pool, vec![], vec![]).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
     store.close().await;
     assert!(pool.is_closed());
 }
@@ -266,18 +269,14 @@ impl Aggregate for TestAggregate {
     type Command = ();
     type Event = TestEvent;
     type Error = TestError;
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "test"
-    }
+
     fn handle_command(
         _state: &AggregateState<Self::State>,
         _command: Self::Command,
     ) -> Result<Vec<Self::Event>, Self::Error> {
         todo!()
     }
+
     fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {
         todo!()
     }
@@ -286,11 +285,19 @@ impl Aggregate for TestAggregate {
 impl AggregateManager for TestAggregate {
     type EventStore = PgStore<Self>;
 
+    fn name() -> &'static str
+    where
+        Self: Sized,
+    {
+        "test"
+    }
+
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
 }
 
+#[derive(Clone)]
 struct TestProjector;
 
 #[async_trait::async_trait]
@@ -321,13 +328,14 @@ struct ProjectionRow {
     projection_id: Uuid,
 }
 
+#[derive(Clone)]
 struct TestPolicy {
     last_id: Arc<Mutex<Uuid>>,
 }
 
 #[async_trait::async_trait]
 impl Policy<TestAggregate> for TestPolicy {
-    async fn handle_event(&self, event: &StoreEvent<TestEvent>, _pool: &Pool<Postgres>) -> Result<(), TestError> {
+    async fn handle_event(&self, event: &StoreEvent<TestEvent>) -> Result<(), TestError> {
         let mut guard = self.last_id.lock().unwrap();
         *guard = event.payload.id;
         Ok(())

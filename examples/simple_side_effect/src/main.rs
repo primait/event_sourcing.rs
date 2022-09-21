@@ -31,22 +31,22 @@ async fn main() {
 
     // Log some messages
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("First logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("First logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("Second logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("Second logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("Third logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("Third logging message")))
         .await
         .expect("Failed to log message");
 
     // Lets cause a projection error, to illustrate the difference between
     // projection and policy errors, from an AggregateState perspective
     let res = aggregate
-        .handle(
+        .handle_command(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_projection")),
         )
@@ -59,7 +59,7 @@ async fn main() {
     // Now we'll cause a policy error. This error is silenced by the `AggregateManager::store_events`
     // actual impl. It is overridable
     let res = aggregate
-        .handle(
+        .handle_command(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_policy")),
         )

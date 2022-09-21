@@ -95,15 +95,15 @@ async fn main() {
 
     // Increment counter three times
     let state = aggregate
-        .handle(state, CounterCommand::Increment)
+        .handle_command(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
     let state = aggregate
-        .handle(state, CounterCommand::Increment)
+        .handle_command(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
     let _state = aggregate
-        .handle(state, CounterCommand::Increment)
+        .handle_command(state, CounterCommand::Increment)
         .await
         .expect("Failed to handle increment command");
 

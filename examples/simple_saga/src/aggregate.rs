@@ -45,11 +45,15 @@ impl Policy<LoggingAggregate> for LoggingPolicy {
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {
-                self.aggregate.handle(aggregate_state, LoggingCommand::Fail).await?;
+                self.aggregate
+                    .handle_command(aggregate_state, LoggingCommand::Fail)
+                    .await?;
                 return Err(LoggingError::Domain(msg.clone()));
             }
             println!("Logged via policy from {}: {}", aggregate_id, msg);
-            self.aggregate.handle(aggregate_state, LoggingCommand::Succeed).await?;
+            self.aggregate
+                .handle_command(aggregate_state, LoggingCommand::Succeed)
+                .await?;
         }
 
         Ok(())
