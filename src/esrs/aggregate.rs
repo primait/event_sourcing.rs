@@ -49,7 +49,7 @@ pub trait Aggregate {
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Aggregate + Sized {
-    type EventStore: EventStore<Self> + Send + Sync;
+    type EventStore: EventStore<Manager = Self> + Send + Sync;
 
     /// The `name` function is responsible for naming an aggregate type.
     /// Each aggregate type should have a name that is unique among all the aggregate types in your application.

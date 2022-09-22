@@ -172,7 +172,7 @@ where
 }
 
 #[async_trait]
-impl<Manager> EventStore<Manager> for PgStore<Manager>
+impl<Manager> EventStore for PgStore<Manager>
 where
     Manager: AggregateManager,
     Manager::State: Default + Clone + Send + Sync,
@@ -180,6 +180,8 @@ where
     Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error>,
 {
+    type Manager = Manager;
+
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
         Ok(sqlx::query_as::<_, event::Event>(self.statements.by_aggregate_id())
             .bind(aggregate_id)
