@@ -7,48 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Note: this version contains hard breaking changes
+Note: this version contains hard breaking changes and may take a lot of time in order to upgrade library version!
 
 ### Added
 
-- `AggregateManager` should implement `name` function that act as `Identifier`.
-- `AggregateManager` should implement `EventStore` associated type.
+- `AggregateManager` 
+  - should implement `name` function that act as `Identifier`. Be sure to not change the name previously set in 
+    `Aggregate::name` function. This would cause the store to create a new table, losing pre-migration events.
+  - should implement `EventStore` associated type.
+
+- `PgStore` 
+  - `setup` function to create table and indexes if not exists. This function should be used only once being that 
+    tries to create event table with if indexes if not exist. 
+  - `add_projector` function to add a projector to store projectors list.
+  - `add_policy` function to add a policy to store policies list.
+  - `set_projectors` function to set the store projectors list.
+  - `set_policies` function to set the store policies list.
+  - `PgStore` and all its dependencies are now cloneable.
+
 - `Projector` should implement `delete` function.
-- `PgStore::setup` function to create table and indexes if not exists.
-- `PgStore::add_projector` function to add a projector to store projectors list.
-- `PgStore::add_policy` function to add a policy to store policies list.
-- `PgStore::set_projectors` function to set the store projectors list.
-- `PgStore::set_policies` function to set the store policies list.
-- `PgStore` and all its dependencies are now cloneable.
 
 ### Changed
 
-- `Aggregate` is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
-  order to handle persistence layer.
-- `Aggregate::handle_command` state argument changed from `&AggregateState<Self::State>` to `&Self::State`.
-- `Aggregate::apply_event` `payload` parameter changed from reference to value (`Self::Event`).
-- `AggregateManager::event_store` changed to return a reference to it's associated type `EventStore`.
 - Aliases of exposed traits and struct are hardly changed. Now most of internal objects are flatten in `esrs` module.
-- `PgStore::new` takes ownership of pool; removed projectors and policies from params.
-- `Projector` second parameter changed from `Transaction` to `PgConnection`.
-- `PgStore` moved to `esrs::store::postgres` module.
-- `PgStore::new` function is now sync and its return value is no longer a `Result` but `Self`. Removed type param.
-- `PgStore<Event, Error>` became `PgStore<Aggregate>`.
-- `Projector` moved to `esrs::store::postgres` module.
-- `Policy` moved to `esrs::store::postgres` module.
+
+- `Aggregate` 
+  - is now pure. API changed so user have to implement `Aggregate` for logic and `AggregateManager` in 
+    order to handle persistence layer.
+  - `handle_command` state argument changed from `&AggregateState<Self::State>` to `&Self::State`.
+  - `apply_event` `payload` parameter changed from reference to value (`Self::Event`).
+
+- `AggregateManager`
+  - is now dependent by `Aggregate` and no default implementation is provided. To complete the migration for an 
+    aggregate handling the persistence layer is now mandatory for your type to implement `AggregateManager`.
+  - renamed function `handle` in `handle_command`.
+  - `event_store` changed to return a reference to it's associated type `EventStore`.
+
+- `EventStore`
+  - `Event` and `Error` generics removed in favour of `Manager: AggregateManager` associated type.
+
+- `PgStore`
+  - `new` function is now sync and its return value is no longer a `Result` but `Self`. Removed `Aggregate` type param.
+  - `new` takes ownership of pool; removed projectors and policies params. Use `add_projector`, `add_policy`, 
+    `with_projectors` or `with_policies` instead to add them to the store.
+  - `rebuild_events` renamed into `get_all`.
+  - policies behaviour is now that if one of them fails they fail silently. (override this behaviour with 
+    `Aggregate::store_events` using `EventStore::persist` function).
+  - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
+
+- `PgProjector`
+  - renamed to `Projector`.
+  - is now cloneable.
+  - second param changed from `&mut PoolConnection<Postgres>` to `&mut PgConnection`.
+  - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
+
+- `PgPolicy` 
+  - renamed to `Policy`.
+  - is now cloneable.
+  - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
+  - moved to `esrs` root module.
+  - removed second param (`&Pool<Postgres>`).
+
 - `Policy::handle_event` does not have `Pool<Postgres` anymore as param. Executor should be put in the policy at 
   instantiation time.
 
 ### Removed
 
-- `Aggregate::validate_command` is removed; now validation should be made in `handle_command`.
-- `Sqlite` feature and its implementation.
+- `sqlite` feature and its implementation.
+
+- `Aggregate`
+  - `validate_command` is removed; now validation should be made in `handle_command`.
+  - `event_store` function is moved from `Aggregate` to `AggregateManager`.
+
+- `EventStore`
+  - `run_policies`. To customize the way policies behave override `Aggregate::store_events` using 
+    `EventStore::persist` function.
+
+- `PgStore`
+  - `test` function. Use `#[sqlx::test]` in your tests to test the store.
+  - `begin`, `commit` and `rollback` functions.
+  - `Event` generic type.
+  - `Error` generic type.
+  - `Projector` generic type.
+  - `Policy` generic type.
+
 - `Identifier` trait.
-- `ProjectorEraser` trait.
+- `Eraser` trait.
+- `PgProjectorEraser` trait.
 - `EraserStore` trait.
 - `ProjectorStore` trait.
-- `Eraser` trait.
-- `AggregateState::new_with_state` removed due to potential inconsistency while loading state.
+- `StoreEvent` bounds of `Event` generic.
+
+- `AggregateState`
+  - `new_with_state` removed due to potential inconsistency while loading state.
 
 ## [0.6.2]
 

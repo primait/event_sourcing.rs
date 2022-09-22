@@ -91,7 +91,7 @@ fn persist_single_event_test(pool: Pool<Postgres>) {
     let aggregate_id: Uuid = Uuid::new_v4();
 
     let store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
             .await
             .unwrap();
 
@@ -111,7 +111,7 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
     let test_event_2: TestEvent = TestEvent { id: Uuid::new_v4() };
     let aggregate_id: Uuid = Uuid::new_v4();
 
-    let store_event: Vec<StoreEvent<TestEvent>> = EventStore::<TestAggregate>::persist(
+    let store_event: Vec<StoreEvent<TestEvent>> = EventStore::persist(
         &store,
         aggregate_id,
         vec![test_event_1.clone(), test_event_2.clone()],
@@ -144,7 +144,7 @@ fn event_projection_test(pool: Pool<Postgres>) {
     let aggregate_id: Uuid = Uuid::new_v4();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
             .await
             .unwrap();
 
@@ -170,7 +170,7 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
     let aggregate_id: Uuid = Uuid::new_v4();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
             .await
             .unwrap();
 
@@ -213,7 +213,7 @@ fn policy_test(pool: Pool<Postgres>) {
     let aggregate_id: Uuid = Uuid::new_v4();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::<TestAggregate>::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
             .await
             .unwrap();
 
