@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, Policy};
-use esrs::{Aggregate, AggregateManager, AggregateState, StoreEvent};
+use esrs::postgres::PgStore;
+use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 

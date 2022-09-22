@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
-use crate::postgres::{PgStore, Policy, Projector};
-use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
+use crate::postgres::{PgStore, Projector};
+use crate::{Aggregate, AggregateManager, EventStore, Policy, StoreEvent};
 
 #[sqlx::test]
 fn setup_database_test(pool: Pool<Postgres>) {
