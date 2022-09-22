@@ -17,8 +17,8 @@ Note: this version contains hard breaking changes and may take a lot of time in 
   - should implement `EventStore` associated type.
 
 - `PgStore` 
-  - `setup` function to create table and indexes if not exists. This function should be used only once being that 
-    tries to create event table with if indexes if not exist. 
+  - `setup` function to create table and indexes if not exists. This function should be used only once at your 
+    application startup. It tries to create the event table and its indexes if they not exist. 
   - `add_projector` function to add a projector to store projectors list.
   - `add_policy` function to add a policy to store policies list.
   - `set_projectors` function to set the store projectors list.

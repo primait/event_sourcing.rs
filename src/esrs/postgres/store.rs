@@ -73,7 +73,8 @@ where
     /// speed up `by_aggregate_id` query. The second one is a unique constraint over the tuple
     /// `(aggregate_id, sequence_number)` to avoid race conditions.
     ///
-    /// This function should be used once, possibly in the main.
+    /// This function should be used only once at your application startup. It tries to create the
+    /// event table and its indexes if they not exist.
     pub async fn setup(self) -> Result<Self, Manager::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
