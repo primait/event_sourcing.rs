@@ -1,5 +1,6 @@
-use sqlx::{Pool, Postgres};
 use std::fmt::{Display, Formatter};
+
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use crate::postgres::PgStore;

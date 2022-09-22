@@ -5,8 +5,8 @@ use sqlx::{Pool, Postgres};
 
 use esrs::postgres::PgStore;
 use esrs::types::SequenceNumber;
-use esrs::{AggregateState, StoreEvent};
 use esrs::{Aggregate, AggregateManager};
+use esrs::{AggregateState, StoreEvent};
 
 use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
