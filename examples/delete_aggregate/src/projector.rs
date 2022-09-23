@@ -32,8 +32,8 @@ impl Projector<CounterAggregate> for CounterProjector {
         }
     }
 
-    async fn delete(&self, _: Uuid, _: &mut PgConnection) -> Result<(), CounterError> {
-        todo!()
+    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), CounterError> {
+        Ok(Counter::delete(aggregate_id, connection).await?)
     }
 }
 
@@ -75,6 +75,14 @@ impl Counter {
         sqlx::query_as::<_, Self>("UPDATE counters SET count = $2 WHERE counter_id = $1")
             .bind(id)
             .bind(count)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
+    }
+
+    async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_id = $1")
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map(|_| ())

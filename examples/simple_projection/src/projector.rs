@@ -54,7 +54,7 @@ impl Counter {
             .await
     }
 
-    pub async fn insert(
+    async fn insert(
         id: Uuid,
         count: i32,
         executor: impl Executor<'_, Database = Postgres>,
@@ -67,7 +67,7 @@ impl Counter {
             .map(|_| ())
     }
 
-    pub async fn update(
+    async fn update(
         id: Uuid,
         count: i32,
         executor: impl Executor<'_, Database = Postgres>,
@@ -75,14 +75,6 @@ impl Counter {
         sqlx::query_as::<_, Self>("UPDATE counters SET count = $2 WHERE counter_id = $1")
             .bind(id)
             .bind(count)
-            .fetch_optional(executor)
-            .await
-            .map(|_| ())
-    }
-
-    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("DELETE FROM counter WHERE counter_id = $1")
-            .bind(id)
             .fetch_optional(executor)
             .await
             .map(|_| ())

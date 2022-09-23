@@ -92,7 +92,7 @@ impl AggregateManager for AggregateB {
     where
         Self: Sized,
     {
-        "a"
+        "b"
     }
 
     fn event_store(&self) -> &Self::EventStore {

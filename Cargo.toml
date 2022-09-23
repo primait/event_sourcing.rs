@@ -15,6 +15,7 @@ version = "0.6.2"
 members = [
     "examples/aggregate_merging",
     "examples/customize_persistence_flow",
+    "examples/delete_aggregate",
     "examples/rebuild_shared_projection",
     "examples/rebuilder",
     "examples/simple_projection",

@@ -109,12 +109,4 @@ impl Counter {
 
         query.bind(id).bind(val).fetch_optional(executor).await.map(|_| ())
     }
-
-    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_id = $1")
-            .bind(id)
-            .fetch_optional(executor)
-            .await
-            .map(|_| ())
-    }
 }

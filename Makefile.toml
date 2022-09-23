@@ -71,6 +71,14 @@ args = ["clippy", "--workspace", "--", "-D", "warnings"]
 command = "cargo"
 args = ["clippy", "--workspace", "--features", "postgres", "--", "-D", "warnings"]
 
+# Run example
+[tasks.example]
+description = "Run given example."
+command = "cargo"
+args = ["run", "-p", "${@}"]
+
+
+
 [tasks.cargo-prune]
 description = "Run cargo prune"
 command = "cargo"
