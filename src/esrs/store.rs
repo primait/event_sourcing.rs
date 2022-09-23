@@ -31,7 +31,7 @@ pub trait EventStore {
     /// Delete all events from events store related to given `aggregate_id`.
     ///
     /// Moreover it should delete all the projections.
-    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
 }
 
 /// A StoreEvent contains the payload (the original event) alongside the event's metadata.

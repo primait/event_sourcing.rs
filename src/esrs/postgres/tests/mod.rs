@@ -72,13 +72,13 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 1);
 
-    store.delete_by_aggregate_id(aggregate_id).await.unwrap();
+    store.delete(aggregate_id).await.unwrap();
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 0);
 
     // Is idempotent
-    store.delete_by_aggregate_id(aggregate_id).await.unwrap();
+    store.delete(aggregate_id).await.unwrap();
 
     assert!(store_events.is_empty());
 }
@@ -186,7 +186,7 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
     assert_eq!(projection_rows[0].id, event_internal_id);
     assert_eq!(projection_rows[0].projection_id, aggregate_id);
 
-    store.delete_by_aggregate_id(aggregate_id).await.unwrap();
+    store.delete(aggregate_id).await.unwrap();
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 0);

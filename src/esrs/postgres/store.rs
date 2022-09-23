@@ -36,7 +36,7 @@ where
     Manager::State: Default + Clone + Send + Sync,
     Manager::Command: Send,
     Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
-    Manager::Error: From<sqlx::Error> + From<serde_json::Error>,
+    Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Creates a new implementation of an aggregate
     pub fn new(pool: Pool<Postgres>) -> Self {
@@ -179,7 +179,7 @@ where
     Manager::State: Default + Clone + Send + Sync,
     Manager::Command: Send,
     Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
-    Manager::Error: From<sqlx::Error> + From<serde_json::Error>,
+    Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     type Manager = Manager;
 
@@ -233,7 +233,7 @@ where
         Ok(store_events)
     }
 
-    async fn delete_by_aggregate_id(&self, aggregate_id: Uuid) -> Result<(), Manager::Error> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Manager::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         let _ = sqlx::query(self.statements.delete_by_aggregate_id())

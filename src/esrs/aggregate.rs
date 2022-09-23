@@ -27,8 +27,8 @@ pub trait Aggregate {
     /// your current state is derived from the events.
     type Event: Send + Sync;
 
-    /// This associated type is used to get errors while handling a command..
-    type Error: std::error::Error;
+    /// This associated type is used to get domain errors while handling a command.
+    type Error;
 
     /// Handles, validate a command and emits events.
     fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
@@ -48,7 +48,7 @@ pub trait Aggregate {
 /// 2. load
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
-pub trait AggregateManager: Aggregate + Sized {
+pub trait AggregateManager: Aggregate {
     type EventStore: EventStore<Manager = Self> + Send + Sync;
 
     /// The `name` function is responsible for naming an aggregate type.
@@ -142,6 +142,6 @@ pub trait AggregateManager: Aggregate + Sized {
     ///
     /// If the deletion succeeds only partially, it _must_ return an error.
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error> {
-        self.event_store().delete_by_aggregate_id(aggregate_id).await
+        self.event_store().delete(aggregate_id).await
     }
 }

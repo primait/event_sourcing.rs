@@ -4,7 +4,9 @@ use uuid::Uuid;
 
 use crate::{AggregateManager, StoreEvent};
 
-/// Projector trait that takes a Postgres transaction in order to create a read model
+/// This trait is used to implement a `Projector`. A projector is intended to be an entity where to
+/// create, update and delete a read side. Every projector should be responsible to update a single
+/// read model.
 #[async_trait]
 pub trait Projector<Manager>
 where
@@ -32,6 +34,14 @@ where
     async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), Manager::Error>;
 }
 
+/// This trait ensures that every `Box<dyn Projector<T>>` exposes a `clone_box` function, used later in
+/// the other traits.
+///
+/// In the [`Projector`] this bound is useful in order to let it be cloneable. Being cloneable is
+/// mandatory in order to let the implementation of an `EventStore` be cloneable.
+///
+/// Keep in mind that while implementing `Projector<T>` for a struct it's needed for that struct to be
+/// cloneable.
 pub trait ProjectorClone<Manager>
 where
     Manager: AggregateManager,
@@ -39,6 +49,9 @@ where
     fn clone_box(&self) -> Box<dyn Projector<Manager> + Send + Sync>;
 }
 
+/// This trait create a default implementation of `ProjectorClone` for every `T` where `T` is a `dyn Projector`,
+/// to avoid the implementor of a [`Projector`] have to implement this trait and having this functionality
+/// by default.
 impl<T, Manager> ProjectorClone<Manager> for T
 where
     T: 'static + Projector<Manager> + Clone + Send + Sync,
@@ -49,6 +62,8 @@ where
     }
 }
 
+/// This trait implements [`Clone`] for every `Box<dyn Projector<T>>` calling [`ProjectorClone`]
+/// `clone_box` function.
 impl<Manager> Clone for Box<dyn Projector<Manager> + Send + Sync>
 where
     Manager: AggregateManager,
