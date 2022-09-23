@@ -54,11 +54,7 @@ impl Counter {
             .await
     }
 
-    async fn insert(
-        id: Uuid,
-        count: i32,
-        executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<(), sqlx::Error> {
+    async fn insert(id: Uuid, count: i32, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("INSERT INTO counters (counter_id, count) VALUES ($1, $2)")
             .bind(id)
             .bind(count)
@@ -67,11 +63,7 @@ impl Counter {
             .map(|_| ())
     }
 
-    async fn update(
-        id: Uuid,
-        count: i32,
-        executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<(), sqlx::Error> {
+    async fn update(id: Uuid, count: i32, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
         sqlx::query_as::<_, Self>("UPDATE counters SET count = $2 WHERE counter_id = $1")
             .bind(id)
             .bind(count)
