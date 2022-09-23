@@ -77,8 +77,6 @@ description = "Run given example."
 command = "cargo"
 args = ["run", "-p", "${@}"]
 
-
-
 [tasks.cargo-prune]
 description = "Run cargo prune"
 command = "cargo"
