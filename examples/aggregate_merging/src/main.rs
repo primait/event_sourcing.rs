@@ -2,13 +2,12 @@ use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
-use aggregate_merging::{
-    aggregates::AggregateA,
-    aggregates::AggregateB,
-    projectors::Counter,
-    structs::{CommandA, CommandB},
-};
-use esrs::{AggregateManager, AggregateState};
+use aggregate_merging::aggregates::AggregateA;
+use aggregate_merging::aggregates::AggregateB;
+use aggregate_merging::projectors::Counter;
+use aggregate_merging::structs::CommandA;
+use aggregate_merging::structs::CommandB;
+use esrs::AggregateManager;
 
 #[tokio::main]
 async fn main() {
@@ -27,16 +26,13 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    let count_id = Uuid::new_v4();
+    let shared_id: Uuid = Uuid::new_v4();
 
     // Construct the two aggregates
     let agg_a = AggregateA::new(&pool).await.expect("Failed to construct aggregate");
-    let a_state = AggregateState::new(count_id);
-
     let agg_b = AggregateB::new(&pool).await.expect("Failed to construct aggregate");
-    let b_state = AggregateState::new(count_id);
 
-    let counter = Counter::by_id(count_id, &pool)
+    let counter = Counter::by_id(shared_id, &pool)
         .await
         .expect("Failed to retrieve counter");
 
@@ -44,11 +40,11 @@ async fn main() {
 
     // Increment each count once
     let _ = agg_a
-        .handle_command(a_state, CommandA::Inner)
+        .handle_command(Default::default(), CommandA::Inner { shared_id })
         .await
         .expect("Failed to handle command a");
 
-    let counter = Counter::by_id(count_id, &pool)
+    let counter = Counter::by_id(shared_id, &pool)
         .await
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
@@ -57,12 +53,12 @@ async fn main() {
     assert!(counter.count_a == 1 && counter.count_b == 0);
 
     let _ = agg_b
-        .handle_command(b_state, CommandB::Inner)
+        .handle_command(Default::default(), CommandB::Inner { shared_id })
         .await
         .expect("Failed to handle command b");
 
     // Retrieve counter projection from database and print
-    let counter = Counter::by_id(count_id, &pool)
+    let counter = Counter::by_id(shared_id, &pool)
         .await
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");

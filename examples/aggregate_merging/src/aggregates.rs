@@ -29,7 +29,7 @@ impl Aggregate for AggregateA {
 
     fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            CommandA::Inner => Ok(vec![EventA::Inner]),
+            CommandA::Inner { shared_id } => Ok(vec![EventA::Inner { shared_id }]),
         }
     }
 
@@ -75,7 +75,7 @@ impl Aggregate for AggregateB {
 
     fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
-            CommandB::Inner => Ok(vec![EventB::Inner]),
+            CommandB::Inner { shared_id } => Ok(vec![EventB::Inner { shared_id }]),
         }
     }
 

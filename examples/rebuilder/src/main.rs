@@ -50,7 +50,7 @@ where
     }
 }
 
-// Rebuild a number of boxed projectors at once, for a single aggregate, for a number of aggregate ids
+// Rebuild a number of projectors at once, for a single aggregate, for a number of aggregate ids
 async fn _rebuild_multiple_projectors<'a, A>(
     aggregate: &'a A,
     ids: Vec<Uuid>,

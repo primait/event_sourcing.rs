@@ -1,12 +1,13 @@
 use futures::StreamExt;
 use sqlx::migrate::MigrateDatabase;
-use sqlx::{pool::PoolOptions, Pool, Postgres, Transaction};
+use sqlx::{pool::PoolOptions, PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use aggregate_merging::aggregates::{AggregateA, AggregateB};
 use aggregate_merging::projectors::Counter;
 use aggregate_merging::structs::{CommandA, CommandB, CounterError, EventA, EventB};
-use esrs::{AggregateManager, AggregateState, StoreEvent};
+use esrs::postgres::Projector;
+use esrs::{AggregateManager, StoreEvent};
 
 // A simple example demonstrating rebuilding a read-side projection from an event
 // stream
@@ -21,9 +22,9 @@ async fn main() {
         .connect(database_url.as_str())
         .await
         .expect("Failed to create pool");
-    let count_id = Uuid::new_v4();
+    let counter_id = Uuid::new_v4();
 
-    setup(&pool, count_id).await;
+    setup(&pool, counter_id).await;
 
     let store_a = AggregateA::new(&pool).await.unwrap().event_store;
     let store_b = AggregateB::new(&pool).await.unwrap().event_store;
@@ -39,35 +40,26 @@ async fn main() {
     loop {
         let a_opt: Option<&StoreEvent<EventA>> = event_a_opt.as_ref().map(|v| v.as_ref().unwrap());
         let b_opt: Option<&StoreEvent<EventB>> = event_b_opt.as_ref().map(|v| v.as_ref().unwrap());
-
+        
         match (a_opt, b_opt) {
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
-                for projector in store_a.projectors() {
-                    projector
-                        .project(a, &mut *transaction)
-                        .await
-                        .expect("Projector A error");
-                }
+                delete_and_project(store_a.projectors(), a, &mut *transaction)
+                    .await
+                    .expect("Failed to delete/project event");
 
                 event_a_opt = events_a.next().await;
             }
             (Some(a), None) => {
-                for projector in store_a.projectors() {
-                    projector
-                        .project(a, &mut *transaction)
-                        .await
-                        .expect("Projector A error");
-                }
+                delete_and_project(store_a.projectors(), a, &mut *transaction)
+                    .await
+                    .expect("Failed to delete/project event");
 
                 event_a_opt = events_a.next().await;
             }
             (Some(_), Some(b)) | (None, Some(b)) => {
-                for projector in store_b.projectors() {
-                    projector
-                        .project(b, &mut *transaction)
-                        .await
-                        .expect("Projector B error");
-                }
+                delete_and_project(store_b.projectors(), b, &mut *transaction)
+                    .await
+                    .expect("Failed to delete/project event");
 
                 event_b_opt = events_b.next().await;
             }
@@ -77,15 +69,16 @@ async fn main() {
 
     transaction.commit().await.unwrap();
 
-    let counter = Counter::by_id(count_id, &pool)
+    let counter = Counter::by_id(counter_id, &pool)
         .await
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
 
-    assert!(counter.count_a == 1 && counter.count_b == 1);
+    assert_eq!(counter.count_b, 1);
+    assert_eq!(counter.count_a, 1);
 }
 
-async fn setup(pool: &Pool<Postgres>, count_id: Uuid) {
+async fn setup(pool: &Pool<Postgres>, shared_id: Uuid) {
     sqlx::migrate!("./migrations")
         .run(pool)
         .await
@@ -93,29 +86,28 @@ async fn setup(pool: &Pool<Postgres>, count_id: Uuid) {
 
     // Construct the two aggregates
     let agg_a = AggregateA::new(pool).await.expect("Failed to construct aggregate");
-    let a_state = AggregateState::new(count_id);
-
     let agg_b = AggregateB::new(pool).await.expect("Failed to construct aggregate");
-    let b_state = AggregateState::new(count_id);
 
     // Increment each count once
     let _ = agg_a
-        .handle_command(a_state, CommandA::Inner)
+        .handle_command(Default::default(), CommandA::Inner { shared_id })
         .await
         .expect("Failed to handle command a");
 
     let _ = agg_b
-        .handle_command(b_state, CommandB::Inner)
+        .handle_command(Default::default(), CommandB::Inner { shared_id })
         .await
         .expect("Failed to handle command b");
+}
 
-    //Drop and rebuild the counters projection table
-    sqlx::query("DROP TABLE counters")
-        .execute(pool)
-        .await
-        .expect("Failed to drop table");
-    sqlx::query("CREATE TABLE counters (\"counter_id\" UUID PRIMARY KEY NOT NULL, \"count_a\" INTEGER NOT NULL, \"count_b\" INTEGER NOT NULL );")
-        .execute(pool)
-        .await
-        .expect("Failed to recreate counters table");
+async fn delete_and_project<T: AggregateManager>(
+    projectors: &[Box<dyn Projector<T> + Send + Sync>],
+    event: &StoreEvent<T::Event>,
+    transaction: &mut PgConnection,
+) -> Result<(), T::Error> {
+    for projector in projectors {
+        projector.delete(event.aggregate_id, transaction).await?;
+        projector.project(event, transaction).await?;
+    }
+    Ok(())
 }
