@@ -31,10 +31,6 @@ impl Projector<CounterAggregate> for CounterProjector {
             },
         }
     }
-
-    async fn delete(&self, _: Uuid, _: &mut PgConnection) -> Result<(), CounterError> {
-        todo!()
-    }
 }
 
 #[derive(sqlx::FromRow, Debug)]

@@ -8,7 +8,7 @@ use crate::{AggregateManager, StoreEvent};
 /// create, update and delete a read side. Every projector should be responsible to update a single
 /// read model.
 #[async_trait]
-pub trait Projector<Manager>
+pub trait Projector<Manager>: Sync
 where
     Self: ProjectorClone<Manager>,
     Manager: AggregateManager,
@@ -31,7 +31,9 @@ where
     /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
     /// of sqlx package this could be changed. At this time the connection could be a simple connection
     /// acquired by a pool or a deref of a transaction.
-    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), Manager::Error>;
+    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), Manager::Error> {
+        Ok(())
+    }
 }
 
 /// This trait ensures that every `Box<dyn Projector<T>>` exposes a `clone_box` function, used later in

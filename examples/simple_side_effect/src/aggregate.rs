@@ -28,10 +28,6 @@ impl Projector<LoggingAggregate> for LoggingProjector {
         }
         Ok(())
     }
-
-    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), LoggingError> {
-        todo!()
-    }
 }
 
 // Here's a simple side-effect policy which carries out some side effect.
