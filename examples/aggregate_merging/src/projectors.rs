@@ -31,6 +31,7 @@ impl Projector<AggregateA> for CounterProjector {
     }
 }
 
+// This is a projector template that will project AggregateB events into a shared projection (DB table).
 #[async_trait]
 impl Projector<AggregateB> for CounterProjector {
     async fn project(&self, event: &StoreEvent<EventB>, connection: &mut PgConnection) -> Result<(), CounterError> {

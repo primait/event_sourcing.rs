@@ -1,12 +1,11 @@
 use futures::StreamExt;
 use sqlx::migrate::MigrateDatabase;
-use sqlx::{pool::PoolOptions, PgConnection, Pool, Postgres, Transaction};
+use sqlx::{pool::PoolOptions, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use aggregate_merging::aggregates::{AggregateA, AggregateB};
 use aggregate_merging::projectors::Counter;
 use aggregate_merging::structs::{CommandA, CommandB, CounterError, EventA, EventB};
-use esrs::postgres::Projector;
 use esrs::{AggregateManager, StoreEvent};
 
 // A simple example demonstrating rebuilding a read-side projection from an event
@@ -37,29 +36,34 @@ async fn main() {
 
     let mut transaction: Transaction<Postgres> = pool.begin().await.expect("Failed to create transaction");
 
+    let _ = sqlx::query("TRUNCATE TABLE counters")
+        .execute(&mut *transaction)
+        .await
+        .unwrap();
+
     loop {
         let a_opt: Option<&StoreEvent<EventA>> = event_a_opt.as_ref().map(|v| v.as_ref().unwrap());
         let b_opt: Option<&StoreEvent<EventB>> = event_b_opt.as_ref().map(|v| v.as_ref().unwrap());
 
         match (a_opt, b_opt) {
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
-                delete_and_project(store_a.projectors(), a, &mut *transaction)
-                    .await
-                    .expect("Failed to delete/project event");
+                for projector in store_a.projectors() {
+                    projector.project(a, &mut *transaction).await.unwrap();
+                }
 
                 event_a_opt = events_a.next().await;
             }
             (Some(a), None) => {
-                delete_and_project(store_a.projectors(), a, &mut *transaction)
-                    .await
-                    .expect("Failed to delete/project event");
+                for projector in store_a.projectors() {
+                    projector.project(a, &mut *transaction).await.unwrap();
+                }
 
                 event_a_opt = events_a.next().await;
             }
             (Some(_), Some(b)) | (None, Some(b)) => {
-                delete_and_project(store_b.projectors(), b, &mut *transaction)
-                    .await
-                    .expect("Failed to delete/project event");
+                for projector in store_b.projectors() {
+                    projector.project(b, &mut *transaction).await.unwrap();
+                }
 
                 event_b_opt = events_b.next().await;
             }
@@ -98,16 +102,4 @@ async fn setup(pool: &Pool<Postgres>, shared_id: Uuid) {
         .handle_command(Default::default(), CommandB::Inner { shared_id })
         .await
         .expect("Failed to handle command b");
-}
-
-async fn delete_and_project<T: AggregateManager>(
-    projectors: &[Box<dyn Projector<T> + Send + Sync>],
-    event: &StoreEvent<T::Event>,
-    transaction: &mut PgConnection,
-) -> Result<(), T::Error> {
-    for projector in projectors {
-        projector.delete(event.aggregate_id, transaction).await?;
-        projector.project(event, transaction).await?;
-    }
-    Ok(())
 }
