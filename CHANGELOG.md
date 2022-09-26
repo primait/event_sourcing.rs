@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 Note: this version contains hard breaking changes and may take a lot of time in order to upgrade library version!
+Refer to: [#107]
 
 ### Added
 
@@ -101,6 +102,9 @@ Note: this version contains hard breaking changes and may take a lot of time in 
 - `AggregateState`
   - `new_with_state` removed due to potential inconsistency while loading state.
 
+
+---
+
 ## [0.6.2]
 
 ### Changed
@@ -109,3 +113,4 @@ Note: this version contains hard breaking changes and may take a lot of time in 
 
 [Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...HEAD
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
+[#107]: https://github.com/primait/event_sourcing.rs/pull/107
