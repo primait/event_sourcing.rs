@@ -40,7 +40,7 @@ async fn main() {
     loop {
         let a_opt: Option<&StoreEvent<EventA>> = event_a_opt.as_ref().map(|v| v.as_ref().unwrap());
         let b_opt: Option<&StoreEvent<EventB>> = event_b_opt.as_ref().map(|v| v.as_ref().unwrap());
-        
+
         match (a_opt, b_opt) {
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
                 delete_and_project(store_a.projectors(), a, &mut *transaction)
