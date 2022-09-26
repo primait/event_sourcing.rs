@@ -28,6 +28,9 @@ where
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
     ///
+    /// Default implementation *does nothing* and always returns an Ok. Override this function to
+    /// implement deletion behaviour for custom projections.
+    ///
     /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
     /// of sqlx package this could be changed. At this time the connection could be a simple connection
     /// acquired by a pool or a deref of a transaction.
