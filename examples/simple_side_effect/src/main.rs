@@ -54,7 +54,7 @@ async fn main() {
     assert!(res.is_err());
     // We now need to rebuild the event state - and we'll see that there are only 3 events
     let state = aggregate.load(logger_id).await.expect("Failed to load aggregate state");
-    assert!(*state.inner() == 3);
+    assert_eq!(*state.inner(), 3);
 
     // Now we'll cause a policy error. This error is silenced by the `AggregateManager::store_events`
     // actual impl. It is overridable
@@ -68,5 +68,5 @@ async fn main() {
 
     // We now need to rebuild the event state - and we'll see that there are 4 events
     let state = aggregate.load(logger_id).await.expect("Failed to load aggregate state");
-    assert!(*state.inner() == 4);
+    assert_eq!(*state.inner(), 4);
 }

@@ -46,10 +46,10 @@ async fn main() {
         .await
         .expect("Failed to get events");
 
-    assert!(events.len() == 2); // 2 events in the store, 1 from our command and 1 from the policy
-    assert!(*state.inner() == 1); // However, the state we get back only has 1 event applied (it isn't valid)
+    assert_eq!(events.len(), 2); // 2 events in the store, 1 from our command and 1 from the policy
+    assert_eq!(*state.inner(), 1); // However, the state we get back only has 1 event applied (it isn't valid)
     let state = aggregate.load(logger_id).await.expect("Failed to load state");
-    assert!(*state.inner() == 2); // On loading the state from the DB, we get the correct number of applied events
+    assert_eq!(*state.inner(), 2); // On loading the state from the DB, we get the correct number of applied events
 
     // Now we can use the newly loaded state to log another message, but we drop the invalid returned state
     let _ = aggregate

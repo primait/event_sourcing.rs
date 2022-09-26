@@ -42,7 +42,7 @@ async fn main() {
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
     println!("Count is: {}", counter.count);
-    assert!(counter.count == 1);
+    assert_eq!(counter.count, 1);
 
     // Increment counter twice
     let state = aggregate
@@ -60,7 +60,7 @@ async fn main() {
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
     println!("Count is: {}", counter.count);
-    assert!(counter.count == 3);
+    assert_eq!(counter.count, 3);
 
     // Decrement counter once
     let _state = aggregate
@@ -74,5 +74,5 @@ async fn main() {
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
     println!("Count is: {}", counter.count);
-    assert!(counter.count == 2);
+    assert_eq!(counter.count, 2);
 }

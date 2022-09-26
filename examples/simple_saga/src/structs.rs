@@ -24,7 +24,7 @@ pub enum LoggingEvent {
     Failed,
 }
 
-// The aggregate receieves commands to log a message
+// The aggregate receives commands to log a message
 pub enum LoggingCommand {
     TryLog(String),
     Succeed,
