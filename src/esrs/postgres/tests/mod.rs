@@ -221,14 +221,6 @@ fn policy_test(pool: Pool<Postgres>) {
     assert_eq!(*guard, event_internal_id)
 }
 
-#[sqlx::test]
-fn close_test(pool: Pool<Postgres>) {
-    assert!(!pool.is_closed());
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
-    store.close().await;
-    assert!(pool.is_closed());
-}
-
 async fn create_test_projection_table(pool: &Pool<Postgres>) {
     let _ = sqlx::query("DROP TABLE IF EXISTS test_projection")
         .execute(pool)

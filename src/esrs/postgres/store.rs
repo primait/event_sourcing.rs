@@ -165,11 +165,6 @@ where
     {
         fun(&self.pool).await
     }
-
-    /// This function closes the inner pool.
-    pub async fn close(&self) {
-        self.pool.close().await
-    }
 }
 
 #[async_trait]
