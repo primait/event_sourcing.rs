@@ -1,13 +1,8 @@
-use std::fmt::Debug;
-
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use uuid::Uuid;
 
-use crate::esrs::state::AggregateState;
-use crate::esrs::store::{EventStore, StoreEvent};
 use crate::types::SequenceNumber;
+use crate::{AggregateState, EventStore, StoreEvent};
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
@@ -20,25 +15,23 @@ use crate::types::SequenceNumber;
 /// should not have any side effects. If you need additional information to handle commands correctly, then
 /// consider looking up that information and placing it in the command.
 pub trait Aggregate {
-    type State: Default + Clone + Debug + Send + Sync;
-    type Command: Send + Sync;
-    type Event: Serialize + DeserializeOwned + Send + Sync;
-    type Error: Send + Sync;
+    /// Internal aggregate state. This will be wrapped in `AggregateState` and could be used to validate
+    /// commands.
+    type State: Default + Clone + Send + Sync;
 
-    /// The `name` function is responsible for naming an aggregate type.
-    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
-    ///
-    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
-    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
-    fn name() -> &'static str
-    where
-        Self: Sized;
+    /// A command is an action that the caller can execute over an aggregate in order to let it emit
+    /// an event.
+    type Command: Send;
+
+    /// An event represents a fact that took place in the domain. They are the source of truth;
+    /// your current state is derived from the events.
+    type Event: Send + Sync;
+
+    /// This associated type is used to get domain errors while handling a command.
+    type Error;
 
     /// Handles, validate a command and emits events.
-    fn handle_command(
-        state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error>;
+    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
     /// to the state.
@@ -56,18 +49,27 @@ pub trait Aggregate {
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Aggregate {
-    type EventStore: EventStore<Self::Event, Self::Error> + Send + Sync;
+    type EventStore: EventStore<Manager = Self> + Send + Sync;
+
+    /// The `name` function is responsible for naming an aggregate type.
+    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
+    ///
+    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
+    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
+    fn name() -> &'static str
+    where
+        Self: Sized;
 
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
-    async fn handle(
+    async fn handle_command(
         &self,
         aggregate_state: AggregateState<Self::State>,
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
-        let events: Vec<Self::Event> = Self::handle_command(&aggregate_state, command)?;
+        let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(Self::apply_events(aggregate_state, stored_events))
@@ -130,25 +132,16 @@ pub trait AggregateManager: Aggregate {
         aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        let events: Vec<StoreEvent<Self::Event>> = self
-            .event_store()
+        self.event_store()
             .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
-            .await?;
-
-        let _ = self.event_store().run_policies(&events).await;
-
-        Ok(events)
+            .await
     }
-}
 
-/// The Eraser trait is responsible for erasing an aggregate instance from history.
-#[async_trait]
-pub trait Eraser<
-    Event: Serialize + DeserializeOwned + Send + Sync,
-    Error: From<sqlx::Error> + From<serde_json::Error> + Send + Sync,
->
-{
-    /// `delete` should either complete the aggregate instance, along with all its associated events, or fail.
+    /// `delete` should either complete the aggregate instance, along with all its associated events
+    /// and projections, or fail.
+    ///
     /// If the deletion succeeds only partially, it _must_ return an error.
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error> {
+        self.event_store().delete(aggregate_id).await
+    }
 }

@@ -1,29 +1,39 @@
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use sqlx::{Postgres, Transaction};
+use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::esrs::store::StoreEvent;
+use crate::{AggregateManager, StoreEvent};
 
-/// Projector trait that takes a Postgres transaction in order to create a read model
+/// This trait is used to implement a `Projector`. A projector is intended to be an entity where to
+/// create, update and delete a read side. Every projector should be responsible to update a single
+/// read model.
 #[async_trait]
-pub trait PgProjector<Event: Serialize + DeserializeOwned + Send + Sync, Error> {
+pub trait Projector<Manager>: Sync
+where
+    Manager: AggregateManager,
+{
     /// This function projects one event in each read model that implements this trait.
     /// The result is meant to catch generic errors.
+    ///
+    /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
+    /// of sqlx package this could be changed. At this time the connection could be a simple connection
+    /// acquired by a pool or a deref of a transaction.
     async fn project(
         &self,
-        event: &StoreEvent<Event>,
-        transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), Error>;
-}
+        event: &StoreEvent<Manager::Event>,
+        connection: &mut PgConnection,
+    ) -> Result<(), Manager::Error>;
 
-/// Projector trait that takes a Postgres transaction in order to delete a read model
-#[async_trait]
-pub trait PgProjectorEraser<Event: Serialize + DeserializeOwned + Send + Sync, Error>:
-    PgProjector<Event, Error>
-{
     /// Delete the read model entry. It is here because of the eventual need of delete an entire
     /// aggregate.
-    async fn delete(&self, aggregate_id: Uuid, transaction: &mut Transaction<'_, Postgres>) -> Result<(), Error>;
+    ///
+    /// Default implementation *does nothing* and always returns an Ok. Override this function to
+    /// implement deletion behaviour for custom projections.
+    ///
+    /// Note: in actual implementation the second parameter is an &mut PgConnection. In further releases
+    /// of sqlx package this could be changed. At this time the connection could be a simple connection
+    /// acquired by a pool or a deref of a transaction.
+    async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), Manager::Error> {
+        Ok(())
+    }
 }

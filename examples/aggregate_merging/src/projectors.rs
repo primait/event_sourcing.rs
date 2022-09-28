@@ -1,61 +1,53 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use sqlx::{Executor, Postgres, Transaction};
-use tokio::sync::Mutex;
+use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
-use esrs::projector::PgProjector;
-use esrs::store::StoreEvent;
+use esrs::postgres::Projector;
+use esrs::StoreEvent;
 
-use crate::structs::{CounterError, ProjectorEvent};
+use crate::aggregates::{AggregateA, AggregateB};
+use crate::structs::{CounterError, EventA, EventB};
 
+#[derive(Clone)]
 pub struct CounterProjector;
 
-// This is a projector template that will project any events that implement Into<ProjectorEvent>
-// into a shared projection (DB table). This behaviour - consuming events from more than one aggregate,
-// and projecting them to a shared table, is RACE PRONE - if the projector writes to the same column
-// when consuming more than one kind of event (as it does in this example, writing to both count_a and
-// count_b when updating the counts, regardless of if it received and EventA or an EventB), then it is
-// possible for two simultaneous transactions, updating the same projection, to occur. If the projector
-// also relies on previous state to calculate next state (as this one does), this is a data race. The fix
-// (not implemented here, for demonstration purposes) is dependant on your database transaction isolation
-// model - in this case, using queries which only update count_a when EventA is received, and count_b
-// when EventB is received, would be sufficient to guarantee soundness.
+// This is a projector template that will project AggregateA events into a shared projection (DB table).
 #[async_trait]
-impl<T: Clone + Into<ProjectorEvent> + Send + Sync + Serialize + DeserializeOwned> PgProjector<T, CounterError>
-    for CounterProjector
-{
-    async fn project(
-        &self,
-        event: &StoreEvent<T>,
-        transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), CounterError> {
-        let existing: Option<Counter> = Counter::by_id(event.aggregate_id, &mut *transaction).await?;
-        let payload: ProjectorEvent = event.payload.clone().into();
-
-        match payload {
-            ProjectorEvent::A => match existing {
-                Some(counter) => Ok(Counter::update(
-                    event.aggregate_id,
-                    CounterUpdate::A(counter.count_a + 1),
-                    &mut *transaction,
-                )
-                .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 1, 0, &mut *transaction).await?),
-            },
-            ProjectorEvent::B => match existing {
-                Some(counter) => Ok(Counter::update(
-                    event.aggregate_id,
-                    CounterUpdate::B(counter.count_b + 1),
-                    &mut *transaction,
-                )
-                .await?),
-                None => Ok(Counter::insert(event.aggregate_id, 0, 1, &mut *transaction).await?),
-            },
+impl Projector<AggregateA> for CounterProjector {
+    async fn project(&self, event: &StoreEvent<EventA>, connection: &mut PgConnection) -> Result<(), CounterError> {
+        match event.payload() {
+            EventA::Inner { shared_id: id } => {
+                let existing = Counter::by_id(*id, &mut *connection).await?;
+                match existing {
+                    Some(counter) => Ok(Counter::update(*id, CounterUpdate::A(counter.count_a + 1), connection).await?),
+                    None => Ok(Counter::insert(*id, Some(event.aggregate_id), None, 1, 0, connection).await?),
+                }
+            }
         }
+    }
+
+    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), CounterError> {
+        Ok(Counter::delete_by_counter_a_id(aggregate_id, connection).await?)
+    }
+}
+
+// This is a projector template that will project AggregateB events into a shared projection (DB table).
+#[async_trait]
+impl Projector<AggregateB> for CounterProjector {
+    async fn project(&self, event: &StoreEvent<EventB>, connection: &mut PgConnection) -> Result<(), CounterError> {
+        match event.payload() {
+            EventB::Inner { shared_id: id } => {
+                let existing = Counter::by_id(*id, &mut *connection).await?;
+                match existing {
+                    Some(counter) => Ok(Counter::update(*id, CounterUpdate::B(counter.count_b + 1), connection).await?),
+                    None => Ok(Counter::insert(*id, None, Some(event.aggregate_id), 0, 1, connection).await?),
+                }
+            }
+        }
+    }
+
+    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), CounterError> {
+        Ok(Counter::delete_by_counter_b_id(aggregate_id, connection).await?)
     }
 }
 
@@ -85,17 +77,23 @@ impl Counter {
 
     async fn insert(
         id: Uuid,
+        count_a_id: Option<Uuid>,
+        count_b_id: Option<Uuid>,
         count_a: i32,
         count_b: i32,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("INSERT INTO counters (counter_id, count_a, count_b) VALUES ($1, $2, $3)")
-            .bind(id)
-            .bind(count_a)
-            .bind(count_b)
-            .fetch_optional(executor)
-            .await
-            .map(|_| ())
+        sqlx::query_as::<_, Self>(
+            "INSERT INTO counters (counter_id, counter_a_id, counter_b_id, count_a, count_b) VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(id)
+        .bind(count_a_id)
+        .bind(count_b_id)
+        .bind(count_a)
+        .bind(count_b)
+        .fetch_optional(executor)
+        .await
+        .map(|_| ())
     }
 
     async fn update(
@@ -117,49 +115,25 @@ impl Counter {
         query.bind(id).bind(val).fetch_optional(executor).await.map(|_| ())
     }
 
-    pub async fn delete(id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
-        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_id = $1")
+    async fn delete_by_counter_a_id(
+        id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_a_id = $1")
             .bind(id)
             .fetch_optional(executor)
             .await
             .map(|_| ())
     }
-}
 
-// Here's an example of how one might implement a projector that is shared between two aggregates, in a
-// way that guarantees soundness when both aggregate event types can lead to modifying a shared
-// column in the projection. Note that this requires a different Aggregate setup, where a shared
-// (inner) projector is constructed, two SharedProjectors are constructed to wrap the inner, and then
-// an EventStore for each event type is constructed and passed the right SharedProjector for it's Event type,
-// before being passed into some Aggregate::new. It also, requires cloning every event
-pub struct SharedProjector<InnerEvent, InnerError> {
-    inner: Arc<Mutex<dyn PgProjector<InnerEvent, InnerError> + Send + Sync>>,
-}
-
-impl<InnerEvent, InnerError> SharedProjector<InnerEvent, InnerError> {
-    pub fn new(inner: Arc<Mutex<dyn PgProjector<InnerEvent, InnerError> + Send + Sync>>) -> Self {
-        SharedProjector { inner }
-    }
-}
-
-#[async_trait]
-impl<Event, Error, InnerEvent, InnerError> PgProjector<Event, Error> for SharedProjector<InnerEvent, InnerError>
-where
-    Event: Into<InnerEvent> + Clone + Send + Sync + Serialize + DeserializeOwned,
-    InnerEvent: Send + Sync + Serialize + DeserializeOwned,
-    InnerError: Into<Error>,
-{
-    async fn project(
-        &self,
-        event: &StoreEvent<Event>,
-        transaction: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), Error> {
-        let event: StoreEvent<InnerEvent> = event.clone().map(Event::into);
-        let inner = self.inner.lock().await;
-        let result = inner.project(&event, transaction).await;
-        match result {
-            Ok(()) => Ok(()),
-            Err(e) => Err(e.into()),
-        }
+    async fn delete_by_counter_b_id(
+        id: Uuid,
+        executor: impl Executor<'_, Database = Postgres>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query_as::<_, Self>("DELETE FROM counters WHERE counter_b_id = $1")
+            .bind(id)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
     }
 }

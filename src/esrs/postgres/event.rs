@@ -1,15 +1,14 @@
 use std::convert::TryInto;
 
 use chrono::{DateTime, Utc};
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::esrs::store::StoreEvent;
-use crate::esrs::SequenceNumber;
+use crate::types::SequenceNumber;
+use crate::StoreEvent;
 
-#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
+/// Event representation on the event store
+#[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
 pub struct Event {
     pub id: Uuid,
     pub aggregate_id: Uuid,
@@ -18,7 +17,7 @@ pub struct Event {
     pub sequence_number: SequenceNumber,
 }
 
-impl<E: Serialize + DeserializeOwned + Send + Sync> TryInto<StoreEvent<E>> for Event {
+impl<E: serde::de::DeserializeOwned> TryInto<StoreEvent<E>> for Event {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {

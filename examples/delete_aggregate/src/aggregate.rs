@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
 use esrs::postgres::PgStore;
@@ -40,6 +41,7 @@ impl Aggregate for CounterAggregate {
     }
 }
 
+#[async_trait]
 impl AggregateManager for CounterAggregate {
     type EventStore = PgStore<Self>;
 

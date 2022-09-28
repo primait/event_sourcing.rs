@@ -2,7 +2,7 @@ use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::aggregate::{AggregateManager, AggregateState};
+use esrs::{AggregateManager, AggregateState};
 
 use crate::{aggregate::LoggingAggregate, structs::LoggingCommand};
 
@@ -31,22 +31,22 @@ async fn main() {
 
     // Log some messages
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("First logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("First logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("Second logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("Second logging message")))
         .await
         .expect("Failed to log message");
     let state = aggregate
-        .handle(state, LoggingCommand::Log(String::from("Third logging message")))
+        .handle_command(state, LoggingCommand::Log(String::from("Third logging message")))
         .await
         .expect("Failed to log message");
 
     // Lets cause a projection error, to illustrate the difference between
     // projection and policy errors, from an AggregateState perspective
     let res = aggregate
-        .handle(
+        .handle_command(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_projection")),
         )
@@ -54,12 +54,12 @@ async fn main() {
     assert!(res.is_err());
     // We now need to rebuild the event state - and we'll see that there are only 3 events
     let state = aggregate.load(logger_id).await.expect("Failed to load aggregate state");
-    assert!(*state.inner() == 3);
+    assert_eq!(*state.inner(), 3);
 
     // Now we'll cause a policy error. This error is silenced by the `AggregateManager::store_events`
     // actual impl. It is overridable
     let res = aggregate
-        .handle(
+        .handle_command(
             state,
             LoggingCommand::Log(String::from("This will fail since it contains fail_policy")),
         )
@@ -68,5 +68,5 @@ async fn main() {
 
     // We now need to rebuild the event state - and we'll see that there are 4 events
     let state = aggregate.load(logger_id).await.expect("Failed to load aggregate state");
-    assert!(*state.inner() == 4);
+    assert_eq!(*state.inner(), 4);
 }

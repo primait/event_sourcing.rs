@@ -2,8 +2,8 @@ use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
+use delete_aggregate::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 use esrs::{AggregateManager, AggregateState};
-use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 
 #[tokio::main]
 async fn main() {
@@ -63,7 +63,7 @@ async fn main() {
     assert_eq!(counter.count, 3);
 
     // Decrement counter once
-    let _state = aggregate
+    let state = aggregate
         .handle_command(state, CounterCommand::Decrement)
         .await
         .expect("Failed to handle increment command");
@@ -73,6 +73,17 @@ async fn main() {
         .await
         .expect("Failed to retrieve counter")
         .expect("Failed to find counter");
+
     println!("Count is: {}", counter.count);
     assert_eq!(counter.count, 2);
+
+    aggregate.delete(*state.id()).await.expect("Failed to delete aggregate");
+
+    let counter_opt: Option<Counter> = Counter::by_id(count_id, &pool)
+        .await
+        .expect("Failed to retrieve counter");
+
+    assert!(counter_opt.is_none());
+
+    println!("Counter has been deleted successfully");
 }

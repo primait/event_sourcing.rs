@@ -1,10 +1,8 @@
 use async_trait::async_trait;
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{PgConnection, Pool, Postgres};
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::policy::PgPolicy;
-use esrs::projector::PgProjector;
-use esrs::store::{PgStore, StoreEvent};
+use esrs::postgres::{PgStore, Projector};
+use esrs::{Aggregate, AggregateManager, Policy, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
@@ -12,15 +10,12 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 // causing the event not to be written to the event store. In this case the
 // failure is due to a simple log message filter rule, but you can imagine a
 // side effect which interacts with some 3rd party service in a failable way instead
+#[derive(Clone)]
 pub struct LoggingProjector;
 
 #[async_trait]
-impl PgProjector<LoggingEvent, LoggingError> for LoggingProjector {
-    async fn project(
-        &self,
-        event: &StoreEvent<LoggingEvent>,
-        _: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), LoggingError> {
+impl Projector<LoggingAggregate> for LoggingProjector {
+    async fn project(&self, event: &StoreEvent<LoggingEvent>, _: &mut PgConnection) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -41,11 +36,12 @@ impl PgProjector<LoggingEvent, LoggingError> for LoggingProjector {
 // failure in a policy, from an aggregate perspective, is that a failed projection
 // stops the event from being persisted to the event store, whereas a failure in
 // a policy does not.
+#[derive(Clone)]
 pub struct LoggingPolicy;
 
 #[async_trait]
-impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, _: &Pool<Postgres>) -> Result<(), LoggingError> {
+impl Policy<LoggingAggregate> for LoggingPolicy {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -59,45 +55,29 @@ impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
     }
 }
 
-// A store of events
-pub type LogStore = PgStore<LoggingEvent, LoggingError>;
-
 pub struct LoggingAggregate {
-    event_store: LogStore,
+    event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
+        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
+            .set_projectors(vec![Box::new(LoggingProjector)])
+            .set_policies(vec![Box::new(LoggingPolicy)])
+            .setup()
+            .await?;
 
-    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn PgProjector<LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingProjector)];
-
-        let policies: Vec<Box<dyn PgPolicy<LoggingEvent, LoggingError> + Send + Sync>> = vec![Box::new(LoggingPolicy)];
-
-        PgStore::new::<Self>(pool, projectors, policies).await
+        Ok(Self { event_store })
     }
 }
 
-#[async_trait]
 impl Aggregate for LoggingAggregate {
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn name() -> &'static str {
-        "message"
-    }
-
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::Log(msg) => Ok(vec![Self::Event::Logged(msg)]),
         }
@@ -110,7 +90,11 @@ impl Aggregate for LoggingAggregate {
 }
 
 impl AggregateManager for LoggingAggregate {
-    type EventStore = LogStore;
+    type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str {
+        "message"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

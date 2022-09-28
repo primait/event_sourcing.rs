@@ -13,12 +13,14 @@ version = "0.6.2"
 
 [workspace]
 members = [
-    "examples/simple_projection",
-    "examples/simple_side_effect",
-    "examples/simple_saga",
     "examples/aggregate_merging",
-    "examples/rebuilder",
+    "examples/customize_persistence_flow",
+    "examples/delete_aggregate",
     "examples/rebuild_shared_projection",
+    "examples/rebuilder",
+    "examples/simple_projection",
+    "examples/simple_saga",
+    "examples/simple_side_effect",
 ]
 
 [features]
@@ -35,8 +37,11 @@ chrono = {version = "0.4", features = ["serde"]}
 # Build async trait
 async-trait = "0.1.50"
 
+# Used as faster alternative for read scenarios of RwLock
+arc-swap = "1.5"
+
 # Sql library for async impl
-sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"]}
+sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
 # To stream over sqlx results
 futures = "0.3"
 

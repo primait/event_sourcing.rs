@@ -1,79 +1,79 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
+use uuid::Uuid;
 
-use esrs::aggregate::{Aggregate, AggregateManager, AggregateState};
-use esrs::policy::PgPolicy;
-use esrs::projector::PgProjector;
-use esrs::store::{PgStore, StoreEvent};
+use esrs::postgres::PgStore;
+use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
 
 use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
-// A store of events
-pub type LogStore = PgStore<LoggingEvent, LoggingError>;
-
+#[derive(Clone)]
 pub struct LoggingAggregate {
-    event_store: LogStore,
+    event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        Ok(Self {
-            event_store: Self::new_store(pool).await?,
-        })
-    }
+        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone()).setup().await?;
 
-    async fn new_store(pool: &Pool<Postgres>) -> Result<LogStore, LoggingError> {
-        let projectors: Vec<Box<dyn PgProjector<LoggingEvent, LoggingError> + Send + Sync>> = vec![]; // There are no projections here
+        let this: Self = Self {
+            // This clone is cheap being that the internal fields of the store are behind an Arc
+            event_store: event_store.clone(),
+        };
 
-        let policies: Vec<Box<dyn PgPolicy<LoggingEvent, LoggingError> + Send + Sync>> =
-            vec![Box::new(LoggingPolicy {})];
-
-        PgStore::new::<Self>(pool, projectors, policies).await
+        event_store.set_policies(vec![Box::new(LoggingPolicy::new(this.clone()))]);
+        Ok(this)
     }
 }
 
 // A very simply policy, which tries to log an event, and creates another command after it finishes
 // which indicates success or failure to log
-struct LoggingPolicy;
+#[derive(Clone)]
+struct LoggingPolicy {
+    aggregate: LoggingAggregate,
+}
+
+impl LoggingPolicy {
+    pub fn new(aggregate: LoggingAggregate) -> Self {
+        Self { aggregate }
+    }
+}
 
 #[async_trait]
-impl PgPolicy<LoggingEvent, LoggingError> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>, pool: &Pool<Postgres>) -> Result<(), LoggingError> {
-        let id = event.aggregate_id;
-        let agg = LoggingAggregate::new(pool).await?;
-        let state = agg
-            .load(event.aggregate_id)
+impl Policy<LoggingAggregate> for LoggingPolicy {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
+        let aggregate_id: Uuid = event.aggregate_id;
+
+        let aggregate_state: AggregateState<u64> = self
+            .aggregate
+            .load(aggregate_id)
             .await
-            .unwrap_or_else(|| AggregateState::new(event.aggregate_id)); // This should never happen
+            .unwrap_or_else(|| AggregateState::new(aggregate_id)); // This should never happen
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {
-                agg.handle(state, LoggingCommand::Fail).await?;
+                self.aggregate
+                    .handle_command(aggregate_state, LoggingCommand::Fail)
+                    .await?;
                 return Err(LoggingError::Domain(msg.clone()));
             }
-            println!("Logged via policy from {}: {}", id, msg);
-            agg.handle(state, LoggingCommand::Succeed).await?;
+            println!("Logged via policy from {}: {}", aggregate_id, msg);
+            self.aggregate
+                .handle_command(aggregate_state, LoggingCommand::Succeed)
+                .await?;
         }
 
         Ok(())
     }
 }
 
-#[async_trait]
 impl Aggregate for LoggingAggregate {
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
     type Error = LoggingError;
 
-    fn name() -> &'static str {
-        "message"
-    }
-
-    fn handle_command(
-        _state: &AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::TryLog(msg) => Ok(vec![Self::Event::Received(msg)]),
             Self::Command::Succeed => Ok(vec![Self::Event::Succeeded]),
@@ -104,7 +104,11 @@ impl Aggregate for LoggingAggregate {
 }
 
 impl AggregateManager for LoggingAggregate {
-    type EventStore = LogStore;
+    type EventStore = PgStore<Self>;
+
+    fn name() -> &'static str {
+        "message"
+    }
 
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store

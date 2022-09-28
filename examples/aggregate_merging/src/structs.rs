@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use uuid::Uuid;
 
 // A simple error enum for event processing errors
 #[derive(Debug, Error)]
@@ -14,49 +15,23 @@ pub enum CounterError {
     Sql(#[from] esrs::error::SqlxError),
 }
 
-// The events produced by the aggregates. These are empty structs as their contents don't
-// matter for this example
+// The events produced by the aggregates. The inner id acts as shared id between them
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventA {
-    Inner,
+    Inner { shared_id: Uuid },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EventB {
-    Inner,
-}
-
-// The event the projector accepts
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ProjectorEvent {
-    A,
-    B,
-}
-
-// We implement From<> for the two event types to convert
-// them into a common ProjectorEvent, so that we can share
-// our projector implementation across two aggregates without
-// needing to duplicate our projector code. This complicates
-// some type bounds a little in aggregates.rs, for the sake
-// of reduced code duplication
-impl From<EventA> for ProjectorEvent {
-    fn from(_: EventA) -> Self {
-        ProjectorEvent::A
-    }
-}
-
-impl From<EventB> for ProjectorEvent {
-    fn from(_: EventB) -> Self {
-        ProjectorEvent::B
-    }
+    Inner { shared_id: Uuid },
 }
 
 // The commands received by the application, which will produce the events
-// These are empty structs since their actual contents dont matter for this example
+// The inner id acts as shared id between them
 pub enum CommandA {
-    Inner,
+    Inner { shared_id: Uuid },
 }
 
 pub enum CommandB {
-    Inner,
+    Inner { shared_id: Uuid },
 }

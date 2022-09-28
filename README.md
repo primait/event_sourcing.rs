@@ -38,15 +38,14 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 Run examples.
 
 ```shell
-# Startup database and export `DATABASE_URL`
-docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
-
-# Run examples
-cargo run -p simple_projection
-cargo run -p simple_side_effect
-cargo run -p simple_saga
-cargo run -p aggregate_merging
+cargo make example aggregate_merging &&
+cargo make example customize_persistence_flow &&
+cargo make example delete_aggregate &&
+cargo make example rebuild_shared_projection &&
+cargo make example rebuilder &&
+cargo make example simple_projection &&
+cargo make example simple_saga &&
+cargo make example simple_side_effect
 ```
 
 Run tests and linting.

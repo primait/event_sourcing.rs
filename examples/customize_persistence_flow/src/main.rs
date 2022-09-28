@@ -2,8 +2,8 @@ use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres};
 use uuid::Uuid;
 
+use customize_persistence_flow::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 use esrs::{AggregateManager, AggregateState};
-use simple_projection::{aggregate::CounterAggregate, projector::Counter, structs::CounterCommand};
 
 #[tokio::main]
 async fn main() {
