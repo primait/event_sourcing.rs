@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 use uuid::Uuid;
 
 use esrs::postgres::PgStore;
@@ -10,7 +9,7 @@ use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
 #[derive(Clone)]
 pub struct LoggingAggregate {
-    event_store: Arc<PgStore<Self>>,
+    event_store: PgStore<Self>,
 }
 
 impl LoggingAggregate {
@@ -19,7 +18,7 @@ impl LoggingAggregate {
 
         let this: Self = Self {
             // This clone is cheap being that the internal fields of the store are behind an Arc
-            event_store: Arc::new(event_store.clone()),
+            event_store: event_store.clone(),
         };
 
         event_store.set_policies(vec![Box::new(LoggingPolicy::new(this.clone()))]);
