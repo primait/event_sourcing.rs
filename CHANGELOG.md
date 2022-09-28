@@ -57,13 +57,11 @@ Refer to: [#107]
 
 - `PgProjector`
   - renamed to `Projector`.
-  - is now cloneable.
   - second param changed from `&mut PoolConnection<Postgres>` to `&mut PgConnection`.
   - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
 
 - `PgPolicy` 
   - renamed to `Policy`.
-  - is now cloneable.
   - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
   - moved to `esrs` root module.
   - removed second param (`&Pool<Postgres>`).
