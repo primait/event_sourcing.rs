@@ -134,9 +134,11 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn event_projection_test(pool: Pool<Postgres>) {
-    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
-
-    store.add_projector(Box::new(TestProjector {}));
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
+        .set_projectors(vec![Box::new(TestProjector {})])
+        .setup()
+        .await
+        .unwrap();
 
     create_test_projection_table(&pool).await;
 
@@ -160,9 +162,11 @@ fn event_projection_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
-    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
-
-    store.add_projector(Box::new(TestProjector {}));
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
+        .set_projectors(vec![Box::new(TestProjector {})])
+        .setup()
+        .await
+        .unwrap();
 
     create_test_projection_table(&pool).await;
 
@@ -206,8 +210,11 @@ fn policy_test(pool: Pool<Postgres>) {
         last_id: last_id.clone(),
     });
 
-    let mut store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
-    store.add_policy(policy);
+    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
+        .set_policies(vec![policy])
+        .setup()
+        .await
+        .unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();

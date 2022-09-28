@@ -1,6 +1,8 @@
 use std::convert::TryInto;
 use std::future::Future;
+use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
@@ -24,10 +26,17 @@ pub struct PgStore<Manager>
 where
     Manager: AggregateManager,
 {
+    inner: Arc<InnerPgStore<Manager>>,
+}
+
+pub struct InnerPgStore<Manager>
+where
+    Manager: AggregateManager,
+{
     pool: Pool<Postgres>,
     statements: Statements,
-    projectors: Vec<Projector<Manager>>,
-    policies: Vec<Policy<Manager>>,
+    projectors: ArcSwap<Vec<Projector<Manager>>>,
+    policies: ArcSwap<Vec<Policy<Manager>>>,
 }
 
 impl<Manager> PgStore<Manager>
@@ -40,32 +49,26 @@ where
 {
     /// Creates a new implementation of an aggregate
     pub fn new(pool: Pool<Postgres>) -> Self {
-        Self {
+        let inner: InnerPgStore<Manager> = InnerPgStore {
             pool,
             statements: Statements::new(Manager::name()),
-            projectors: vec![],
-            policies: vec![],
-        }
-    }
+            projectors: ArcSwap::from_pointee(vec![]),
+            policies: ArcSwap::from_pointee(vec![]),
+        };
 
-    /// Append a projector to projectors list
-    pub fn add_projector(&mut self, projector: Projector<Manager>) {
-        self.projectors.push(projector);
+        Self { inner: Arc::new(inner) }
     }
 
     /// Set the list of projectors to the store
     pub fn set_projectors(self, projectors: Vec<Projector<Manager>>) -> Self {
-        Self { projectors, ..self }
-    }
-
-    /// Append a policy to policies list
-    pub fn add_policy(&mut self, policy: Policy<Manager>) {
-        self.policies.push(policy);
+        self.inner.projectors.store(Arc::new(projectors));
+        self
     }
 
     /// Set the list of policies to the store
     pub fn set_policies(self, policies: Vec<Policy<Manager>>) -> Self {
-        Self { policies, ..self }
+        self.inner.policies.store(Arc::new(policies));
+        self
     }
 
     /// This function setup the database in a transaction, creating the event store table (if not exists)
@@ -76,20 +79,20 @@ where
     /// This function should be used only once at your application startup. It tries to create the
     /// event table and its indexes if they not exist.
     pub async fn setup(self) -> Result<Self, Manager::Error> {
-        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
         // Create events table if not exists
-        let _: PgQueryResult = sqlx::query(self.statements.create_table())
+        let _: PgQueryResult = sqlx::query(self.inner.statements.create_table())
             .execute(&mut *transaction)
             .await?;
 
         // Create index on aggregate_id for `by_aggregate_id` query.
-        let _: PgQueryResult = sqlx::query(self.statements.create_index())
+        let _: PgQueryResult = sqlx::query(self.inner.statements.create_index())
             .execute(&mut *transaction)
             .await?;
 
         // Create unique constraint `aggregate_id`-`sequence_number` to avoid race conditions.
-        let _: PgQueryResult = sqlx::query(self.statements.create_unique_constraint())
+        let _: PgQueryResult = sqlx::query(self.inner.statements.create_unique_constraint())
             .execute(&mut *transaction)
             .await?;
 
@@ -109,7 +112,7 @@ where
     ) -> Result<StoreEvent<Manager::Event>, Manager::Error> {
         let id: Uuid = Uuid::new_v4();
 
-        let _ = sqlx::query(self.statements.insert())
+        let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
             .bind(Json(&event))
@@ -131,8 +134,8 @@ where
     /// be mainly used to rebuild read models.
     pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
         Box::pin({
-            sqlx::query_as::<_, event::Event>(self.statements.select_all())
-                .fetch(&self.pool)
+            sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
+                .fetch(&self.inner.pool)
                 .map(|res| match res {
                     Ok(event) => event.try_into().map_err(Into::into),
                     Err(error) => Err(error.into()),
@@ -142,14 +145,14 @@ where
 
     /// This function returns the list of all projections added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn projectors(&self) -> &[Projector<Manager>] {
-        &self.projectors
+    pub fn projectors(&self) -> Arc<Vec<Projector<Manager>>> {
+        self.inner.projectors.load().clone()
     }
 
     /// This function returns the list of all policies added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn policies(&self) -> &[Policy<Manager>] {
-        &self.policies
+    pub fn policies(&self) -> Arc<Vec<Policy<Manager>>> {
+        self.inner.policies.load().clone()
     }
 
     /// This function could be used in order to customize the way the store persist the events.
@@ -163,7 +166,7 @@ where
         F: FnOnce(&'a Pool<Postgres>) -> T,
         T: Future<Output = Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>> + Send,
     {
-        fun(&self.pool).await
+        fun(&self.inner.pool).await
     }
 }
 
@@ -179,13 +182,15 @@ where
     type Manager = Manager;
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
-        Ok(sqlx::query_as::<_, event::Event>(self.statements.by_aggregate_id())
-            .bind(aggregate_id)
-            .fetch_all(&self.pool)
-            .await?
-            .into_iter()
-            .map(|event| Ok(event.try_into()?))
-            .collect::<Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>>()?)
+        Ok(
+            sqlx::query_as::<_, event::Event>(self.inner.statements.by_aggregate_id())
+                .bind(aggregate_id)
+                .fetch_all(&self.inner.pool)
+                .await?
+                .into_iter()
+                .map(|event| Ok(event.try_into()?))
+                .collect::<Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>>()?,
+        )
     }
 
     async fn persist(
@@ -194,7 +199,7 @@ where
         events: Vec<Manager::Event>,
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
-        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<Manager::Event>> = vec![];
 
@@ -212,7 +217,7 @@ where
         }
 
         for store_event in store_events.iter() {
-            for projector in self.projectors() {
+            for projector in self.projectors().iter() {
                 projector.project(store_event, &mut transaction).await?;
             }
         }
@@ -220,7 +225,7 @@ where
         transaction.commit().await?;
 
         for store_event in store_events.iter() {
-            for policy in self.policies() {
+            for policy in self.policies().iter() {
                 let _ = policy.handle_event(store_event).await;
             }
         }
@@ -229,15 +234,15 @@ where
     }
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Manager::Error> {
-        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
+        let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
-        let _ = sqlx::query(self.statements.delete_by_aggregate_id())
+        let _ = sqlx::query(self.inner.statements.delete_by_aggregate_id())
             .bind(aggregate_id)
             .execute(&mut *transaction)
             .await
             .map(|_| ())?;
 
-        for projector in &self.projectors {
+        for projector in self.projectors().iter() {
             projector.delete(aggregate_id, &mut *transaction).await?;
         }
 

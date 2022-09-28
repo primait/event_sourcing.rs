@@ -47,21 +47,21 @@ async fn main() {
 
         match (a_opt, b_opt) {
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
-                for projector in store_a.projectors() {
+                for projector in store_a.projectors().iter() {
                     projector.project(a, &mut *transaction).await.unwrap();
                 }
 
                 event_a_opt = events_a.next().await;
             }
             (Some(a), None) => {
-                for projector in store_a.projectors() {
+                for projector in store_a.projectors().iter() {
                     projector.project(a, &mut *transaction).await.unwrap();
                 }
 
                 event_a_opt = events_a.next().await;
             }
             (Some(_), Some(b)) | (None, Some(b)) => {
-                for projector in store_b.projectors() {
+                for projector in store_b.projectors().iter() {
                     projector.project(b, &mut *transaction).await.unwrap();
                 }
 

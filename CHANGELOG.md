@@ -19,9 +19,7 @@ Refer to: [#107]
 
 - `PgStore` 
   - `setup` function to create table and indexes if not exists. This function should be used only once at your 
-    application startup. It tries to create the event table and its indexes if they not exist. 
-  - `add_projector` function to add a projector to store projectors list.
-  - `add_policy` function to add a policy to store policies list.
+    application startup. It tries to create the event table and its indexes if they not exist.
   - `set_projectors` function to set the store projectors list.
   - `set_policies` function to set the store policies list.
   - `PgStore` and all its dependencies are now cloneable.
@@ -49,12 +47,13 @@ Refer to: [#107]
 
 - `PgStore`
   - `new` function is now sync and its return value is no longer a `Result` but `Self`. Removed `Aggregate` type param.
-  - `new` takes ownership of pool; removed projectors and policies params. Use `add_projector`, `add_policy`, 
-    `with_projectors` or `with_policies` instead to add them to the store.
+  - `new` takes ownership of pool; removed projectors and policies params. Use `set_projectors` or `set_policies` 
+    instead to add them to the store.
   - `rebuild_events` renamed into `get_all`.
   - policies behaviour is now that if one of them fails they fail silently. (override this behaviour with 
     `Aggregate::store_events` using `EventStore::persist` function).
   - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.
+  - `projectors` and `policies` returns an `Arc` to value.
 
 - `PgProjector`
   - renamed to `Projector`.
