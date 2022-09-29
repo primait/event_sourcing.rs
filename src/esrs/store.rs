@@ -34,7 +34,7 @@ pub trait EventStore {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
 }
 
-/// A StoreEvent contains the payload (the original event) alongside the event's metadata.
+/// A `StoreEvent` contains the payload (the original event) alongside the event's metadata.
 pub struct StoreEvent<Event> {
     /// Uniquely identifies an event among all events emitted from all aggregates.
     pub id: Uuid,

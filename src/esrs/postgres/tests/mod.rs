@@ -205,7 +205,7 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn policy_test(pool: Pool<Postgres>) {
-    let last_id: Arc<Mutex<Uuid>> = Arc::new(Mutex::new(Default::default()));
+    let last_id: Arc<Mutex<Uuid>> = Arc::new(Mutex::new(Uuid::default()));
     let policy: Box<TestPolicy> = Box::new(TestPolicy {
         last_id: last_id.clone(),
     });
@@ -225,7 +225,7 @@ fn policy_test(pool: Pool<Postgres>) {
             .unwrap();
 
     let guard: MutexGuard<Uuid> = last_id.lock().unwrap();
-    assert_eq!(*guard, event_internal_id)
+    assert_eq!(*guard, event_internal_id);
 }
 
 async fn create_test_projection_table(pool: &Pool<Postgres>) {

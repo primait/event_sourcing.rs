@@ -12,7 +12,7 @@ pub struct AggregateState<S> {
     pub(crate) inner: S,
 }
 
-/// Default implementation for [AggregateState]
+/// Default implementation for [`AggregateState`]
 impl<S: Default> Default for AggregateState<S> {
     fn default() -> Self {
         Self::new(Uuid::new_v4())
@@ -20,8 +20,10 @@ impl<S: Default> Default for AggregateState<S> {
 }
 
 impl<S: Default> AggregateState<S> {
-    /// Creates a new instance of an [AggregateState] with the given aggregate id. The use of this is discouraged
-    /// being that that aggregate id could be already existing and a clash of ids might happen.
+    /// Creates a new instance of an [`AggregateState`] with the given aggregate id. The use of this
+    /// is discouraged being that that aggregate id could be already existing and a clash of ids
+    /// might happen.
+    ///
     /// Prefer [Default] implementation.
     #[must_use]
     pub fn new(id: Uuid) -> Self {

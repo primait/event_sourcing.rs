@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::esrs::policy;
 use crate::types::SequenceNumber;
-use crate::{AggregateManager, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
 
 use super::{event, projector, statement::Statements};
 
@@ -48,6 +48,7 @@ where
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Creates a new implementation of an aggregate
+    #[must_use]
     pub fn new(pool: Pool<Postgres>) -> Self {
         let inner: InnerPgStore<Manager> = InnerPgStore {
             pool,
@@ -78,6 +79,10 @@ where
     ///
     /// This function should be used only once at your application startup. It tries to create the
     /// event table and its indexes if they not exist.
+    ///
+    /// # Errors
+    ///
+    /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
     pub async fn setup(self) -> Result<Self, Manager::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
@@ -102,6 +107,10 @@ where
     }
 
     /// Save an event in the event store and return a new `StoreEvent` instance.
+    ///
+    /// # Errors
+    ///
+    /// Will return an `Err` if the insert of the values into the database fails.
     pub async fn save_event(
         &self,
         aggregate_id: Uuid,
@@ -161,9 +170,14 @@ where
     ///
     /// An example of how to use this function is in `examples/customize_persistence_flow` example
     /// folder.
-    pub async fn persist<'a, F: Send, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>
+    ///
+    /// # Errors
+    ///
+    /// Will return an `Err` if the given `fun` returns an `Err`. In the `EventStore` implementation
+    /// for `PgStore` this function return an `Err` if the event insertion or its projection fails.
+    pub async fn persist<'a, F, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>
     where
-        F: FnOnce(&'a Pool<Postgres>) -> T,
+        F: Send + FnOnce(&'a Pool<Postgres>) -> T,
         T: Future<Output = Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>> + Send,
     {
         fun(&self.inner.pool).await
@@ -203,20 +217,21 @@ where
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<Manager::Event>> = vec![];
 
-        for (index, event) in events.into_iter().enumerate() {
-            store_events.push(
-                self.save_event(
+        for (index, event) in (0..).zip(events.into_iter()) {
+            let store_event: StoreEvent<<Manager as Aggregate>::Event> = self
+                .save_event(
                     aggregate_id,
                     event,
                     occurred_on,
-                    starting_sequence_number + index as i32,
+                    starting_sequence_number + index,
                     &mut *transaction,
                 )
-                .await?,
-            )
+                .await?;
+
+            store_events.push(store_event);
         }
 
-        for store_event in store_events.iter() {
+        for store_event in &store_events {
             for projector in self.projectors().iter() {
                 projector.project(store_event, &mut transaction).await?;
             }
@@ -224,9 +239,9 @@ where
 
         transaction.commit().await?;
 
-        for store_event in store_events.iter() {
+        for store_event in &store_events {
             for policy in self.policies().iter() {
-                let _ = policy.handle_event(store_event).await;
+                let _policy_result = policy.handle_event(store_event).await;
             }
         }
 
@@ -243,7 +258,7 @@ where
             .map(|_| ())?;
 
         for projector in self.projectors().iter() {
-            projector.delete(aggregate_id, &mut *transaction).await?;
+            projector.delete(aggregate_id, &mut transaction).await?;
         }
 
         transaction.commit().await?;

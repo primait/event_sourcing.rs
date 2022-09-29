@@ -31,6 +31,11 @@ pub trait Aggregate {
     type Error;
 
     /// Handles, validate a command and emits events.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the user of this library set up command validations. Every error here
+    /// could be just a "domain error". No technical errors.
     fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
@@ -91,8 +96,8 @@ pub trait AggregateManager: Aggregate {
         );
 
         AggregateState {
-            inner,
             sequence_number,
+            inner,
             ..aggregate_state
         }
     }
