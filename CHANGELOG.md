@@ -8,14 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 Note: this version contains hard breaking changes and may take a lot of time in order to upgrade library version!
-Refer to: [#107]
+Refer to: [#107], [#108] and [#109]
 
 ### Added
 
 - `AggregateManager` 
   - should implement `name` function that act as `Identifier`. Be sure to not change the name previously set in 
-    `Aggregate::name` function. This would cause the store to create a new table, losing pre-migration events.
+    `Identifier::name` function. This would cause the store to create a new table, losing pre-migration events.
+  - depends on `Aggregate`, so user must implement `Aggregate` trait in order to implement `AggregateManager` trait.
   - should implement `EventStore` associated type.
+
+- `EventStore::delete` function with which an entire aggregate could be deleted by `aggregate_id`. 
 
 - `PgStore` 
   - `setup` function to create table and indexes if not exists. This function should be used only once at your 
@@ -80,6 +83,7 @@ Refer to: [#107]
 - `EventStore`
   - `run_policies`. To customize the way policies behave override `Aggregate::store_events` using 
     `EventStore::persist` function.
+  - `close` function.
 
 - `PgStore`
   - `test` function. Use `#[sqlx::test]` in your tests to test the store.
@@ -110,4 +114,7 @@ Refer to: [#107]
 
 [Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...HEAD
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
+
 [#107]: https://github.com/primait/event_sourcing.rs/pull/107
+[#108]: https://github.com/primait/event_sourcing.rs/pull/108
+[#109]: https://github.com/primait/event_sourcing.rs/pull/109

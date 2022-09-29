@@ -1,15 +1,11 @@
-use std::convert::TryInto;
 use std::fmt::Debug;
 
-use chrono::{DateTime, Utc};
 use futures_util::stream::StreamExt;
-use serde_json::Value;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use esrs::postgres::Projector;
-use esrs::types::SequenceNumber;
 use esrs::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 use simple_projection::aggregate::CounterAggregate;
 use simple_projection::projector::{Counter, CounterProjector};
@@ -141,27 +137,4 @@ async fn main() {
         .expect("counter not found");
 
     assert!(res.counter_id == count_id && res.count == 3);
-}
-
-#[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
-pub struct Event {
-    pub id: Uuid,
-    pub aggregate_id: Uuid,
-    pub payload: Value,
-    pub occurred_on: DateTime<Utc>,
-    pub sequence_number: SequenceNumber,
-}
-
-impl<E: serde::de::DeserializeOwned> TryInto<StoreEvent<E>> for Event {
-    type Error = serde_json::Error;
-
-    fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
-        Ok(StoreEvent {
-            id: self.id,
-            aggregate_id: self.aggregate_id,
-            payload: serde_json::from_value::<E>(self.payload)?,
-            occurred_on: self.occurred_on,
-            sequence_number: self.sequence_number,
-        })
-    }
 }
