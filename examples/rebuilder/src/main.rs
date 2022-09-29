@@ -1,8 +1,9 @@
-use chrono::{DateTime, Utc};
-use serde_json::Value;
 use std::convert::TryInto;
 use std::fmt::Debug;
 
+use chrono::{DateTime, Utc};
+use futures_util::stream::StreamExt;
+use serde_json::Value;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres, Transaction};
 use uuid::Uuid;
@@ -111,27 +112,25 @@ async fn main() {
 
     let mut transaction = pool.begin().await.unwrap();
 
-    let events = sqlx::query_as::<_, Event>("SELECT * FROM counter_events")
-        .fetch_all(&mut *transaction)
+    let events: Vec<StoreEvent<CounterEvent>> = aggregate
+        .event_store
+        .stream_events(&mut transaction)
+        .collect::<Vec<Result<StoreEvent<CounterEvent>, CounterError>>>()
         .await
-        .unwrap();
-
-    let counter_events: Vec<StoreEvent<CounterEvent>> = events
         .into_iter()
-        .map(TryInto::try_into)
-        .collect::<Result<Vec<StoreEvent<CounterEvent>>, serde_json::Error>>()
-        .unwrap();
+        .collect::<Result<Vec<StoreEvent<CounterEvent>>, CounterError>>()
+        .expect("Failed to get all events from event_table");
 
     sqlx::query("TRUNCATE TABLE counters")
-        .execute(&mut *transaction)
+        .execute(&mut transaction)
         .await
         .expect("Failed to drop table");
 
     // Assert the counter doesn't exist
-    let res = Counter::by_id(count_id, &mut *transaction).await.expect("Query failed");
+    let res = Counter::by_id(count_id, &mut transaction).await.expect("Query failed");
     assert!(res.is_none());
 
-    rebuild_all_at_once(counter_events, projectors.as_slice(), &mut transaction).await;
+    rebuild_all_at_once(events, projectors.as_slice(), &mut transaction).await;
 
     transaction.commit().await.unwrap();
 
