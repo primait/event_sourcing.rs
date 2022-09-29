@@ -12,6 +12,7 @@ version = "0.1.0"
 
 # async main
 tokio = { version = "1.6", features = ["full"] }
+futures-util = "0.3"
 
 esrs = { version = "*", path = "../../", features = ["postgres"] }
 simple_projection = { version = "*", path = "../simple_projection/" }

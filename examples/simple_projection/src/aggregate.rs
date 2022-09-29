@@ -7,7 +7,7 @@ use crate::projector::CounterProjector;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
 pub struct CounterAggregate {
-    event_store: PgStore<Self>,
+    pub event_store: PgStore<Self>,
 }
 
 impl CounterAggregate {

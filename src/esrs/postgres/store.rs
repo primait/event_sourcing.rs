@@ -132,14 +132,14 @@ where
 
     /// This function returns a stream representing the full event store table content. This should
     /// be mainly used to rebuild read models.
-    pub fn get_all(&self) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
+    pub fn stream_events<'s>(
+        &'s self,
+        executor: impl Executor<'s, Database = Postgres> + 's,
+    ) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
-                .fetch(&self.inner.pool)
-                .map(|res| match res {
-                    Ok(event) => event.try_into().map_err(Into::into),
-                    Err(error) => Err(error.into()),
-                })
+                .fetch(executor)
+                .map(|res| Ok(res?.try_into()?))
         })
     }
 

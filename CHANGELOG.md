@@ -49,7 +49,7 @@ Refer to: [#107]
   - `new` function is now sync and its return value is no longer a `Result` but `Self`. Removed `Aggregate` type param.
   - `new` takes ownership of pool; removed projectors and policies params. Use `set_projectors` or `set_policies` 
     instead to add them to the store.
-  - `rebuild_events` renamed into `get_all`.
+  - `rebuild_events` renamed into `stream_events`. Now it takes an `sqlx::Executor` parameter.
   - policies behaviour is now that if one of them fails they fail silently. (override this behaviour with 
     `Aggregate::store_events` using `EventStore::persist` function).
   - `Event` and `Error` trait generic params removed in favour of `Manager: AggregateManager`.

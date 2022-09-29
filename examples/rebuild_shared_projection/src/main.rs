@@ -28,8 +28,8 @@ async fn main() {
     let store_a = AggregateA::new(&pool).await.unwrap().event_store;
     let store_b = AggregateB::new(&pool).await.unwrap().event_store;
 
-    let mut events_a = store_a.get_all();
-    let mut events_b = store_b.get_all();
+    let mut events_a = store_a.stream_events(&pool);
+    let mut events_b = store_b.stream_events(&pool);
 
     let mut event_a_opt: Option<Result<StoreEvent<EventA>, CounterError>> = events_a.next().await;
     let mut event_b_opt: Option<Result<StoreEvent<EventB>, CounterError>> = events_b.next().await;
