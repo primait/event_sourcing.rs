@@ -1,15 +1,11 @@
-use std::convert::TryInto;
 use std::fmt::Debug;
 
-use chrono::{DateTime, Utc};
 use futures_util::stream::StreamExt;
-use serde_json::Value;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{pool::PoolOptions, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use esrs::postgres::Projector;
-use esrs::types::SequenceNumber;
 use esrs::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 use simple_projection::aggregate::CounterAggregate;
 use simple_projection::projector::{Counter, CounterProjector};
