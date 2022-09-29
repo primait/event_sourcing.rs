@@ -29,7 +29,7 @@ Refer to: [#107], [#108] and [#109]
     application startup. It tries to create the event table and its indexes if they not exist.
   - `set_projectors` function to set the store projectors list.
   - `set_policies` function to set the store policies list.
-  - `PgStore` and all its dependencies are now cloneable. is behind and Arc and is safely cloneable.
+  - `PgStore` and all its dependencies are now cloneable. Is behind and Arc and is safely cloneable.
 
 - `Projector` should implement `delete` function.
 
