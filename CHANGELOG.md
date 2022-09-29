@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.7.0]
+
 Note: this version contains hard breaking changes and may take a lot of time in order to upgrade library version!
 Refer to: [#107], [#108] and [#109]
 
@@ -25,7 +29,7 @@ Refer to: [#107], [#108] and [#109]
     application startup. It tries to create the event table and its indexes if they not exist.
   - `set_projectors` function to set the store projectors list.
   - `set_policies` function to set the store policies list.
-  - `PgStore` and all its dependencies are now cloneable.
+  - `PgStore` and all its dependencies are now cloneable. Is behind and Arc and is safely cloneable.
 
 - `Projector` should implement `delete` function.
 
@@ -103,7 +107,6 @@ Refer to: [#107], [#108] and [#109]
 - `AggregateState`
   - `new_with_state` removed due to potential inconsistency while loading state.
 
-
 ---
 
 ## [0.6.2]
@@ -112,7 +115,8 @@ Refer to: [#107], [#108] and [#109]
 
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 [#107]: https://github.com/primait/event_sourcing.rs/pull/107
