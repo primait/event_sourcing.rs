@@ -43,6 +43,16 @@ pub trait Aggregate {
     ///
     /// If this is not the case, this function is allowed to panic.
     fn apply_event(state: Self::State, payload: Self::Event) -> Self::State;
+
+    /// Updates the aggregate state using the list of new events. Take a look to
+    /// [`Aggregate::apply_event`] for further information.
+    fn apply_events(state: Self::State, payloads: Vec<Self::Event>) -> Self::State {
+        payloads
+            .into_iter()
+            .fold(state, |acc: Self::State, payload: Self::Event| {
+                Self::apply_event(acc, payload)
+            })
+    }
 }
 
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
@@ -77,7 +87,7 @@ pub trait AggregateManager: Aggregate {
         let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
-        Ok(Self::apply_events(aggregate_state, stored_events))
+        Ok(<Self as AggregateManager>::apply_events(aggregate_state, stored_events))
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
@@ -87,13 +97,16 @@ pub trait AggregateManager: Aggregate {
     /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
     fn apply_events(
         aggregate_state: AggregateState<Self::State>,
-        events: Vec<StoreEvent<Self::Event>>,
+        store_events: Vec<StoreEvent<Self::Event>>,
     ) -> AggregateState<Self::State> {
-        let sequence_number: SequenceNumber = events.last().map_or(0, StoreEvent::sequence_number);
-        let inner: Self::State = events.into_iter().fold(
-            aggregate_state.inner,
-            |acc: Self::State, event: StoreEvent<Self::Event>| Self::apply_event(acc, event.payload),
-        );
+        let sequence_number: SequenceNumber = store_events.last().map_or(0, StoreEvent::sequence_number);
+
+        let events: Vec<Self::Event> = store_events
+            .into_iter()
+            .map(|store_event| store_event.payload)
+            .collect();
+
+        let inner: Self::State = <Self as Aggregate>::apply_events(aggregate_state.inner, events);
 
         AggregateState {
             sequence_number,
@@ -118,7 +131,10 @@ pub trait AggregateManager: Aggregate {
         if events.is_empty() {
             None
         } else {
-            Some(Self::apply_events(AggregateState::new(aggregate_id), events))
+            Some(<Self as AggregateManager>::apply_events(
+                AggregateState::new(aggregate_id),
+                events,
+            ))
         }
     }
 
