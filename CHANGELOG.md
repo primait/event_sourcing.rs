@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Changed
 
-- `AggregateState::new` second parameter from `Uuid` to `impl Into<Uuid>`.
+- [[#117]]: 
+  - `AggregateState::new` second parameter from `Uuid` to `impl Into<Uuid>`.
+  - `AggregateManager::load` first parameter from `Uuid` to `impl Into<Uuid>`.
+  - `AggregateState::delete` first parameter from `Uuid` to `impl Into<Uuid>`.
 
 ---
 
