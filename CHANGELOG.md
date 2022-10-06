@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [[#114]]: Default `EventStore` implementation for every `Box<dyn EventStore<Manager = _>>`. This allows to define 
+  in the `AggregateManager` the `EventStore` associated type as `Box<dyn EventStore<Manager = >>` (with `Send` + `Sync` 
+  bounds).
+
 ---
 
 ## [0.7.0]
@@ -119,6 +125,7 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
-[#107]: https://github.com/primait/event_sourcing.rs/pull/107
-[#108]: https://github.com/primait/event_sourcing.rs/pull/108
+[#114]: https://github.com/primait/event_sourcing.rs/pull/114
 [#109]: https://github.com/primait/event_sourcing.rs/pull/109
+[#108]: https://github.com/primait/event_sourcing.rs/pull/108
+[#107]: https://github.com/primait/event_sourcing.rs/pull/107
