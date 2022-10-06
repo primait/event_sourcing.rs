@@ -1,1 +1,0 @@
-This example requires no migrations, as there is no projection for which a table must be set up
