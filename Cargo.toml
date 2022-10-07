@@ -16,6 +16,7 @@ members = [
     "examples/aggregate_merging",
     "examples/customize_persistence_flow",
     "examples/delete_aggregate",
+    "examples/dyn_event_store_in_aggregate",
     "examples/rebuild_strategies",
     "examples/simple_projection",
     "examples/simple_saga",
