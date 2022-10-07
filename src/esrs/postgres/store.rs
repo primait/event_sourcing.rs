@@ -13,6 +13,7 @@ use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::esrs::policy;
+use crate::esrs::postgres::projector::Consistency;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
 
@@ -233,7 +234,12 @@ where
 
         for store_event in &store_events {
             for projector in self.projectors().iter() {
-                projector.project(store_event, &mut transaction).await?;
+                match projector.consistency() {
+                    Consistency::Strong => projector.project(store_event, &mut transaction).await?,
+                    Consistency::Eventual => {
+                        let _ = projector.project(store_event, &mut transaction).await;
+                    }
+                }
             }
         }
 
