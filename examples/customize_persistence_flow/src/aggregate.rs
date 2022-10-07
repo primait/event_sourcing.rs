@@ -62,6 +62,7 @@ impl AggregateManager for CounterAggregate {
         aggregate_state: &AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
+        // Here is the persistence flow customization.
         self.event_store
             .persist(|pool| async move {
                 let mut connection: PoolConnection<Postgres> = pool.acquire().await?;
@@ -91,7 +92,8 @@ impl AggregateManager for CounterAggregate {
 
                 for store_event in store_events.iter() {
                     for policy in self.event_store.policies().iter() {
-                        // We want to just log errors instead of return them
+                        // We want to just log errors instead of return them. This is the customization
+                        // we wanted.
                         match policy.handle_event(store_event).await {
                             Ok(_) => (),
                             Err(error) => println!("{:?}", error),

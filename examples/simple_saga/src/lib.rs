@@ -1,11 +1,11 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres};
+use thiserror::Error;
 use uuid::Uuid;
 
 use esrs::postgres::PgStore;
 use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
-
-use crate::structs::{LoggingCommand, LoggingError, LoggingEvent};
 
 #[derive(Clone)]
 pub struct LoggingAggregate {
@@ -23,47 +23,6 @@ impl LoggingAggregate {
 
         event_store.set_policies(vec![Box::new(LoggingPolicy::new(this.clone()))]);
         Ok(this)
-    }
-}
-
-// A very simply policy, which tries to log an event, and creates another command after it finishes
-// which indicates success or failure to log
-#[derive(Clone)]
-struct LoggingPolicy {
-    aggregate: LoggingAggregate,
-}
-
-impl LoggingPolicy {
-    pub fn new(aggregate: LoggingAggregate) -> Self {
-        Self { aggregate }
-    }
-}
-
-#[async_trait]
-impl Policy<LoggingAggregate> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
-        let aggregate_id: Uuid = event.aggregate_id;
-
-        let aggregate_state: AggregateState<u64> = self
-            .aggregate
-            .load(aggregate_id)
-            .await
-            .unwrap_or_else(|| AggregateState::new(aggregate_id)); // This should never happen
-
-        if let LoggingEvent::Received(msg) = event.payload() {
-            if msg.contains("fail_policy") {
-                self.aggregate
-                    .handle_command(aggregate_state, LoggingCommand::Fail)
-                    .await?;
-                return Err(LoggingError::Domain(msg.clone()));
-            }
-            println!("Logged via policy from {}: {}", aggregate_id, msg);
-            self.aggregate
-                .handle_command(aggregate_state, LoggingCommand::Succeed)
-                .await?;
-        }
-
-        Ok(())
     }
 }
 
@@ -113,4 +72,75 @@ impl AggregateManager for LoggingAggregate {
     fn event_store(&self) -> &Self::EventStore {
         &self.event_store
     }
+}
+
+// A very simply policy, which tries to log an event, and creates another command after it finishes
+// which indicates success or failure to log
+#[derive(Clone)]
+struct LoggingPolicy {
+    aggregate: LoggingAggregate,
+}
+
+impl LoggingPolicy {
+    pub fn new(aggregate: LoggingAggregate) -> Self {
+        Self { aggregate }
+    }
+}
+
+#[async_trait]
+impl Policy<LoggingAggregate> for LoggingPolicy {
+    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
+        let aggregate_id: Uuid = event.aggregate_id;
+
+        let aggregate_state: AggregateState<u64> = self
+            .aggregate
+            .load(aggregate_id)
+            .await
+            .unwrap_or_else(|| AggregateState::new(aggregate_id)); // This should never happen
+
+        if let LoggingEvent::Received(msg) = event.payload() {
+            if msg.contains("fail_policy") {
+                self.aggregate
+                    .handle_command(aggregate_state, LoggingCommand::Fail)
+                    .await?;
+                return Err(LoggingError::Domain(msg.clone()));
+            }
+            println!("Logged via policy from {}: {}", aggregate_id, msg);
+            self.aggregate
+                .handle_command(aggregate_state, LoggingCommand::Succeed)
+                .await?;
+        }
+
+        Ok(())
+    }
+}
+
+// A simple error enum for event processing errors
+#[derive(Debug, Error)]
+pub enum LoggingError {
+    #[error("Err {0}")]
+    Domain(String),
+
+    #[error(transparent)]
+    Json(#[from] esrs::error::JsonError),
+
+    #[error(transparent)]
+    Sql(#[from] esrs::error::SqlxError),
+}
+
+// The events to be processed. On receipt of a new log message, the aggregate stores a Received event.
+// If the message contained within can be logged, it is, and then a Succeeded event is produced, otherwise
+// a Failed event is produced.
+#[derive(Serialize, Deserialize, Debug)]
+pub enum LoggingEvent {
+    Received(String),
+    Succeeded,
+    Failed,
+}
+
+// The aggregate receives commands to log a message
+pub enum LoggingCommand {
+    TryLog(String),
+    Succeed,
+    Fail,
 }

@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AggregateState::new` second parameter from `Uuid` to `impl Into<Uuid>`.
   - `AggregateManager::load` first parameter from `Uuid` to `impl Into<Uuid>`.
   - `AggregateState::delete` first parameter from `Uuid` to `impl Into<Uuid>`.
-
+- [[#118]]: Merged rebuild examples into one; removed mains and migrations from examples.
 ---
 
 ## [0.7.0]
