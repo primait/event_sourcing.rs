@@ -106,7 +106,9 @@ pub trait AggregateManager: Aggregate {
     /// the aggregate state by order of their sequence number
     ///
     /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    async fn load(&self, aggregate_id: Uuid) -> Option<AggregateState<Self::State>> {
+    async fn load(&self, aggregate_id: impl Into<Uuid> + Send) -> Option<AggregateState<Self::State>> {
+        let aggregate_id: Uuid = aggregate_id.into();
+
         let events: Vec<StoreEvent<Self::Event>> = self
             .event_store()
             .by_aggregate_id(aggregate_id)
@@ -146,7 +148,7 @@ pub trait AggregateManager: Aggregate {
     /// and projections, or fail.
     ///
     /// If the deletion succeeds only partially, it _must_ return an error.
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error> {
-        self.event_store().delete(aggregate_id).await
+    async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), Self::Error> {
+        self.event_store().delete(aggregate_id.into()).await
     }
 }
