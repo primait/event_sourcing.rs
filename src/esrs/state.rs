@@ -26,9 +26,9 @@ impl<S: Default> AggregateState<S> {
     ///
     /// Prefer [Default] implementation.
     #[must_use]
-    pub fn new(id: Uuid) -> Self {
+    pub fn new(id: impl Into<Uuid>) -> Self {
         Self {
-            id,
+            id: id.into(),
             inner: Default::default(),
             sequence_number: 0,
         }
