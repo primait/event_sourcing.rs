@@ -1,14 +1,16 @@
 [package]
-authors = ["Oliver Browne <oliver.browne@prima.it"]
-description = "Simple esrs rebuild example - a projection is deleted and reconstructed from an event stream"
+authors = ["Simone Cottini <cottini.simone@gmail.com>"]
+description = "An example of different strategies to rebuild projections"
 edition = "2018"
 license = "MIT OR Apache-2.0"
-name = "rebuilder"
+name = "rebuild_strategies"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+aggregate_merging = { version = "*", path = "../aggregate_merging/" }
 
 # async main
 tokio = { version = "1.6", features = ["full"] }
