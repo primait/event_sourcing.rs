@@ -7,7 +7,7 @@ mod esrs;
 
 #[cfg(feature = "postgres")]
 pub mod postgres {
-    pub use crate::esrs::postgres::projector::{Projector, Consistency};
+    pub use crate::esrs::postgres::projector::{Consistency, Projector};
     pub use crate::esrs::postgres::store::PgStore;
 }
 
