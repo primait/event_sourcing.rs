@@ -77,6 +77,12 @@ description = "Run given example."
 command = "cargo"
 args = ["run", "-p", "${@}"]
 
+# Docs
+[tasks.docsrs]
+description = "Build docs as they are rendered on docs.rs"
+command = "cargo"
+args = ["doc", "--all-features"]
+
 [tasks.cargo-prune]
 description = "Run cargo prune"
 command = "cargo"
