@@ -19,7 +19,7 @@ mod esrs;
 #[cfg(feature = "postgres")]
 pub mod postgres {
     //! Provides implementation of the [`EventStore`] for Postgres.
-    pub use crate::esrs::postgres::projector::Projector;
+    pub use crate::esrs::postgres::projector::{Consistency, Projector};
     pub use crate::esrs::postgres::store::PgStore;
 }
 
