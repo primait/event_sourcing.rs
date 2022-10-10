@@ -35,6 +35,7 @@ pub trait EventStore {
 }
 
 /// A `StoreEvent` contains the payload (the original event) alongside the event's metadata.
+#[derive(Debug)]
 pub struct StoreEvent<Event> {
     /// Uniquely identifies an event among all events emitted from all aggregates.
     pub id: Uuid,

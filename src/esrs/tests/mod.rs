@@ -121,7 +121,7 @@ enum TestCommand {
     Multi,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 struct TestEvent {
     add: i32,
 }
