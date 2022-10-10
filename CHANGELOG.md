@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+-
+
+---
+
+## [0.7.1]
+
 ### Added
 
 - [[#114]]: Default `EventStore` implementation for every `Box<dyn EventStore<Manager = _>>`. This allows to define 
-  in the `AggregateManager` the `EventStore` associated type as `Box<dyn EventStore<Manager = >>` (with `Send` + `Sync` 
-  bounds).
+  in the `AggregateManager` the `EventStore` associated type as `Box<dyn EventStore<Manager = _>>` (with `Send` + 
+  `Sync` bounds).
 - [[#115]]: Added `apply_events` to `Aggregate` with default implementation.
 - [[#122]]: 
   - `Consistency` level enum.
@@ -27,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AggregateManager::load` first parameter from `Uuid` to `impl Into<Uuid>`.
   - `AggregateState::delete` first parameter from `Uuid` to `impl Into<Uuid>`.
 - [[#118]]: Merged rebuild examples into one; removed mains and migrations from examples.
+
 ---
 
 ## [0.7.0]
@@ -135,7 +142,8 @@ Refer to: [#107], [#108] and [#109]
 
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
