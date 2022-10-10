@@ -46,7 +46,7 @@ pub trait Aggregate {
 
     /// Updates the aggregate state using the list of new events. Take a look to
     /// [`Aggregate::apply_event`] for further information.
-    fn apply_events(state: Self::State, payloads: Vec<Self::Event>) -> Self::State {
+    fn apply_events(state: Self::State, events: Vec<Self::Event>) -> Self::State {
         payloads
             .into_iter()
             .fold(state, |acc: Self::State, payload: Self::Event| {
