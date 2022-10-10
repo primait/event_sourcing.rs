@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the `AggregateManager` the `EventStore` associated type as `Box<dyn EventStore<Manager = >>` (with `Send` + `Sync` 
   bounds).
 - [[#115]]: Added `apply_events` to `Aggregate` with default implementation.
+- [[#123]]: Added `postgres` documentation in docs.rs with `package.metadata.docs.rs` in `Cargo.toml`. Improved 
+  modules documentation.
 
 # Changed
 
@@ -133,6 +135,7 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
+[#123]: https://github.com/primait/event_sourcing.rs/pull/123
 [#117]: https://github.com/primait/event_sourcing.rs/pull/117
 [#115]: https://github.com/primait/event_sourcing.rs/pull/115
 [#114]: https://github.com/primait/event_sourcing.rs/pull/114
