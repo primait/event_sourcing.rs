@@ -22,6 +22,11 @@ use super::{event, projector, statement::Statements};
 type Projector<A> = Box<dyn projector::Projector<A> + Send + Sync>;
 type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;
 
+/// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
+/// pre-made implementation of an [`EventStore`] persisting on Postgres.
+///
+/// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
+/// reference.
 #[derive(Clone)]
 pub struct PgStore<Manager>
 where
