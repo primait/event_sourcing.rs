@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -34,8 +36,9 @@ pub trait EventStore {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
 }
 
-/// Default generic implementation for every type [`Box<dyn EventStore>`]. This is particularly useful
-/// when there's the need in your codebase to have a generic [`EventStore`] inside your [`Aggregate`].
+/// Default generic implementation for every type implementing [`Deref`] where its `Target` is a
+/// `dyn` [`EventStore`]. This is particularly useful when there's the need in your codebase to have
+/// a generic [`EventStore`] inside your [`Aggregate`].
 ///
 /// # Example
 ///
@@ -59,9 +62,11 @@ pub trait EventStore {
 /// }
 /// ```
 #[async_trait]
-impl<M> EventStore for Box<dyn EventStore<Manager = M> + Send + Sync>
+impl<M, T> EventStore for T
 where
+    T: Deref<Target = dyn EventStore<Manager = M> + Send + Sync> + Sync,
     M: AggregateManager,
+    <M as Aggregate>::Event: 'static,
 {
     type Manager = M;
 
@@ -69,7 +74,7 @@ where
         &self,
         aggregate_id: Uuid,
     ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error> {
-        self.as_ref().by_aggregate_id(aggregate_id).await
+        self.deref().by_aggregate_id(aggregate_id).await
     }
 
     async fn persist(
@@ -78,13 +83,13 @@ where
         events: Vec<<Self::Manager as Aggregate>::Event>,
         starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error> {
-        self.as_ref()
+        self.deref()
             .persist(aggregate_id, events, starting_sequence_number)
             .await
     }
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error> {
-        self.as_ref().delete(aggregate_id).await
+        self.deref().delete(aggregate_id).await
     }
 }
 
