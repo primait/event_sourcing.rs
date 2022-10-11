@@ -34,31 +34,6 @@ pub trait EventStore {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
 }
 
-/// A `StoreEvent` contains the payload (the original event) alongside the event's metadata.
-#[derive(Debug)]
-pub struct StoreEvent<Event> {
-    /// Uniquely identifies an event among all events emitted from all aggregates.
-    pub id: Uuid,
-    /// The aggregate instance that emitted the event.
-    pub aggregate_id: Uuid,
-    /// The original, emitted, event.
-    pub payload: Event,
-    /// The timestamp of when the event is persisted.
-    pub occurred_on: DateTime<Utc>,
-    /// The sequence number of the event, within its specific aggregate instance.
-    pub sequence_number: SequenceNumber,
-}
-
-impl<Event> StoreEvent<Event> {
-    pub const fn sequence_number(&self) -> SequenceNumber {
-        self.sequence_number
-    }
-
-    pub const fn payload(&self) -> &Event {
-        &self.payload
-    }
-}
-
 /// Default generic implementation for every type [`Box<dyn EventStore>`]. This is particularly useful
 /// when there's the need in your codebase to have a generic [`EventStore`] inside your [`Aggregate`].
 ///
@@ -110,5 +85,30 @@ where
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error> {
         self.as_ref().delete(aggregate_id).await
+    }
+}
+
+/// A `StoreEvent` contains the payload (the original event) alongside the event's metadata.
+#[derive(Debug)]
+pub struct StoreEvent<Event> {
+    /// Uniquely identifies an event among all events emitted from all aggregates.
+    pub id: Uuid,
+    /// The aggregate instance that emitted the event.
+    pub aggregate_id: Uuid,
+    /// The original, emitted, event.
+    pub payload: Event,
+    /// The timestamp of when the event is persisted.
+    pub occurred_on: DateTime<Utc>,
+    /// The sequence number of the event, within its specific aggregate instance.
+    pub sequence_number: SequenceNumber,
+}
+
+impl<Event> StoreEvent<Event> {
+    pub const fn sequence_number(&self) -> SequenceNumber {
+        self.sequence_number
+    }
+
+    pub const fn payload(&self) -> &Event {
+        &self.payload
     }
 }
