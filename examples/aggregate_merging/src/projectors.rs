@@ -58,7 +58,7 @@ pub struct Counter {
     pub count_b: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 enum CounterUpdate {
     A(i32),
     B(i32),

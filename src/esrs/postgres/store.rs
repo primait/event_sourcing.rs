@@ -277,3 +277,13 @@ where
         Ok(())
     }
 }
+
+/// Debug implementation for [`PgStore`]. It just shows the statements, that are the only thing
+/// that might be useful to debug.
+impl<T: AggregateManager> std::fmt::Debug for PgStore<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PgStore")
+            .field("statements", &self.inner.statements)
+            .finish()
+    }
+}

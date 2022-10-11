@@ -240,7 +240,7 @@ async fn create_test_projection_table(pool: &Pool<Postgres>) {
         .unwrap();
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 struct TestEvent {
     id: Uuid,
 }
