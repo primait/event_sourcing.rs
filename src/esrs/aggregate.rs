@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -27,7 +25,7 @@ pub trait Aggregate {
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    type Event: Send + Sync + Debug;
+    type Event: Send + Sync;
 
     /// This associated type is used to get domain errors while handling a command.
     type Error;
