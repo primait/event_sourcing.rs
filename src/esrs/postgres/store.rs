@@ -242,7 +242,7 @@ where
                 match projector.consistency() {
                     Consistency::Strong => projector.project(store_event, &mut transaction).await?,
                     Consistency::Eventual => {
-                        let _ = projector.project(store_event, &mut transaction).await;
+                        let _result = projector.project(store_event, &mut transaction).await;
                     }
                 }
             }
