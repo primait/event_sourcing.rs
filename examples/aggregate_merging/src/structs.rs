@@ -16,12 +16,12 @@ pub enum CounterError {
 }
 
 // The events produced by the aggregates. The inner id acts as shared id between them
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum EventA {
     Inner { shared_id: Uuid },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum EventB {
     Inner { shared_id: Uuid },
 }

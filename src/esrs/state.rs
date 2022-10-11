@@ -5,7 +5,7 @@ use crate::types::SequenceNumber;
 /// The internal state for an Aggregate.
 /// It contains and id representing the aggregate id, an incremental sequence number and a state
 /// defined by the user of this library.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AggregateState<S> {
     pub(crate) id: Uuid,
     pub(crate) sequence_number: SequenceNumber,
