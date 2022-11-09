@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
+use crate::esrs::store::EventStoreLockGuard;
 use crate::types::SequenceNumber;
 use crate::{AggregateState, EventStore, StoreEvent};
 
@@ -75,6 +76,10 @@ pub trait AggregateManager: Aggregate {
 
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;
+
+    async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
+        self.event_store().lock(aggregate_id.into()).await
+    }
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     async fn handle_command(

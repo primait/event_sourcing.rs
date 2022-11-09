@@ -7,11 +7,23 @@ use uuid::Uuid;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager};
 
+pub trait UnlockOnDrop: Send + 'static {}
+
+pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
+
+impl EventStoreLockGuard {
+    pub fn new(lock: impl UnlockOnDrop) -> Self {
+        Self(Box::new(lock))
+    }
+}
+
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
 pub trait EventStore {
     type Manager: AggregateManager;
+
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error>;
 
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(
@@ -69,6 +81,10 @@ where
     <M as Aggregate>::Event: 'static,
 {
     type Manager = M;
+
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
+        self.deref().lock(aggregate_id).await
+    }
 
     async fn by_aggregate_id(
         &self,

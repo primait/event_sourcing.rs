@@ -44,6 +44,9 @@ async-trait = "0.1.50"
 # Used as faster alternative for read scenarios of RwLock
 arc-swap = "1.5"
 
+# Self-referential structs (for PgStoreLockGuard)
+ouroboros = "0.15"
+
 # Sql library for async impl
 sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
 # To stream over sqlx results
