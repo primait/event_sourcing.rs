@@ -192,6 +192,10 @@ where
     }
 }
 
+/// Concrete implementation of EventStoreLockGuard for the PgStore.
+///
+/// It holds both the PgAdvisoryLock and its child PgAdvisoryLockGuard.
+/// When dropped, the PgAdvisoryLockGuard is dropped thus releasing the PgAdvisoryLock.
 #[ouroboros::self_referencing]
 pub struct PgStoreLockGuard {
     lock: PgAdvisoryLock,
@@ -200,6 +204,7 @@ pub struct PgStoreLockGuard {
     guard: PgAdvisoryLockGuard<'this, PoolConnection<Postgres>>,
 }
 
+/// Marking PgStoreLockGuard as an UnlockOnDrop trait object.
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
@@ -215,15 +220,13 @@ where
 
     async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
         let (key, _) = aggregate_id.as_u64_pair();
-        let connection = self.inner.pool.acquire().await.expect("TODO");
-        let lock_guard = PgStoreLockGuardAsyncSendBuilder {
+        let connection = self.inner.pool.acquire().await?;
+        let lock_guard = PgStoreLockGuardAsyncSendTryBuilder {
             lock: PgAdvisoryLock::with_key(PgAdvisoryLockKey::BigInt(key as i64)),
-            guard_builder: |lock: &PgAdvisoryLock| {
-                Box::pin(async move { lock.acquire(connection).await.expect("TODO") })
-            },
+            guard_builder: |lock: &PgAdvisoryLock| Box::pin(async move { lock.acquire(connection).await }),
         }
-        .build()
-        .await;
+        .try_build()
+        .await?;
         Ok(EventStoreLockGuard::new(lock_guard))
     }
 

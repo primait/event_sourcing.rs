@@ -1,5 +1,5 @@
 use esrs::*;
-use optimistic_lock::*;
+use pessimistic_lock::*;
 use uuid::Uuid;
 
 #[tokio::main]

@@ -41,6 +41,7 @@ Run examples.
 cargo make example aggregate_merging &&
 cargo make example customize_persistence_flow &&
 cargo make example delete_aggregate &&
+cargo make example pessimistic_lock &&
 cargo make example rebuild_shared_projection &&
 cargo make example rebuilder &&
 cargo make example simple_projection &&

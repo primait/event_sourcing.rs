@@ -7,11 +7,19 @@ use uuid::Uuid;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager};
 
+/// Marker trait for every EventStoreLockGuard.
+///
+/// Implementors should unlock concurrent access to the guarded resource, when dropped.
 pub trait UnlockOnDrop: Send + 'static {}
 
+/// Lock guard preventing concurrent access to a resource.
+///
+/// The lock is released when this guard is dropped.
 pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
 
 impl EventStoreLockGuard {
+    /// Creates a new instance from any UnlockOnDrop.
+    #[must_use]
     pub fn new(lock: impl UnlockOnDrop) -> Self {
         Self(Box::new(lock))
     }
@@ -23,6 +31,8 @@ impl EventStoreLockGuard {
 pub trait EventStore {
     type Manager: AggregateManager;
 
+    /// Locks the given aggregate instance, preventing concurrent read/write access to it.
+    /// Only the guard holder can access the resource: drop the guard to release the lock.
     async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error>;
 
     /// Loads the events that an aggregate instance has emitted in the past.

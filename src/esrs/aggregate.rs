@@ -77,6 +77,8 @@ pub trait AggregateManager: Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;
 
+    /// Locks the given aggregate instance, preventing concurrent read/write access to it.
+    /// Only the guard holder can access the resource: drop the guard to release the lock.
     async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
         self.event_store().lock(aggregate_id.into()).await
     }
