@@ -77,12 +77,6 @@ pub trait AggregateManager: Aggregate {
     /// Returns the event store, configured for the aggregate
     fn event_store(&self) -> &Self::EventStore;
 
-    /// Locks the given aggregate instance, preventing concurrent read/write access to it.
-    /// Only the guard holder can access the resource: drop the guard to release the lock.
-    async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
-        self.event_store().lock(aggregate_id.into()).await
-    }
-
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     async fn handle_command(
         &self,
@@ -93,6 +87,15 @@ pub trait AggregateManager: Aggregate {
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(<Self as AggregateManager>::apply_events(aggregate_state, stored_events))
+    }
+
+    /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
+    ///
+    /// Used to prevent concurrent access to the aggregate state.
+    /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
+    /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
+    async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
+        self.event_store().lock(aggregate_id.into()).await
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.

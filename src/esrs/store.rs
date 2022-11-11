@@ -31,8 +31,11 @@ impl EventStoreLockGuard {
 pub trait EventStore {
     type Manager: AggregateManager;
 
-    /// Locks the given aggregate instance, preventing concurrent read/write access to it.
-    /// Only the guard holder can access the resource: drop the guard to release the lock.
+    /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
+    ///
+    /// Used to prevent concurrent access to the aggregate state.
+    /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
+    /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
     async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error>;
 
     /// Loads the events that an aggregate instance has emitted in the past.
