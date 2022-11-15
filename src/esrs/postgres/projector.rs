@@ -19,6 +19,15 @@ pub enum Consistency {
     Eventual,
 }
 
+impl AsRef<str> for Consistency {
+    fn as_ref(&self) -> &str {
+        match self {
+            Consistency::Strong => "strong",
+            Consistency::Eventual => "eventual",
+        }
+    }
+}
+
 /// This trait is used to implement a `Projector`. A projector is intended to be an entity where to
 /// create, update and delete a read side. Every projector should be responsible to update a single
 /// read model.
@@ -58,5 +67,12 @@ where
     /// acquired by a pool or a deref of a transaction.
     async fn delete(&self, _aggregate_id: Uuid, _connection: &mut PgConnection) -> Result<(), Manager::Error> {
         Ok(())
+    }
+
+    /// The name of the projector. By default, this is the type name of the projector,
+    /// but it can be overridden to provide a custom name. This name is used as
+    /// part of tracing spans, to identify the projector being run.
+    fn name(&self) -> &'static str {
+        std::any::type_name::<Self>()
     }
 }

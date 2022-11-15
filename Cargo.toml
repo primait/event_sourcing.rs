@@ -48,5 +48,8 @@ sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json
 # To stream over sqlx results
 futures = "0.3"
 
+prima-tracing = "0.5.*"
+tracing = "0.1"
+
 [dev-dependencies]
 tokio = {version = "1.6", features = ["full"]}
