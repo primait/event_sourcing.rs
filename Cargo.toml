@@ -47,8 +47,6 @@ arc-swap = "1.5"
 sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
 # To stream over sqlx results
 futures = "0.3"
-
-prima-tracing = "0.5.*"
 tracing = "0.1"
 
 [dev-dependencies]
