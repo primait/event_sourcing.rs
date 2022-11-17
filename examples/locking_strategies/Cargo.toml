@@ -1,9 +1,9 @@
 [package]
 authors = ["Angelo Rendina <angelo.rendina@prima.it"]
-description = "Pessimistic lock example"
+description = "Locking strategies example"
 edition = "2018"
 license = "MIT OR Apache-2.0"
-name = "pessimistic_lock"
+name = "locking_strategies"
 version = "0.1.0"
 
 [dependencies]

@@ -24,7 +24,7 @@ members = [
     "examples/simple_projection",
     "examples/simple_saga",
     "examples/simple_side_effect",
-    "examples/pessimistic_lock",
+    "examples/locking_strategies",
 ]
 
 [features]
