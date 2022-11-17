@@ -18,6 +18,9 @@ esrs = { version = "0.6", features = ["postgres"] }
 sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
+## Tracing
+A tracing span is produced every time a projector is used or a policy is applied to a given event.
+
 ## Run examples, tests and linting
 
 Payment examples simulate paying with credit card goods or services updating bank account (so its balance).
