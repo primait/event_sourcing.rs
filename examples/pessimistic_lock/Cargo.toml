@@ -7,6 +7,7 @@ name = "pessimistic_lock"
 version = "0.1.0"
 
 [dependencies]
+delete_aggregate = { version = "*", path = "../delete_aggregate/" }
 
 # async main
 tokio = { version = "1.6", features = ["full"] }
