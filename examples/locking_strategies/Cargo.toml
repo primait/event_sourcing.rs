@@ -1,0 +1,22 @@
+[package]
+authors = ["Angelo Rendina <angelo.rendina@prima.it"]
+description = "Locking strategies example"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+name = "locking_strategies"
+version = "0.1.0"
+
+[dependencies]
+delete_aggregate = { version = "*", path = "../delete_aggregate/" }
+
+# async main
+tokio = { version = "1.6", features = ["full"] }
+
+esrs = { version = "*", path = "../../", features = ["postgres"] }
+# Sql library for async impl
+sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+
+async-trait = "0.1.50"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+uuid = { version = "1.0", features = ["serde", "v4"] }
