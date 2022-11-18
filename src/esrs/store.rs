@@ -7,11 +7,36 @@ use uuid::Uuid;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager};
 
+/// Marker trait for every EventStoreLockGuard.
+///
+/// Implementors should unlock concurrent access to the guarded resource, when dropped.
+pub trait UnlockOnDrop: Send + 'static {}
+
+/// Lock guard preventing concurrent access to a resource.
+///
+/// The lock is released when this guard is dropped.
+pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
+
+impl EventStoreLockGuard {
+    /// Creates a new instance from any UnlockOnDrop.
+    #[must_use]
+    pub fn new(lock: impl UnlockOnDrop) -> Self {
+        Self(Box::new(lock))
+    }
+}
+
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
 pub trait EventStore {
     type Manager: AggregateManager;
+
+    /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
+    ///
+    /// Used to prevent concurrent access to the aggregate state.
+    /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
+    /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error>;
 
     /// Loads the events that an aggregate instance has emitted in the past.
     async fn by_aggregate_id(
@@ -69,6 +94,10 @@ where
     <M as Aggregate>::Event: 'static,
 {
     type Manager = M;
+
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
+        self.deref().lock(aggregate_id).await
+    }
 
     async fn by_aggregate_id(
         &self,

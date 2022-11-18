@@ -68,7 +68,7 @@ pub async fn rebuild_single_projection_per_aggregate_id(pool: Pool<Postgres>) {
         for projector in projectors.iter() {
             // .. delete all the records in the projection that has that aggregate_id as key. In order
             // to achieve this remember to override default `delete` implementation in the projector.
-            projector.delete(aggregate_id, &mut *transaction).await.unwrap();
+            projector.delete(aggregate_id, &mut transaction).await.unwrap();
 
             // Then queries for all the events in the event store table..
             let events = aggregate.event_store().by_aggregate_id(aggregate_id).await.unwrap();
@@ -127,7 +127,7 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             // we proceed to run the projectors from AggregateA.
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
                 for projector in projectors_a.iter() {
-                    projector.project(a, &mut *transaction).await.unwrap();
+                    projector.project(a, &mut transaction).await.unwrap();
                 }
 
                 // Get next value from AggregateA events stream
@@ -137,7 +137,7 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             // from AggregateA.
             (Some(a), None) => {
                 for projector in projectors_a.iter() {
-                    projector.project(a, &mut *transaction).await.unwrap();
+                    projector.project(a, &mut transaction).await.unwrap();
                 }
 
                 // Get next value from AggregateA events stream
@@ -147,7 +147,7 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             // on AggregateB events contains values we proceed to run the projectors from AggregateB.
             (Some(_), Some(b)) | (None, Some(b)) => {
                 for projector in projectors_b.iter() {
-                    projector.project(b, &mut *transaction).await.unwrap();
+                    projector.project(b, &mut transaction).await.unwrap();
                 }
 
                 // Get next value from AggregateB events stream

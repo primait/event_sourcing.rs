@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.8.0]
+
+### Added
+
+- [[#129]]: Atomic read/writes for aggregate states.
+  - `AggregateManager`:
+    - `lock` method acquires a lock for the given aggregate state, preventing other atomic accesses.
+      Dropping the lock releases the resource.
+  - `EventStore`:
+    - `lock` trait function, required to return a `EventStoreLockGuard`.
+  - `EventStoreLockGuard`, wrapping an `UnlockOnDrop` trait object.
+  - `UnlockOnDrop` marker trait, required for concrete types to be used as `EventStoreLockGuard`.
+  - `PgStore`:
+    - `lock` implementation using Postgres' advisory locks.
+  - `PgStoreLockGuard`, holding the actual Postgres' lock and releasing it on drop.
+
+---
+
 ## [0.7.1]
 
 ### Added
@@ -144,7 +162,8 @@ Refer to: [#107], [#108] and [#109]
 
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2

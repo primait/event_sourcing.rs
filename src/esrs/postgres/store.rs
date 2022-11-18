@@ -7,7 +7,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
-use sqlx::postgres::PgQueryResult;
+use sqlx::pool::PoolConnection;
+use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey, PgQueryResult};
 use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use tracing::Instrument;
@@ -15,6 +16,7 @@ use uuid::Uuid;
 
 use crate::esrs::policy;
 use crate::esrs::postgres::projector::Consistency;
+use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
 
@@ -191,6 +193,21 @@ where
     }
 }
 
+/// Concrete implementation of EventStoreLockGuard for the PgStore.
+///
+/// It holds both the PgAdvisoryLock and its child PgAdvisoryLockGuard.
+/// When dropped, the PgAdvisoryLockGuard is dropped thus releasing the PgAdvisoryLock.
+#[ouroboros::self_referencing]
+pub struct PgStoreLockGuard {
+    lock: PgAdvisoryLock,
+    #[borrows(lock)]
+    #[covariant]
+    guard: PgAdvisoryLockGuard<'this, PoolConnection<Postgres>>,
+}
+
+/// Marking PgStoreLockGuard as an UnlockOnDrop trait object.
+impl UnlockOnDrop for PgStoreLockGuard {}
+
 #[async_trait]
 impl<Manager> EventStore for PgStore<Manager>
 where
@@ -201,6 +218,18 @@ where
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     type Manager = Manager;
+
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
+        let (key, _) = aggregate_id.as_u64_pair();
+        let connection = self.inner.pool.acquire().await?;
+        let lock_guard = PgStoreLockGuardAsyncSendTryBuilder {
+            lock: PgAdvisoryLock::with_key(PgAdvisoryLockKey::BigInt(key as i64)),
+            guard_builder: |lock: &PgAdvisoryLock| Box::pin(async move { lock.acquire(connection).await }),
+        }
+        .try_build()
+        .await?;
+        Ok(EventStoreLockGuard::new(lock_guard))
+    }
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
         Ok(

@@ -2,7 +2,7 @@
 
 It is an opinionated library used to achieve cqrs/es in Rust.
 
-A complete example can be found in the `example` folder.
+A set of example snippets can be found in the `example` folder.
 
 ## Install
 
@@ -19,14 +19,12 @@ sqlx = { version = "0.6", features = ["postgres", "runtime-tokio-native-tls", "u
 ```
 
 ## Tracing
+
 A tracing span is produced every time a projector is used or a policy is applied to a given event.
 
 ## Run examples, tests and linting
 
-Payment examples simulate paying with credit card goods or services updating bank account (so its balance).
-
-To run examples and tests first you need to start new postgres instance. You'll not be able to run postgres example and
-tests otherwise.
+Start a Postgres instance.
 
 ```shell
 docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
@@ -38,25 +36,15 @@ Export DATABASE_URL environment variable with freshly new created database.
 export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 ```
 
-Run examples.
+Run tests.
 
 ```shell
-cargo make example aggregate_merging &&
-cargo make example customize_persistence_flow &&
-cargo make example delete_aggregate &&
-cargo make example rebuild_shared_projection &&
-cargo make example rebuilder &&
-cargo make example simple_projection &&
-cargo make example simple_saga &&
-cargo make example simple_side_effect
+cargo test --all-targets --all-features
 ```
 
-Run tests and linting.
+Run linters.
 
-```shell
-# Run tests
-cargo test --all-targets --all-features
-# Run linting
+```
 cargo clippy --all-targets --all-features -- -W clippy::nursery
 ```
 

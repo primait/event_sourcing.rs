@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
+use crate::esrs::store::EventStoreLockGuard;
 use crate::types::SequenceNumber;
 use crate::{AggregateState, EventStore, StoreEvent};
 
@@ -86,6 +87,15 @@ pub trait AggregateManager: Aggregate {
         let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
 
         Ok(<Self as AggregateManager>::apply_events(aggregate_state, stored_events))
+    }
+
+    /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
+    ///
+    /// Used to prevent concurrent access to the aggregate state.
+    /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
+    /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
+    async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
+        self.event_store().lock(aggregate_id.into()).await
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
