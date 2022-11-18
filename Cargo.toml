@@ -51,6 +51,7 @@ ouroboros = "0.15"
 sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
 # To stream over sqlx results
 futures = "0.3"
+tracing = "0.1"
 
 [dev-dependencies]
 tokio = {version = "1.6", features = ["full"]}

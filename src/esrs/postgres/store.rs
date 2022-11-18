@@ -11,6 +11,7 @@ use sqlx::pool::PoolConnection;
 use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey, PgQueryResult};
 use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
+use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::esrs::policy;
@@ -268,10 +269,22 @@ where
 
         for store_event in &store_events {
             for projector in self.projectors().iter() {
+                let span = tracing::trace_span!(
+                    "esrs_project_event",
+                    event_id = %store_event.id,
+                    aggregate_id = %store_event.aggregate_id,
+                    consistency = projector.consistency().as_ref(),
+                    projector = projector.name()
+                );
                 match projector.consistency() {
-                    Consistency::Strong => projector.project(store_event, &mut transaction).await?,
+                    Consistency::Strong => {
+                        projector
+                            .project(store_event, &mut transaction)
+                            .instrument(span)
+                            .await?
+                    }
                     Consistency::Eventual => {
-                        let _result = projector.project(store_event, &mut transaction).await;
+                        let _result = projector.project(store_event, &mut transaction).instrument(span).await;
                     }
                 }
             }
@@ -281,7 +294,8 @@ where
 
         for store_event in &store_events {
             for policy in self.policies().iter() {
-                let _policy_result = policy.handle_event(store_event).await;
+                let span = tracing::info_span!("esrs_apply_policy" , event_id = %store_event.id, aggregate_id = %store_event.aggregate_id, policy = policy.name());
+                let _policy_result = policy.handle_event(store_event).instrument(span).await;
             }
         }
 
