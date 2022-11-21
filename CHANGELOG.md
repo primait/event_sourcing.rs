@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.9.0] - 2022-11-21
+
 ### Added
 
 - Added tracing spans for application of policies and projection of events
@@ -162,7 +166,9 @@ Refer to: [#107], [#108] and [#109]
 
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.8.0...HEAD
+
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/primait/event_sourcing.rs/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
