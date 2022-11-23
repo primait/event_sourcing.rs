@@ -8,10 +8,7 @@ use delete_aggregate::structs::CounterError;
 /// Increment the value behind this `aggregate_id` as soon as atomical access can be obtained.
 /// The lock can be obtained even if there are current optimistic accesses! Avoid mixing the two strategies when writing.
 pub async fn increment_atomically(aggregate: CounterAggregate, aggregate_id: Uuid) -> Result<(), CounterError> {
-    // Obtain a lock for this aggregate_id, or wait for an existing one to be released.
-    let _guard = aggregate.lock(aggregate_id).await?;
-    // Only one atomical access at a time can proceed further.
-    let aggregate_state = aggregate.load(aggregate_id).await.unwrap_or_default();
+    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap_or_default();
     aggregate
         .handle_command(aggregate_state, CounterCommand::Increment)
         .await?;
@@ -35,10 +32,7 @@ pub async fn increment_optimistically(aggregate: CounterAggregate, aggregate_id:
 /// Avoid using atomic reads if writes are optimistic, as the state would be modified anyway!
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
 pub async fn with_atomic_read(aggregate: CounterAggregate, aggregate_id: Uuid) -> Result<(), CounterError> {
-    // Obtain a lock for this aggregate_id, or wait for an existing one to be released.
-    let _guard = aggregate.lock(aggregate_id).await?;
-    // Only one atomical access at a time can proceed further.
-    let aggregate_state = aggregate.load(aggregate_id).await.unwrap_or_default();
+    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap_or_default();
     // No one else (employing locking!) can read or modify the state just loaded here,
     // ensuring this really is the *latest* aggregate state.
     println!(
@@ -50,7 +44,7 @@ pub async fn with_atomic_read(aggregate: CounterAggregate, aggregate_id: Uuid) -
 
 /// Load the aggregate state for read-only purposes, optimistically assuming nothing is modifying it.
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
-/// Otherwise, optimistic reads are fine: beware there are no guarantees the state loaded is actually the latest.
+/// Otherwise, optimistic reads are allowed: beware there are no guarantees the state loaded is actually the latest.
 pub async fn with_optimistic_read(aggregate: CounterAggregate, aggregate_id: Uuid) -> Result<(), CounterError> {
     // Read the state now, ignoring any explicit locking...
     let aggregate_state = aggregate.load(aggregate_id).await.unwrap_or_default();

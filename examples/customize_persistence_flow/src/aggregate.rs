@@ -59,7 +59,7 @@ impl AggregateManager for CounterAggregate {
 
     async fn store_events(
         &self,
-        aggregate_state: &AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
         // Here is the persistence flow customization.
@@ -89,6 +89,11 @@ impl AggregateManager for CounterAggregate {
                         projector.project(store_event, &mut connection).await?;
                     }
                 }
+
+                // We need to drop the lock on the aggregate state here as:
+                // 1. the events have already been persisted, hence the DB has the latest aggregate;
+                // 2. the policies below might need to access this aggregate atomically (causing a deadlock!).
+                drop(aggregate_state.take_lock());
 
                 for store_event in store_events.iter() {
                     for policy in self.event_store.policies().iter() {

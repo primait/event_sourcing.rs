@@ -18,7 +18,7 @@ use crate::esrs::policy;
 use crate::esrs::postgres::projector::Consistency;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateManager, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
 use super::{event, projector, statement::Statements};
 
@@ -245,13 +245,15 @@ where
 
     async fn persist(
         &self,
-        aggregate_id: Uuid,
-        events: Vec<Manager::Event>,
-        starting_sequence_number: SequenceNumber,
+        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
+        events: Vec<<Self::Manager as Aggregate>::Event>,
     ) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<Manager::Event>> = vec![];
+
+        let starting_sequence_number = aggregate_state.next_sequence_number();
+        let aggregate_id = *aggregate_state.id();
 
         for (index, event) in (0..).zip(events.into_iter()) {
             let store_event: StoreEvent<<Manager as Aggregate>::Event> = self
@@ -291,6 +293,11 @@ where
         }
 
         transaction.commit().await?;
+
+        // We need to drop the lock on the aggregate state here as:
+        // 1. the events have already been persisted, hence the DB has the latest aggregate;
+        // 2. the policies below might need to access this aggregate atomically (causing a deadlock!).
+        drop(aggregate_state.take_lock());
 
         for store_event in &store_events {
             for policy in self.policies().iter() {

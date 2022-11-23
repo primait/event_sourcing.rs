@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::esrs::store::EventStoreLockGuard;
 use crate::types::SequenceNumber;
 use crate::{AggregateState, EventStore, StoreEvent};
 
@@ -80,22 +79,13 @@ pub trait AggregateManager: Aggregate {
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     async fn handle_command(
         &self,
-        aggregate_state: AggregateState<Self::State>,
+        mut aggregate_state: AggregateState<Self::State>,
         command: Self::Command,
     ) -> Result<AggregateState<Self::State>, Self::Error> {
         let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
-        let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&aggregate_state, events).await?;
+        let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&mut aggregate_state, events).await?;
 
         Ok(<Self as AggregateManager>::apply_events(aggregate_state, stored_events))
-    }
-
-    /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
-    ///
-    /// Used to prevent concurrent access to the aggregate state.
-    /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
-    /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
-    async fn lock(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<EventStoreLockGuard, Self::Error> {
-        self.event_store().lock(aggregate_id.into()).await
     }
 
     /// Responsible for applying events in order onto the aggregate state, and incrementing the sequence number.
@@ -148,6 +138,24 @@ pub trait AggregateManager: Aggregate {
         }
     }
 
+    /// Acquires a lock on this aggregate instance, and only then loads it from the event store,
+    /// by applying previously persisted events onto the aggregate state by order of their sequence number.
+    ///
+    /// The lock is contained in the returned `AggregateState`, and released when this is dropped.
+    /// It can also be extracted with the `take_lock` method for more advanced uses.
+    ///
+    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
+    async fn lock_and_load(&self, aggregate_id: impl Into<Uuid> + Send) -> Option<AggregateState<Self::State>> {
+        let id = aggregate_id.into();
+        let Ok(guard) = self.event_store().lock(id).await else {
+            return None;
+        };
+        self.load(id).await.map(|mut state| {
+            state.set_lock(guard);
+            state
+        })
+    }
+
     /// Transactional persists events in store - recording it in the aggregate instance's history.
     /// The store will also project the events. If an error occurs whilst persisting the events,
     /// the whole transaction is rolled back and the error is returned.
@@ -160,12 +168,10 @@ pub trait AggregateManager: Aggregate {
     /// behaviour of policies, e.g. if you want to log something on error.
     async fn store_events(
         &self,
-        aggregate_state: &AggregateState<Self::State>,
+        aggregate_state: &mut AggregateState<Self::State>,
         events: Vec<Self::Event>,
     ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        self.event_store()
-            .persist(aggregate_state.id, events, aggregate_state.next_sequence_number())
-            .await
+        self.event_store().persist(aggregate_state, events).await
     }
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
