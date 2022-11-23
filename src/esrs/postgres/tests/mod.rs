@@ -98,7 +98,7 @@ fn persist_single_event_test(pool: Pool<Postgres>) {
 
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
     assert_eq!(store_event[0].payload.id, event_internal_id);
-    assert_eq!(store_event[0].sequence_number, 0);
+    assert_eq!(store_event[0].sequence_number, 1);
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 1);
@@ -124,10 +124,10 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
     assert_eq!(store_event.len(), 2);
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
     assert_eq!(store_event[0].payload.id, test_event_1.id);
-    assert_eq!(store_event[0].sequence_number, 0);
+    assert_eq!(store_event[0].sequence_number, 1);
     assert_eq!(store_event[1].aggregate_id, aggregate_id);
     assert_eq!(store_event[1].payload.id, test_event_2.id);
-    assert_eq!(store_event[1].sequence_number, 1);
+    assert_eq!(store_event[1].sequence_number, 2);
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 2);
