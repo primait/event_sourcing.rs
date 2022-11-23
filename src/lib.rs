@@ -12,7 +12,7 @@
 pub use crate::esrs::aggregate::{Aggregate, AggregateManager};
 pub use crate::esrs::policy::Policy;
 pub use crate::esrs::state::AggregateState;
-pub use crate::esrs::store::{EventStore, StoreEvent};
+pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 
 mod esrs;
 
