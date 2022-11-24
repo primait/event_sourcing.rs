@@ -269,8 +269,10 @@ where
             store_events.push(store_event);
         }
 
+        // Acquiring the list of projectors early, as it is an expensive operation.
+        let projectors = self.projectors();
         for store_event in &store_events {
-            for projector in self.projectors().iter() {
+            for projector in projectors.iter() {
                 let span = tracing::trace_span!(
                     "esrs_project_event",
                     event_id = %store_event.id,
@@ -299,8 +301,10 @@ where
         // 2. the policies below might need to access this aggregate atomically (causing a deadlock!).
         drop(aggregate_state.take_lock());
 
+        // Acquiring the list of policies early, as it is an expensive operation.
+        let policies = self.policies();
         for store_event in &store_events {
-            for policy in self.policies().iter() {
+            for policy in policies.iter() {
                 let span = tracing::info_span!("esrs_apply_policy" , event_id = %store_event.id, aggregate_id = %store_event.aggregate_id, policy = policy.name());
                 let _policy_result = policy.handle_event(store_event).instrument(span).await;
             }

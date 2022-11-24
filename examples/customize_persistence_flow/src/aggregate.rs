@@ -84,8 +84,10 @@ impl AggregateManager for CounterAggregate {
                     )
                 }
 
+                // Acquiring the list of projectors early, as it is an expensive operation.
+                let projectors = self.event_store().projectors();
                 for store_event in store_events.iter() {
-                    for projector in self.event_store.projectors().iter() {
+                    for projector in projectors.iter() {
                         projector.project(store_event, &mut connection).await?;
                     }
                 }
@@ -95,8 +97,10 @@ impl AggregateManager for CounterAggregate {
                 // 2. the policies below might need to access this aggregate atomically (causing a deadlock!).
                 drop(aggregate_state.take_lock());
 
+                // Acquiring the list of policies early, as it is an expensive operation.
+                let policies = self.event_store().policies();
                 for store_event in store_events.iter() {
-                    for policy in self.event_store.policies().iter() {
+                    for policy in policies.iter() {
                         // We want to just log errors instead of return them. This is the customization
                         // we wanted.
                         match policy.handle_event(store_event).await {
