@@ -95,8 +95,8 @@ impl Policy<LoggingAggregate> for LoggingPolicy {
         let aggregate_state: AggregateState<u64> = self
             .aggregate
             .load(aggregate_id)
-            .await
-            .unwrap_or_else(|| AggregateState::new(aggregate_id)); // This should never happen
+            .await?
+            .unwrap_or_else(|| AggregateState::with_id(aggregate_id)); // This should never happen
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {

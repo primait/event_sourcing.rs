@@ -134,8 +134,8 @@ pub struct StoreEvent<Event> {
 }
 
 impl<Event> StoreEvent<Event> {
-    pub const fn sequence_number(&self) -> SequenceNumber {
-        self.sequence_number
+    pub const fn sequence_number(&self) -> &SequenceNumber {
+        &self.sequence_number
     }
 
     pub const fn payload(&self) -> &Event {

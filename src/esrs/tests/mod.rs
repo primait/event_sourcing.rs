@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 
 use sqlx::{Pool, Postgres};
-use uuid::Uuid;
 
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState};
@@ -9,53 +8,56 @@ use crate::{Aggregate, AggregateManager, AggregateState};
 #[sqlx::test]
 fn handle_command_test(pool: Pool<Postgres>) {
     let aggregate: TestAggregate = TestAggregate::new(&pool).await;
-    let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new(Uuid::new_v4());
+    let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
     let aggregate_state: AggregateState<TestAggregateState> = aggregate
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
     assert_eq!(aggregate_state.inner().count, 2);
-    assert_eq!(aggregate_state.sequence_number, 1);
+    assert_eq!(aggregate_state.sequence_number(), &1);
 
     let aggregate_state: AggregateState<TestAggregateState> = aggregate
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
     assert_eq!(aggregate_state.inner().count, 3);
-    assert_eq!(aggregate_state.sequence_number, 2);
+    assert_eq!(aggregate_state.sequence_number(), &2);
 
     let aggregate_state: AggregateState<TestAggregateState> = aggregate
         .handle_command(aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
     assert_eq!(aggregate_state.inner().count, 5);
-    assert_eq!(aggregate_state.sequence_number, 4);
+    assert_eq!(aggregate_state.sequence_number(), &4);
 }
 
 #[sqlx::test]
 fn load_aggregate_state_test(pool: Pool<Postgres>) {
     let aggregate: TestAggregate = TestAggregate::new(&pool).await;
-    let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new(Uuid::new_v4());
+    let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
+
+    let initial_id = *initial_aggregate_state.id();
+    let initial_sequence_number = *initial_aggregate_state.sequence_number();
+    let initial_count = initial_aggregate_state.inner().count;
 
     let aggregate_state: AggregateState<TestAggregateState> = aggregate
-        .handle_command(initial_aggregate_state.clone(), TestCommand::Multi)
+        .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
 
-    assert_eq!(initial_aggregate_state.id(), aggregate_state.id());
+    assert_eq!(&initial_id, aggregate_state.id());
+    assert_eq!(initial_sequence_number + 2, *aggregate_state.sequence_number());
+    assert_eq!(initial_count + 2, aggregate_state.inner().count);
+
+    let loaded_aggregate_state: AggregateState<TestAggregateState> = aggregate.load(initial_id).await.unwrap().unwrap();
+
+    assert_eq!(aggregate_state.id(), loaded_aggregate_state.id());
     assert_eq!(
-        initial_aggregate_state.sequence_number + 2,
-        aggregate_state.sequence_number
+        aggregate_state.sequence_number(),
+        loaded_aggregate_state.sequence_number()
     );
-    assert_eq!(initial_aggregate_state.inner.count + 2, aggregate_state.inner.count);
-
-    let loaded_aggregate_state: AggregateState<TestAggregateState> =
-        aggregate.load(*initial_aggregate_state.id()).await.unwrap();
-
-    assert_eq!(aggregate_state.id, loaded_aggregate_state.id);
-    assert_eq!(aggregate_state.sequence_number, loaded_aggregate_state.sequence_number);
-    assert_eq!(aggregate_state.inner.count, loaded_aggregate_state.inner.count);
+    assert_eq!(aggregate_state.inner().count, loaded_aggregate_state.inner().count);
 }
 
 struct TestAggregate {
