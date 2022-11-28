@@ -9,25 +9,32 @@ use crate::{Aggregate, AggregateManager, AggregateState};
 fn handle_command_test(pool: Pool<Postgres>) {
     let aggregate: TestAggregate = TestAggregate::new(&pool).await;
     let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
+    let aggregate_id = *aggregate_state.id();
 
-    let aggregate_state: AggregateState<TestAggregateState> = aggregate
+    aggregate
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
+
+    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 2);
     assert_eq!(aggregate_state.sequence_number(), &1);
 
-    let aggregate_state: AggregateState<TestAggregateState> = aggregate
+    aggregate
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
+
+    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 3);
     assert_eq!(aggregate_state.sequence_number(), &2);
 
-    let aggregate_state: AggregateState<TestAggregateState> = aggregate
+    aggregate
         .handle_command(aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
+
+    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 5);
     assert_eq!(aggregate_state.sequence_number(), &4);
 }
@@ -41,23 +48,15 @@ fn load_aggregate_state_test(pool: Pool<Postgres>) {
     let initial_sequence_number = *initial_aggregate_state.sequence_number();
     let initial_count = initial_aggregate_state.inner().count;
 
-    let aggregate_state: AggregateState<TestAggregateState> = aggregate
+    aggregate
         .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
 
+    let aggregate_state = aggregate.lock_and_load(initial_id).await.unwrap().unwrap();
     assert_eq!(&initial_id, aggregate_state.id());
     assert_eq!(initial_sequence_number + 2, *aggregate_state.sequence_number());
     assert_eq!(initial_count + 2, aggregate_state.inner().count);
-
-    let loaded_aggregate_state: AggregateState<TestAggregateState> = aggregate.load(initial_id).await.unwrap().unwrap();
-
-    assert_eq!(aggregate_state.id(), loaded_aggregate_state.id());
-    assert_eq!(
-        aggregate_state.sequence_number(),
-        loaded_aggregate_state.sequence_number()
-    );
-    assert_eq!(aggregate_state.inner().count, loaded_aggregate_state.inner().count);
 }
 
 struct TestAggregate {

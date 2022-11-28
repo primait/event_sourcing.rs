@@ -72,11 +72,10 @@ pub trait AggregateManager: Aggregate {
         &self,
         mut aggregate_state: AggregateState<Self::State>,
         command: Self::Command,
-    ) -> Result<AggregateState<Self::State>, Self::Error> {
+    ) -> Result<(), Self::Error> {
         let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
-        let stored_events: Vec<StoreEvent<Self::Event>> = self.store_events(&mut aggregate_state, events).await?;
-
-        Ok(aggregate_state.apply_store_events(stored_events, Self::apply_event))
+        self.store_events(&mut aggregate_state, events).await?;
+        Ok(())
     }
 
     /// Loads an aggregate instance from the event store, by applying previously persisted events onto
