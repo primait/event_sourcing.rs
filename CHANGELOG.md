@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.0] (2022-11-30)
+
+[[#133]]: atomic read/writes rework to avoid deadlocks in Policies.
+
+### Changed
+
+- `Aggregate`:
+  - `apply_events` has been removed, and its default implementation moved to a method of `AggregateState`.
+- `AggregateManager`:
+  - `lock_and_load` acquires a lock, then loads into memory the AggregateState
+    preventing other atomic accesses. Dropping the AggregateState releases the resource.
+  - `lock` has been removed in favour of `lock_and_load`.
+  - `handle_command` does not return the AggregateState anymore. This avoids race conditions where the
+    returned state is already outdated, if another concurrent access has taken place at the same time.
+  - `apply_events` has been removed, and its default implementation moved to a method of `AggregateState`.
+  - `load` has been changed to return a `Result<Option<_>, _>`, to explicit expose errors.
+- `AggregateState`:
+  - new `lock` field, which contains the exclusive access guard created when `lock_and_load`ing.
+    All other fields are now private for better encapsulation.
+  - `new` takes no argument, and generates a new state with a random UUID.
+  - `with_id` generates a new state with the given UUID.
+  - `apply_store_events` applies the given list of Events on self.
+  - `set_lock` and `take_lock` methods to set and get the lock,
+    to use when overriding the AggregateManager functionality.
+
+---
+
 ## [0.9.0] - 2022-11-21
 
 ### Added
@@ -167,15 +194,19 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/primait/event_sourcing.rs/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/primait/event_sourcing.rs/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/primait/event_sourcing.rs/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
+[#133]: https://github.com/primait/event_sourcing.rs/pull/133
+[#129]: https://github.com/primait/event_sourcing.rs/pull/129
 [#123]: https://github.com/primait/event_sourcing.rs/pull/123
 [#122]: https://github.com/primait/event_sourcing.rs/pull/122
+[#118]: https://github.com/primait/event_sourcing.rs/pull/118
 [#117]: https://github.com/primait/event_sourcing.rs/pull/117
 [#115]: https://github.com/primait/event_sourcing.rs/pull/115
 [#114]: https://github.com/primait/event_sourcing.rs/pull/114
