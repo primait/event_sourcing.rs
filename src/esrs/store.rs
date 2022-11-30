@@ -5,12 +5,12 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateManager};
+use crate::{Aggregate, AggregateManager, AggregateState};
 
 /// Marker trait for every EventStoreLockGuard.
 ///
 /// Implementors should unlock concurrent access to the guarded resource, when dropped.
-pub trait UnlockOnDrop: Send + 'static {}
+pub trait UnlockOnDrop: Send + Sync + 'static {}
 
 /// Lock guard preventing concurrent access to a resource.
 ///
@@ -50,9 +50,8 @@ pub trait EventStore {
     /// Persisting events may additionally trigger configured Projectors.
     async fn persist(
         &self,
-        aggregate_id: Uuid,
+        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
         events: Vec<<Self::Manager as Aggregate>::Event>,
-        starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error>;
 
     /// Delete all events from events store related to given `aggregate_id`.
@@ -108,13 +107,10 @@ where
 
     async fn persist(
         &self,
-        aggregate_id: Uuid,
+        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
         events: Vec<<Self::Manager as Aggregate>::Event>,
-        starting_sequence_number: SequenceNumber,
     ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error> {
-        self.deref()
-            .persist(aggregate_id, events, starting_sequence_number)
-            .await
+        self.deref().persist(aggregate_state, events).await
     }
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error> {
@@ -138,8 +134,8 @@ pub struct StoreEvent<Event> {
 }
 
 impl<Event> StoreEvent<Event> {
-    pub const fn sequence_number(&self) -> SequenceNumber {
-        self.sequence_number
+    pub const fn sequence_number(&self) -> &SequenceNumber {
+        &self.sequence_number
     }
 
     pub const fn payload(&self) -> &Event {

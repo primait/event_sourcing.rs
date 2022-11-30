@@ -6,7 +6,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::postgres::{PgStore, Projector};
-use crate::{Aggregate, AggregateManager, EventStore, Policy, StoreEvent};
+use crate::{Aggregate, AggregateManager, AggregateState, EventStore, Policy, StoreEvent};
 
 #[sqlx::test]
 fn setup_database_test(pool: Pool<Postgres>) {
@@ -87,17 +87,18 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
 fn persist_single_event_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
 
-    let event_internal_id: Uuid = Uuid::new_v4();
-    let aggregate_id: Uuid = Uuid::new_v4();
+    let mut aggregate_state = AggregateState::new();
+    let aggregate_id = *aggregate_state.id();
 
+    let event_internal_id: Uuid = Uuid::new_v4();
     let store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, &mut aggregate_state, vec![TestEvent { id: event_internal_id }])
             .await
             .unwrap();
 
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
     assert_eq!(store_event[0].payload.id, event_internal_id);
-    assert_eq!(store_event[0].sequence_number, 0);
+    assert_eq!(store_event[0].sequence_number, 1);
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 1);
@@ -109,13 +110,13 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 
     let test_event_1: TestEvent = TestEvent { id: Uuid::new_v4() };
     let test_event_2: TestEvent = TestEvent { id: Uuid::new_v4() };
-    let aggregate_id: Uuid = Uuid::new_v4();
+    let mut aggregate_state = AggregateState::new();
+    let aggregate_id = *aggregate_state.id();
 
     let store_event: Vec<StoreEvent<TestEvent>> = EventStore::persist(
         &store,
-        aggregate_id,
+        &mut aggregate_state,
         vec![test_event_1.clone(), test_event_2.clone()],
-        0,
     )
     .await
     .unwrap();
@@ -123,10 +124,10 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
     assert_eq!(store_event.len(), 2);
     assert_eq!(store_event[0].aggregate_id, aggregate_id);
     assert_eq!(store_event[0].payload.id, test_event_1.id);
-    assert_eq!(store_event[0].sequence_number, 0);
+    assert_eq!(store_event[0].sequence_number, 1);
     assert_eq!(store_event[1].aggregate_id, aggregate_id);
     assert_eq!(store_event[1].payload.id, test_event_2.id);
-    assert_eq!(store_event[1].sequence_number, 1);
+    assert_eq!(store_event[1].sequence_number, 2);
 
     let store_events: Vec<StoreEvent<TestEvent>> = store.by_aggregate_id(aggregate_id).await.unwrap();
     assert_eq!(store_events.len(), 2);
@@ -143,10 +144,11 @@ fn event_projection_test(pool: Pool<Postgres>) {
     create_test_projection_table(&pool).await;
 
     let event_internal_id: Uuid = Uuid::new_v4();
-    let aggregate_id: Uuid = Uuid::new_v4();
+    let mut aggregate_state = AggregateState::new();
+    let aggregate_id = *aggregate_state.id();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, &mut aggregate_state, vec![TestEvent { id: event_internal_id }])
             .await
             .unwrap();
 
@@ -171,10 +173,11 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
     create_test_projection_table(&pool).await;
 
     let event_internal_id: Uuid = Uuid::new_v4();
-    let aggregate_id: Uuid = Uuid::new_v4();
+    let mut aggregate_state = AggregateState::new();
+    let aggregate_id = *aggregate_state.id();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, &mut aggregate_state, vec![TestEvent { id: event_internal_id }])
             .await
             .unwrap();
 
@@ -217,10 +220,10 @@ fn policy_test(pool: Pool<Postgres>) {
         .unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
-    let aggregate_id: Uuid = Uuid::new_v4();
+    let mut aggregate_state = AggregateState::new();
 
     let _store_event: Vec<StoreEvent<TestEvent>> =
-        EventStore::persist(&store, aggregate_id, vec![TestEvent { id: event_internal_id }], 0)
+        EventStore::persist(&store, &mut aggregate_state, vec![TestEvent { id: event_internal_id }])
             .await
             .unwrap();
 
