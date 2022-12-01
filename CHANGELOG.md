@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.10.0] (2022-11-30)
+## [0.10.0] - 2022-11-30
 
 [[#133]]: atomic read/writes rework to avoid deadlocks in Policies.
 
