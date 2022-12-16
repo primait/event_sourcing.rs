@@ -53,3 +53,4 @@ Finally eventually unset `DATABASE_URL` environment variable.
 ```shell
 unset DATABASE_URL
 ```
+
