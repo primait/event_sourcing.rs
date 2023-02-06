@@ -83,7 +83,7 @@ fn create_unique_constraint_statement(table_name: &str) -> String {
 }
 
 fn select_all_statement(table_name: &str) -> String {
-    format!("SELECT * FROM {} ORDER BY occurred_on ASC", table_name)
+    format!("SELECT * FROM {} ORDER BY occurred_on, sequence_number ASC", table_name)
 }
 
 fn select_statement(table_name: &str) -> String {
