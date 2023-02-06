@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.10.1] - 2023-02-06
+
+### Fixed
+
+[[#136]]: `select_all` query ordering was missing of sequence_number.
+
+---
+
 ## [0.10.0] - 2022-11-30
 
 [[#133]]: atomic read/writes rework to avoid deadlocks in Policies.
@@ -194,7 +202,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.10.1...HEAD
+[0.10.0]: https://github.com/primait/event_sourcing.rs/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/primait/event_sourcing.rs/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/primait/event_sourcing.rs/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/primait/event_sourcing.rs/compare/0.7.1...0.8.0
@@ -202,6 +211,7 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
+[#136]: https://github.com/primait/event_sourcing.rs/pull/136
 [#133]: https://github.com/primait/event_sourcing.rs/pull/133
 [#129]: https://github.com/primait/event_sourcing.rs/pull/129
 [#123]: https://github.com/primait/event_sourcing.rs/pull/123
