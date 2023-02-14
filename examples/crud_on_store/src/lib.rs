@@ -78,11 +78,7 @@ pub async fn update_event_by_event_id<T: Serialize + Sync>(
 }
 
 // Delete event by event id
-pub async fn delete_event_by_event_id(
-    table: &str,
-    event_id: Uuid,
-    executor: impl Executor<'_, Database = Postgres>,
-) {
+pub async fn delete_event_by_event_id(table: &str, event_id: Uuid, executor: impl Executor<'_, Database = Postgres>) {
     let name: String = format!("{}_events", table);
     let query: String = format!(include_str!("../statements/delete_event_by_event_id.sql"), name);
 
@@ -118,7 +114,9 @@ impl<E: DeserializeOwned> TryInto<StoreEvent<E>> for Event {
 
 #[cfg(test)]
 mod tests {
-    use crate::{delete_event_by_event_id, get_event_by_id, insert_event_with_given_event_id, update_event_by_event_id};
+    use crate::{
+        delete_event_by_event_id, get_event_by_id, insert_event_with_given_event_id, update_event_by_event_id,
+    };
     use chrono::{DateTime, Utc};
     use sqlx::postgres::PgPoolOptions;
     use sqlx::PgPool;
