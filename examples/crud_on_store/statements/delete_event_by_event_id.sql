@@ -1,0 +1,1 @@
+DELETE FROM {} WHERE id = $1

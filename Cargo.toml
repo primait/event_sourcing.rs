@@ -17,6 +17,7 @@ all-features = true
 [workspace]
 members = [
     "examples/aggregate_merging",
+    "examples/crud_on_store",
     "examples/customize_persistence_flow",
     "examples/delete_aggregate",
     "examples/dyn_event_store_in_aggregate",

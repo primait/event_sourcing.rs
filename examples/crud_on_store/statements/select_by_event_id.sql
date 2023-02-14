@@ -1,0 +1,1 @@
+SELECT * FROM {} WHERE id = $1 ORDER BY sequence_number ASC

@@ -61,7 +61,7 @@ where
     pub fn new(pool: Pool<Postgres>) -> Self {
         let inner: InnerPgStore<Manager> = InnerPgStore {
             pool,
-            statements: Statements::new(Manager::name()),
+            statements: Statements::new::<Self>(),
             projectors: ArcSwap::from_pointee(vec![]),
             policies: ArcSwap::from_pointee(vec![]),
         };
