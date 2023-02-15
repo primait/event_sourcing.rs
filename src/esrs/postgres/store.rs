@@ -11,7 +11,6 @@ use sqlx::pool::PoolConnection;
 use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey, PgQueryResult};
 use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
-use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::esrs::policy;
@@ -243,6 +242,7 @@ where
         )
     }
 
+    #[tracing::instrument(skip_all, fields(aggregate_id = %aggregate_state.id()), err)]
     async fn persist(
         &self,
         aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
@@ -274,21 +274,37 @@ where
         for store_event in &store_events {
             for projector in projectors.iter() {
                 let span = tracing::trace_span!(
-                    "esrs_project_event",
+                    "esrs.project_event",
                     event_id = %store_event.id,
                     aggregate_id = %store_event.aggregate_id,
                     consistency = projector.consistency().as_ref(),
                     projector = projector.name()
                 );
+                let _e = span.enter();
+
                 match projector.consistency() {
                     Consistency::Strong => {
-                        projector
-                            .project(store_event, &mut transaction)
-                            .instrument(span)
-                            .await?
+                        if let Err(error) = projector.project(store_event, &mut transaction).await {
+                            tracing::error!({
+                                event_id = %store_event.id,
+                                aggregate_id = %store_event.aggregate_id,
+                                projector = projector.name(),
+                                consistency = projector.consistency().as_ref(),
+                                error = ?error,
+                            }, "projector failed to project event");
+                            return Err(error);
+                        }
                     }
                     Consistency::Eventual => {
-                        let _result = projector.project(store_event, &mut transaction).instrument(span).await;
+                        if let Err(error) = projector.project(store_event, &mut transaction).await {
+                            tracing::warn!({
+                                event_id = %store_event.id,
+                                aggregate_id = %store_event.aggregate_id,
+                                projector = projector.name(),
+                                consistency = projector.consistency().as_ref(),
+                                error = ?error,
+                            }, "projector failed to project event");
+                        }
                     }
                 }
             }
@@ -305,8 +321,22 @@ where
         let policies = self.policies();
         for store_event in &store_events {
             for policy in policies.iter() {
-                let span = tracing::info_span!("esrs_apply_policy" , event_id = %store_event.id, aggregate_id = %store_event.aggregate_id, policy = policy.name());
-                let _policy_result = policy.handle_event(store_event).instrument(span).await;
+                let span = tracing::debug_span!(
+                    "esrs.apply_policy",
+                    event_id = %store_event.id,
+                    aggregate_id = %store_event.aggregate_id,
+                    policy = policy.name()
+                );
+                let _e = span.enter();
+
+                if let Err(error) = policy.handle_event(store_event).await {
+                    tracing::error!({
+                        event_id = %store_event.id,
+                        aggregate_id = %store_event.aggregate_id,
+                        policy = policy.name(),
+                        error = ?error,
+                    }, "policy failed to handle event")
+                }
             }
         }
 
