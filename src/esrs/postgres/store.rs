@@ -282,20 +282,17 @@ where
                 );
                 let _e = span.enter();
 
-                match projector.project(store_event, &mut transaction).await {
-                    Ok(_) => (),
-                    Err(error) => {
-                        tracing::error!({
-                            event_id = %store_event.id,
-                            aggregate_id = %store_event.aggregate_id,
-                            projector = projector.name(),
-                            consistency = projector.consistency().as_ref(),
-                            error = ?error,
-                        }, "projector failed to project event");
+                if let Err(error) = projector.project(store_event, &mut transaction).await {
+                    tracing::error!({
+                        event_id = %store_event.id,
+                        aggregate_id = %store_event.aggregate_id,
+                        projector = projector.name(),
+                        consistency = projector.consistency().as_ref(),
+                        error = ?error,
+                    }, "projector failed to project event");
 
-                        if let Consistency::Strong = projector.consistency() {
-                            return Err(error);
-                        }
+                    if let Consistency::Strong = projector.consistency() {
+                        return Err(error);
                     }
                 }
             }
