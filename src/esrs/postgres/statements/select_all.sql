@@ -1,0 +1,1 @@
+SELECT * FROM {} ORDER BY occurred_on, sequence_number ASC

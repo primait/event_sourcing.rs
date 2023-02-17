@@ -6,7 +6,7 @@ use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState};
 
 #[sqlx::test]
-fn handle_command_test(pool: Pool<Postgres>) {
+async fn handle_command_test(pool: Pool<Postgres>) {
     let aggregate: TestAggregate = TestAggregate::new(&pool).await;
     let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
     let aggregate_id = *aggregate_state.id();
@@ -40,7 +40,7 @@ fn handle_command_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn load_aggregate_state_test(pool: Pool<Postgres>) {
+async fn load_aggregate_state_test(pool: Pool<Postgres>) {
     let aggregate: TestAggregate = TestAggregate::new(&pool).await;
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
