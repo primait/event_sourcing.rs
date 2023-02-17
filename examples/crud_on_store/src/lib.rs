@@ -20,6 +20,8 @@ where
     T::Event: DeserializeOwned,
     <T as Aggregate>::Event: std::fmt::Debug,
 {
+    // The path in the include_str! is the one for the given query. In your codebase you can copy the
+    // file or directly use the content
     let query: String = format!(include_str!("../statements/select_by_event_id.sql"), table_name::<T>());
 
     sqlx::query_as::<_, Event>(query.as_str())
@@ -35,7 +37,11 @@ where
 pub async fn get_events_by_aggregate_id<T: AggregateManager>(
     aggregate_id: Uuid,
     executor: impl Executor<'_, Database = Postgres>,
-) -> Vec<StoreEvent<T::Event>> {
+) -> Vec<StoreEvent<T::Event>>
+where
+    T::Event: DeserializeOwned,
+    <T as Aggregate>::Error: std::fmt::Debug,
+{
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
@@ -49,16 +55,14 @@ pub async fn get_events_by_aggregate_id<T: AggregateManager>(
         .await
         .expect("Failed to get events by aggregate id")
         .into_iter()
-        .map(|event| Ok(event.try_into()?))
+        .map(|event| Ok(event.try_into().expect("Failed to deserialize event")))
         .collect::<Result<Vec<StoreEvent<T::Event>>, T::Error>>()
         .expect("Failed to deserialize events by aggregate id")
 }
 
-// In order to implement `Insert event` you can either use use `PgStore<Manager>::save_event`
-// function or, if there's the need to do it in a transaction, use this function.
-pub async fn insert_event(executor: impl Executor<'_, Database = Postgres>) {}
-
-// Insert event with given event id. The table should be the aggregate name, not the aggregate_events
+// In order to implement `Insert event` without the need to specify an event id you can use
+// `PgStore<Manager>::save_event`. If there's the need to set the event id or to do it in a transaction,
+// use this function.
 // Note: sequence number must be larger than any sequence number in the DB for this aggregate id
 pub async fn insert_event_with_given_event_id<T: AggregateManager>(
     id: Uuid,
@@ -95,6 +99,8 @@ pub async fn update_event_by_event_id<T: AggregateManager>(
 ) where
     T::Event: Serialize,
 {
+    // The path in the include_str! is the one for the given query. In your codebase you can copy the
+    // file or directly use the content
     let query: String = format!(
         include_str!("../statements/update_event_by_event_id.sql"),
         table_name::<T>()
@@ -113,6 +119,8 @@ pub async fn delete_event_by_event_id<T: AggregateManager>(
     event_id: Uuid,
     executor: impl Executor<'_, Database = Postgres>,
 ) {
+    // The path in the include_str! is the one for the given query. In your codebase you can copy the
+    // file or directly use the content
     let query: String = format!(
         include_str!("../statements/delete_event_by_event_id.sql"),
         table_name::<T>()
@@ -127,7 +135,23 @@ pub async fn delete_event_by_event_id<T: AggregateManager>(
 
 // In order to implement `Delete all events by aggregate id` you can either use `PgStore<Manager>::delete`
 // function or, if there's the need to do it in a transaction, use this function.
-pub async fn delete_events_by_aggregate_id(executor: impl Executor<'_, Database = Postgres>) {}
+pub async fn delete_events_by_aggregate_id<T: AggregateManager>(
+    aggregate_id: Uuid,
+    executor: impl Executor<'_, Database = Postgres>,
+) {
+    // The path in the include_str! is the one for the given query. In your codebase you can copy the
+    // file or directly use the content
+    let query: String = format!(
+        include_str!("../../../src/esrs/postgres/statements/delete_by_aggregate_id.sql"),
+        table_name::<T>()
+    );
+
+    sqlx::query(query.as_str())
+        .bind(aggregate_id)
+        .execute(executor)
+        .await
+        .expect("Failed to delete event by aggregate id");
+}
 
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
 pub struct Event {
@@ -168,8 +192,8 @@ mod tests {
     use esrs::{Aggregate, AggregateManager};
 
     use crate::{
-        delete_event_by_event_id, get_event_by_id, insert_event_with_given_event_id, table_name,
-        update_event_by_event_id,
+        delete_event_by_event_id, delete_events_by_aggregate_id, get_event_by_id, get_events_by_aggregate_id,
+        insert_event_with_given_event_id, table_name, update_event_by_event_id,
     };
 
     #[derive(Debug, thiserror::Error)]
@@ -258,5 +282,33 @@ mod tests {
         // Asserting that event doesn't exist anymore
         let event = get_event_by_id::<Agg>(event_id, &pool).await;
         assert!(event.is_none());
+
+        let aggregate_id: Uuid = Uuid::new_v4();
+        // Event 1
+        let event_id_1: Uuid = Uuid::new_v4();
+        let payload_1: Payload = Payload { value: 1 };
+
+        // Inserting 1st event
+        insert_event_with_given_event_id::<Agg>(event_id_1, aggregate_id, &payload_1, Utc::now(), 1, &pool).await;
+
+        // Event 2
+        let event_id_2: Uuid = Uuid::new_v4();
+        let payload_2: Payload = Payload { value: 2 };
+
+        // Inserting 2nd event
+        insert_event_with_given_event_id::<Agg>(event_id_2, aggregate_id, &payload_2, Utc::now(), 1, &pool).await;
+
+        // Asserting that at this time the event exists with by_aggregate_id
+        let mut events = get_events_by_aggregate_id::<Agg>(aggregate_id, &pool).await;
+        assert_eq!(events.len(), 2);
+        assert_eq!(events.pop().unwrap().payload.value, 2);
+        assert_eq!(events.pop().unwrap().payload.value, 1);
+
+        // Deleting the event
+        delete_events_by_aggregate_id::<Agg>(aggregate_id, &pool).await;
+
+        // Asserting that events don't exist anymore
+        let event = get_events_by_aggregate_id::<Agg>(aggregate_id, &pool).await;
+        assert!(event.is_empty());
     }
 }
