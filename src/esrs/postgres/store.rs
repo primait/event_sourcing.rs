@@ -50,8 +50,6 @@ where
 impl<Manager> PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::State: Default + Clone + Send + Sync,
-    Manager::Command: Send,
     Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
@@ -211,8 +209,6 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<Manager> EventStore for PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::State: Default + Clone + Send + Sync,
-    Manager::Command: Send,
     Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
