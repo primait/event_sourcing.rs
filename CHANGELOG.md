@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- [[]]
+  - projector `consistency` function has been renamed in `persistence`.
+  - projector `Consistency` enum has been renamed in `ProjectorPersistence`.
+  - projector `ProjectorPersistence` enum entries renamed in `Mandatory` and `Fallible`.
+
 ---
 
 ## [0.10.2] - 2023-02-16

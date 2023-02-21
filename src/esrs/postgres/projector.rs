@@ -4,26 +4,26 @@ use uuid::Uuid;
 
 use crate::{AggregateManager, StoreEvent};
 
-/// This enum is used to instruct via [`Projector::consistency`] function which guarantees to have
+/// This enum is used to instruct via [`Projector::persistence`] function which guarantees to have
 /// while projecting an event in the read side.
-/// - [`Consistency::Strong`] means that the projected data will be always available in the read
-///   side. In the actual default store implementation it implies that if a strong consistent
+/// - [`ProjectorPersistence::Mandatory`] means that the projected data will be always available in the read
+///   side. In the actual default store implementation it implies that if a mandatory persistent
 ///   projector fails the event will not be stored in the event store and the transaction rollbacks.
-/// - [`Consistency::Eventual`] means that there are no guarantees for the projected data to be
+/// - [`ProjectorPersistence::Fallible`] means that there are no guarantees for the projected data to be
 ///   persisted in the read side. In the actual default store implementation it implies that if an
-///   eventual consistent projector fails that event is stored anyway but nothing will be persisted
+///   fallible persistent projector fails that event is stored anyway but nothing will be persisted
 ///   in the read side. If no other projector fails the event will be stored in the event store with
 ///   all the other projections and the transaction will be committed.
-pub enum Consistency {
-    Strong,
-    Eventual,
+pub enum ProjectorPersistence {
+    Mandatory,
+    Fallible,
 }
 
-impl AsRef<str> for Consistency {
+impl AsRef<str> for ProjectorPersistence {
     fn as_ref(&self) -> &str {
         match self {
-            Consistency::Strong => "strong",
-            Consistency::Eventual => "eventual",
+            ProjectorPersistence::Mandatory => "mandatory",
+            ProjectorPersistence::Fallible => "fallible",
         }
     }
 }
@@ -36,12 +36,13 @@ pub trait Projector<Manager>: Sync
 where
     Manager: AggregateManager,
 {
-    /// This function could be used to instruct the [`Projector`] about its the [`Consistency`] level.
+    /// This function could be used to instruct the [`Projector`] about its the
+    /// [`ProjectorPersistence`] level.
     ///
-    /// It has a default implementation that returns [`Consistency::Strong`]. Override this function
-    /// to change its [`Consistency`] level.
-    fn consistency(&self) -> Consistency {
-        Consistency::Strong
+    /// It has a default implementation that returns [`ProjectorPersistence::Mandatory`].
+    /// Override this function to change its [`ProjectorPersistence`] level.
+    fn persistence(&self) -> ProjectorPersistence {
+        ProjectorPersistence::Mandatory
     }
 
     /// This function projects one event in each read model that implements this trait.

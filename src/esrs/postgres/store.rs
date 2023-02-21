@@ -14,7 +14,7 @@ use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::esrs::policy;
-use crate::esrs::postgres::projector::Consistency;
+use crate::esrs::postgres::projector::ProjectorPersistence;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
@@ -277,7 +277,7 @@ where
                     "esrs.project_event",
                     event_id = %store_event.id,
                     aggregate_id = %store_event.aggregate_id,
-                    consistency = projector.consistency().as_ref(),
+                    persistence = projector.persistence().as_ref(),
                     projector = projector.name()
                 );
                 let _e = span.enter();
@@ -287,11 +287,11 @@ where
                         event_id = %store_event.id,
                         aggregate_id = %store_event.aggregate_id,
                         projector = projector.name(),
-                        consistency = projector.consistency().as_ref(),
+                        persistence = projector.persistence().as_ref(),
                         error = ?error,
                     }, "projector failed to project event");
 
-                    if let Consistency::Strong = projector.consistency() {
+                    if let ProjectorPersistence::Mandatory = projector.persistence() {
                         return Err(error);
                     }
                 }
