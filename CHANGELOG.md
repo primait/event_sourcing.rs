@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- [[]]
+- [[#144]]
   - projector `consistency` function has been renamed in `persistence`.
   - projector `Consistency` enum has been renamed in `ProjectorPersistence`.
   - projector `ProjectorPersistence` enum entries renamed in `Mandatory` and `Fallible`.
@@ -231,6 +231,7 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
+[#144]: https://github.com/primait/event_sourcing.rs/pull/144
 [#141]: https://github.com/primait/event_sourcing.rs/pull/141
 [#136]: https://github.com/primait/event_sourcing.rs/pull/136
 [#133]: https://github.com/primait/event_sourcing.rs/pull/133
