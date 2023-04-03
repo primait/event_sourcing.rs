@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+## [0.11.0] - 2023-04-03
+
 ### Changed
 
 - [[#144]]
@@ -221,7 +224,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.10.2...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/primait/event_sourcing.rs/compare/0.10.2...0.11.0
 [0.10.2]: https://github.com/primait/event_sourcing.rs/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/primait/event_sourcing.rs/compare/0.10.0...0.10.1
 [0.10.0]: https://github.com/primait/event_sourcing.rs/compare/0.9.0...0.10.0
