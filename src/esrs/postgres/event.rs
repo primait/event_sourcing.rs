@@ -9,7 +9,7 @@ use crate::StoreEvent;
 
 /// Event representation on the event store
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
-pub struct Event {
+pub struct PgEvent {
     pub id: Uuid,
     pub aggregate_id: Uuid,
     pub payload: Value,
@@ -17,7 +17,7 @@ pub struct Event {
     pub sequence_number: SequenceNumber,
 }
 
-impl<E: serde::de::DeserializeOwned> TryInto<StoreEvent<E>> for Event {
+impl<E: serde::de::DeserializeOwned> TryInto<StoreEvent<E>> for PgEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {

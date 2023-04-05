@@ -152,7 +152,7 @@ where
         executor: impl Executor<'s, Database = Postgres> + 's,
     ) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
         Box::pin({
-            sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
+            sqlx::query_as::<_, event::PgEvent>(self.inner.statements.select_all())
                 .fetch(executor)
                 .map(|res| Ok(res?.try_into()?))
         })
@@ -228,7 +228,7 @@ where
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
         Ok(
-            sqlx::query_as::<_, event::Event>(self.inner.statements.by_aggregate_id())
+            sqlx::query_as::<_, event::PgEvent>(self.inner.statements.by_aggregate_id())
                 .bind(aggregate_id)
                 .fetch_all(&self.inner.pool)
                 .await?
