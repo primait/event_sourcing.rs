@@ -13,9 +13,9 @@ use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::esrs::policy;
 use crate::esrs::postgres::projector::ProjectorPersistence;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
+use crate::esrs::{policy, Event};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
@@ -50,7 +50,7 @@ where
 impl<Manager> PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    Manager::Event: Event + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Creates a new implementation of an aggregate
@@ -209,7 +209,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<Manager> EventStore for PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    Manager::Event: Event + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     type Manager = Manager;

@@ -1,4 +1,5 @@
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 pub mod aggregate;
 pub mod policy;
@@ -13,4 +14,16 @@ mod tests;
 
 pub type SequenceNumber = i32;
 
-pub trait Event: DeserializeOwned {}
+#[cfg(not(feature = "upcasting"))]
+pub trait Event: Serialize + DeserializeOwned {}
+
+#[cfg(feature = "upcasting")]
+pub trait Event: Serialize + DeserializeOwned + Upcaster {}
+
+#[cfg(feature = "upcasting")]
+pub trait Upcaster
+where
+    Self: Sized,
+{
+    fn upcast(v: &serde_json::Value) -> Result<Self, serde_json::Error>;
+}
