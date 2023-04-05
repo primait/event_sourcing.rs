@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+
 pub mod aggregate;
 pub mod policy;
 pub mod state;
@@ -10,3 +12,5 @@ pub mod postgres;
 mod tests;
 
 pub type SequenceNumber = i32;
+
+pub trait Event: DeserializeOwned {}

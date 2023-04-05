@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::esrs::Event;
 use crate::types::SequenceNumber;
 use crate::StoreEvent;
 
@@ -17,7 +18,7 @@ pub struct PgEvent {
     pub sequence_number: SequenceNumber,
 }
 
-impl<E: serde::de::DeserializeOwned> TryInto<StoreEvent<E>> for PgEvent {
+impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
