@@ -22,8 +22,8 @@ pub enum ProjectorPersistence {
 impl AsRef<str> for ProjectorPersistence {
     fn as_ref(&self) -> &str {
         match self {
-            ProjectorPersistence::Mandatory => "mandatory",
-            ProjectorPersistence::Fallible => "fallible",
+            Self::Mandatory => "mandatory",
+            Self::Fallible => "fallible",
         }
     }
 }

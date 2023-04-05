@@ -14,7 +14,7 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone()).setup().await?;
+        let event_store: PgStore<Self> = PgStore::new(pool.clone()).setup().await?;
 
         let this: Self = Self {
             // This clone is cheap being that the internal fields of the store are behind an Arc
@@ -82,7 +82,7 @@ struct LoggingPolicy {
 }
 
 impl LoggingPolicy {
-    pub fn new(aggregate: LoggingAggregate) -> Self {
+    pub const fn new(aggregate: LoggingAggregate) -> Self {
         Self { aggregate }
     }
 }
@@ -105,7 +105,7 @@ impl Policy<LoggingAggregate> for LoggingPolicy {
                     .await?;
                 return Err(LoggingError::Domain(msg.clone()));
             }
-            println!("Logged via policy from {}: {}", aggregate_id, msg);
+            println!("Logged via policy from {aggregate_id}: {msg}");
             self.aggregate
                 .handle_command(aggregate_state, LoggingCommand::Succeed)
                 .await?;

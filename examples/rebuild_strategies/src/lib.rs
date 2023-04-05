@@ -36,7 +36,7 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
 
     // Then fully rebuild the projection table
     for event in events {
-        for projector in projectors.iter() {
+        for projector in &projectors {
             projector
                 .project(&event, &mut transaction)
                 .await
@@ -65,7 +65,7 @@ pub async fn rebuild_single_projection_per_aggregate_id(pool: Pool<Postgres>) {
         let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
         // .. and for every projector..
-        for projector in projectors.iter() {
+        for projector in &projectors {
             // .. delete all the records in the projection that has that aggregate_id as key. In order
             // to achieve this remember to override default `delete` implementation in the projector.
             projector.delete(aggregate_id, &mut transaction).await.unwrap();
@@ -126,7 +126,7 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             // If both the streams returned a value we check what's the oldest. If the oldest is a
             // we proceed to run the projectors from AggregateA.
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
-                for projector in projectors_a.iter() {
+                for projector in &projectors_a {
                     projector.project(a, &mut transaction).await.unwrap();
                 }
 
@@ -136,7 +136,7 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             // If only the stream on AggregateA events contains values we proceed to run the projectors
             // from AggregateA.
             (Some(a), None) => {
-                for projector in projectors_a.iter() {
+                for projector in &projectors_a {
                     projector.project(a, &mut transaction).await.unwrap();
                 }
 
@@ -145,8 +145,8 @@ pub async fn rebuild_shared_projection_streaming(pool: Pool<Postgres>) {
             }
             // If both the streams returned a value and AggregateB event is older or if only the stream
             // on AggregateB events contains values we proceed to run the projectors from AggregateB.
-            (Some(_), Some(b)) | (None, Some(b)) => {
-                for projector in projectors_b.iter() {
+            (Some(_) | None, Some(b)) => {
+                for projector in &projectors_b {
                     projector.project(b, &mut transaction).await.unwrap();
                 }
 

@@ -9,7 +9,7 @@ pub struct CounterAggregate {
 
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone()).setup().await?;
+        let event_store: PgStore<Self> = PgStore::new(pool.clone()).setup().await?;
 
         Ok(Self {
             event_store: Box::new(event_store),

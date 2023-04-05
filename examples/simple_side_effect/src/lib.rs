@@ -12,7 +12,7 @@ pub struct LoggingAggregate {
 
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
+        let event_store: PgStore<Self> = PgStore::new(pool.clone())
             .set_projectors(vec![Box::new(LoggingProjector)])
             .set_policies(vec![Box::new(LoggingPolicy)])
             .setup()
@@ -68,7 +68,7 @@ impl Projector<LoggingAggregate> for LoggingProjector {
                 if msg.contains("fail_projection") {
                     return Err(LoggingError::Domain(msg.clone()));
                 }
-                println!("Logged via projector from {}: {}", id, msg);
+                println!("Logged via projector from {id}: {msg}");
             }
         }
         Ok(())
@@ -94,7 +94,7 @@ impl Policy<LoggingAggregate> for LoggingPolicy {
                 if msg.contains("fail_policy") {
                     return Err(LoggingError::Domain(msg.clone()));
                 }
-                println!("Logged via policy from {}: {}", id, msg);
+                println!("Logged via policy from {id}: {msg}");
             }
         }
         Ok(())

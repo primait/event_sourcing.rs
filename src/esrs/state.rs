@@ -101,7 +101,7 @@ impl<S: Default> AggregateState<S> {
     }
 
     /// Computes the internal sequence number incremented by 1.
-    pub fn next_sequence_number(&self) -> SequenceNumber {
+    pub const fn next_sequence_number(&self) -> SequenceNumber {
         self.sequence_number + 1
     }
 

@@ -17,7 +17,7 @@ pub struct CounterAggregate {
 
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
+        let event_store: PgStore<Self> = PgStore::new(pool.clone())
             .set_projectors(vec![Box::new(CounterProjector)])
             .setup()
             .await?;
@@ -81,13 +81,13 @@ impl AggregateManager for CounterAggregate {
                                 &mut *connection,
                             )
                             .await?,
-                    )
+                    );
                 }
 
                 // Acquiring the list of projectors early, as it is an expensive operation.
                 let projectors = self.event_store().projectors();
-                for store_event in store_events.iter() {
-                    for projector in projectors.iter() {
+                for store_event in &store_events {
+                    for projector in &projectors {
                         projector.project(store_event, &mut connection).await?;
                     }
                 }
@@ -99,13 +99,13 @@ impl AggregateManager for CounterAggregate {
 
                 // Acquiring the list of policies early, as it is an expensive operation.
                 let policies = self.event_store().policies();
-                for store_event in store_events.iter() {
-                    for policy in policies.iter() {
+                for store_event in &store_events {
+                    for policy in &policies {
                         // We want to just log errors instead of return them. This is the customization
                         // we wanted.
                         match policy.handle_event(store_event).await {
                             Ok(_) => (),
-                            Err(error) => println!("{:?}", error),
+                            Err(error) => println!("{error:?}"),
                         }
                     }
                 }

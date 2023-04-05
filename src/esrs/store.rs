@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, AggregateState};
 
-/// Marker trait for every EventStoreLockGuard.
+/// Marker trait for every [`EventStoreLockGuard`].
 ///
 /// Implementors should unlock concurrent access to the guarded resource, when dropped.
 pub trait UnlockOnDrop: Send + Sync + 'static {}
@@ -18,7 +18,7 @@ pub trait UnlockOnDrop: Send + Sync + 'static {}
 pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
 
 impl EventStoreLockGuard {
-    /// Creates a new instance from any UnlockOnDrop.
+    /// Creates a new instance from any [`UnlockOnDrop`].
     #[must_use]
     pub fn new(lock: impl UnlockOnDrop) -> Self {
         Self(Box::new(lock))

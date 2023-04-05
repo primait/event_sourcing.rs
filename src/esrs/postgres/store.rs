@@ -202,7 +202,7 @@ pub struct PgStoreLockGuard {
     guard: PgAdvisoryLockGuard<'this, PoolConnection<Postgres>>,
 }
 
-/// Marking PgStoreLockGuard as an UnlockOnDrop trait object.
+/// Marking [`PgStoreLockGuard`] as an [`UnlockOnDrop`] trait object.
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
@@ -287,7 +287,7 @@ where
                         error = ?error,
                     }, "projector failed to project event");
 
-                    if let ProjectorPersistence::Mandatory = projector.persistence() {
+                    if matches!(projector.persistence(), ProjectorPersistence::Mandatory) {
                         return Err(error);
                     }
                 }
@@ -319,7 +319,7 @@ where
                         aggregate_id = %store_event.aggregate_id,
                         policy = policy.name(),
                         error = ?error,
-                    }, "policy failed to handle event")
+                    }, "policy failed to handle event");
                 }
             }
         }
