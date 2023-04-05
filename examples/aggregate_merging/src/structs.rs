@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
+use esrs::Event;
+
 // A simple error enum for event processing errors
 #[derive(Debug, Error)]
 pub enum CounterError {
@@ -16,12 +18,12 @@ pub enum CounterError {
 }
 
 // The events produced by the aggregates. The inner id acts as shared id between them
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Event, Serialize, Deserialize, Clone, Debug)]
 pub enum EventA {
     Inner { shared_id: Uuid },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Event, Serialize, Deserialize, Clone, Debug)]
 pub enum EventB {
     Inner { shared_id: Uuid },
 }

@@ -62,7 +62,7 @@ pub enum CounterError {
 }
 
 // The events to be projected
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(esrs::Event, serde::Serialize, serde::Deserialize, Debug)]
 pub enum CounterEvent {
     Incremented,
     Decremented,

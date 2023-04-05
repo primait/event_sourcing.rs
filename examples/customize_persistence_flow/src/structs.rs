@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use esrs::Event;
+
 // A simple error enum for event processing errors
 #[derive(Debug, Error)]
 pub enum CounterError {
@@ -15,7 +17,7 @@ pub enum CounterError {
 }
 
 // The events to be projected
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Event, Serialize, Deserialize, Debug)]
 pub enum CounterEvent {
     Incremented,
     Decremented,

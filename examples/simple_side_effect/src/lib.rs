@@ -4,6 +4,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use thiserror::Error;
 
 use esrs::postgres::{PgStore, Projector};
+use esrs::Event;
 use esrs::{Aggregate, AggregateManager, Policy, StoreEvent};
 
 pub struct LoggingAggregate {
@@ -115,7 +116,7 @@ pub enum LoggingError {
 }
 
 // The events to be processed
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Event, Serialize, Deserialize, Debug)]
 pub enum LoggingEvent {
     Logged(String),
 }

@@ -5,6 +5,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use esrs::postgres::PgStore;
+use esrs::Event;
 use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
 
 #[derive(Clone)]
@@ -131,7 +132,7 @@ pub enum LoggingError {
 // The events to be processed. On receipt of a new log message, the aggregate stores a Received event.
 // If the message contained within can be logged, it is, and then a Succeeded event is produced, otherwise
 // a Failed event is produced.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Event, Serialize, Deserialize, Debug)]
 pub enum LoggingEvent {
     Received(String),
     Succeeded,
