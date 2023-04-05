@@ -9,19 +9,15 @@
 //! while using `postgres` event store, everytime a state load is required a database query is
 //! performed over the event store table.
 
+pub use esrs_macros::Event;
+
 pub use crate::esrs::aggregate::{Aggregate, AggregateManager};
+pub use crate::esrs::event;
 pub use crate::esrs::policy::Policy;
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
-pub use esrs_macros::Event;
 
 mod esrs;
-
-pub mod event {
-    pub use crate::esrs::Event;
-    #[cfg(feature = "upcasting")]
-    pub use crate::esrs::Upcaster;
-}
 
 #[cfg(feature = "postgres")]
 pub mod postgres {

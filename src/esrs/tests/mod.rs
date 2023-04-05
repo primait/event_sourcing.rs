@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use sqlx::{Pool, Postgres};
 
+use crate::esrs::event::Event;
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState};
 
@@ -122,9 +123,18 @@ enum TestCommand {
     Multi,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct TestEvent {
     add: i32,
+}
+
+impl Event for TestEvent {}
+
+#[cfg(feature = "upcasting")]
+impl crate::esrs::event::Upcaster for TestEvent {
+    fn upcast(v: &serde_json::Value) -> Result<Self, serde_json::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]

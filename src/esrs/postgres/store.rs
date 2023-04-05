@@ -13,9 +13,10 @@ use sqlx::types::Json;
 use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
+use crate::esrs::policy;
 use crate::esrs::postgres::projector::ProjectorPersistence;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
-use crate::esrs::{policy, Event};
+use crate::event::Event;
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 

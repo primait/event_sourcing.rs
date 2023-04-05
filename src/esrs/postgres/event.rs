@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::esrs::Event;
+use crate::event::Event;
 use crate::types::SequenceNumber;
 use crate::StoreEvent;
 

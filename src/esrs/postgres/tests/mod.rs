@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
+use crate::event::Event;
 use crate::postgres::{PgStore, Projector};
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, Policy, StoreEvent};
 
@@ -248,6 +249,15 @@ struct TestEvent {
     id: Uuid,
 }
 
+impl Event for TestEvent {}
+
+#[cfg(feature = "upcasting")]
+impl crate::esrs::event::Upcaster for TestEvent {
+    fn upcast(v: &serde_json::Value) -> Result<Self, serde_json::Error> {
+        todo!()
+    }
+}
+
 #[derive(Debug)]
 pub struct TestError;
 
@@ -272,7 +282,7 @@ impl From<serde_json::Error> for TestError {
 }
 
 struct TestAggregate {
-    event_store: PgStore<TestAggregate>,
+    event_store: PgStore<Self>,
 }
 
 impl Aggregate for TestAggregate {
