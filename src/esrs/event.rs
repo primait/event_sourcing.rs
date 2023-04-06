@@ -12,5 +12,6 @@ pub trait Upcaster
 where
     Self: Sized,
 {
-    fn upcast(v: &serde_json::Value) -> Result<Self, serde_json::Error>;
+    // TODO: should we want this function to have a default implementation?
+    fn upcast(value: serde_json::Value) -> Result<Self, serde_json::Error>;
 }

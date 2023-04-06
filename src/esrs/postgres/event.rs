@@ -26,7 +26,7 @@ impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
             id: self.id,
             aggregate_id: self.aggregate_id,
             #[cfg(feature = "upcasting")]
-            payload: E::upcast(&self.payload)?,
+            payload: E::upcast(self.payload)?,
             #[cfg(not(feature = "upcasting"))]
             payload: serde_json::from_value::<E>(self.payload)?,
             occurred_on: self.occurred_on,

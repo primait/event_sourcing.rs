@@ -132,8 +132,8 @@ impl Event for TestEvent {}
 
 #[cfg(feature = "upcasting")]
 impl crate::esrs::event::Upcaster for TestEvent {
-    fn upcast(v: &serde_json::Value) -> Result<Self, serde_json::Error> {
-        todo!()
+    fn upcast(value: serde_json::Value) -> Result<Self, serde_json::Error> {
+        serde_json::from_value(value)
     }
 }
 
