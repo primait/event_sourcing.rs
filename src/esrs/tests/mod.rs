@@ -1,10 +1,15 @@
 use std::fmt::{Display, Formatter};
 
+use chrono::Utc;
+use serde_json::Value;
+use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
+use uuid::Uuid;
 
 use crate::esrs::event::Event;
+use crate::esrs::SequenceNumber;
 use crate::postgres::PgStore;
-use crate::{Aggregate, AggregateManager, AggregateState};
+use crate::{Aggregate, AggregateManager, AggregateState, EventStore};
 
 #[sqlx::test]
 async fn handle_command_test(pool: Pool<Postgres>) {
@@ -60,6 +65,72 @@ async fn load_aggregate_state_test(pool: Pool<Postgres>) {
     assert_eq!(initial_count + 2, aggregate_state.inner().count);
 }
 
+#[cfg(feature = "upcasting")]
+#[sqlx::test]
+async fn upcast_ok(pool: Pool<Postgres>) {
+    let id = Uuid::new_v4();
+    let aggregate_id = Uuid::new_v4();
+    let payload: Value = serde_json::from_str("{\"val\": \"3\"}").unwrap();
+
+    let aggregate = TestAggregate::new(&pool).await;
+
+    insert_event(id, aggregate_id, payload, &pool).await;
+
+    let events = aggregate.event_store.by_aggregate_id(aggregate_id).await.unwrap();
+    assert!(!events.is_empty());
+    let upcasted_event = events.first().unwrap();
+    assert_eq!(upcasted_event.id, id);
+
+    assert_eq!(upcasted_event.payload.add, 3);
+}
+
+#[cfg(feature = "upcasting")]
+#[sqlx::test]
+async fn upcast_fail_parse_value(pool: Pool<Postgres>) {
+    let id = Uuid::new_v4();
+    let aggregate_id = Uuid::new_v4();
+    let payload: Value = serde_json::from_str("{\"val\": \"a\"}").unwrap();
+
+    let aggregate = TestAggregate::new(&pool).await;
+
+    insert_event(id, aggregate_id, payload, &pool).await;
+
+    let err = aggregate.event_store.by_aggregate_id(aggregate_id).await.unwrap_err();
+    assert!(matches!(err, TestError::Json(_)));
+}
+
+#[cfg(feature = "upcasting")]
+#[sqlx::test]
+async fn upcast_fail_not_existing_field(pool: Pool<Postgres>) {
+    let id = Uuid::new_v4();
+    let aggregate_id = Uuid::new_v4();
+    let payload: Value = serde_json::from_str("{\"no_val\": \"3\"}").unwrap();
+
+    let aggregate = TestAggregate::new(&pool).await;
+
+    insert_event(id, aggregate_id, payload, &pool).await;
+
+    let err = aggregate.event_store.by_aggregate_id(aggregate_id).await.unwrap_err();
+    assert!(matches!(err, TestError::Json(_)));
+}
+
+async fn insert_event(id: Uuid, aggregate_id: Uuid, payload: Value, pool: &Pool<Postgres>) {
+    let query: String = format!(
+        include_str!("../postgres/statements/insert.sql"),
+        format!("{}_events", TestAggregate::name())
+    );
+    // Inserting old version of the event
+    let _ = sqlx::query(query.as_str())
+        .bind(id)
+        .bind(aggregate_id)
+        .bind(Json(&payload))
+        .bind(Utc::now())
+        .bind(SequenceNumber::default())
+        .execute(pool)
+        .await
+        .expect("Failed to insert event");
+}
+
 struct TestAggregate {
     event_store: PgStore<Self>,
 }
@@ -74,7 +145,7 @@ impl TestAggregate {
 
 #[derive(Clone)]
 pub struct TestAggregateState {
-    count: i32,
+    count: u32,
 }
 
 impl Default for TestAggregateState {
@@ -125,20 +196,54 @@ enum TestCommand {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct TestEvent {
-    add: i32,
+    add: u32,
 }
 
 impl Event for TestEvent {}
 
 #[cfg(feature = "upcasting")]
 impl crate::esrs::event::Upcaster for TestEvent {
-    fn upcast(value: serde_json::Value) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(value)
+    fn upcast(value: Value) -> Result<Self, serde_json::Error> {
+        use serde::de::Error;
+        use std::str::FromStr;
+
+        // First of all try to deserialize the event using current version
+        if let Ok(event) = serde_json::from_value::<Self>(value.clone()) {
+            return Ok(event);
+        }
+
+        // Then try to get it from older event.
+        // For this i assume there's another event in the event store shaped as
+        // struct TestEvent {
+        //     val: String,
+        // }
+        match value {
+            Value::Object(fields) => match fields.get("val") {
+                None => Err(serde_json::Error::custom("TestEvent not serializable")),
+                Some(value) => match value {
+                    Value::String(str) => {
+                        let value: u32 =
+                            u32::from_str(&str).map_err(|_| serde_json::Error::custom("TestEvent not serializable"))?;
+                        Ok(TestEvent { add: value })
+                    }
+                    _ => Err(serde_json::Error::custom("TestEvent not serializable")),
+                },
+            },
+            _ => Err(serde_json::Error::custom("TestEvent not serializable")),
+        }
+
+        // Note: another approach for this is having older version of the event and try to deserialize
+        // it with older versions cascading.
+        // Otherwise it's possible to keep a version number inside of the event and try to deserialize
+        // it based on that.
     }
 }
 
 #[derive(Debug)]
-pub struct TestError;
+pub enum TestError {
+    Sqlx(sqlx::Error),
+    Json(serde_json::Error),
+}
 
 impl Display for TestError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -149,13 +254,13 @@ impl Display for TestError {
 impl std::error::Error for TestError {}
 
 impl From<sqlx::Error> for TestError {
-    fn from(_: sqlx::Error) -> Self {
-        TestError
+    fn from(v: sqlx::Error) -> Self {
+        TestError::Sqlx(v)
     }
 }
 
 impl From<serde_json::Error> for TestError {
-    fn from(_: serde_json::Error) -> Self {
-        TestError
+    fn from(v: serde_json::Error) -> Self {
+        TestError::Json(v)
     }
 }

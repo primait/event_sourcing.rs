@@ -22,6 +22,7 @@ impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
+        dbg!(&self);
         Ok(StoreEvent {
             id: self.id,
             aggregate_id: self.aggregate_id,

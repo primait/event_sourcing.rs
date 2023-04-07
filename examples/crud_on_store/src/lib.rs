@@ -236,7 +236,7 @@ mod tests {
         }
     }
 
-    #[derive(serde::Serialize, serde::Deserialize, Debug)]
+    #[derive(esrs::Event, serde::Serialize, serde::Deserialize, Debug)]
     pub struct Payload {
         value: i32,
     }

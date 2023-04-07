@@ -46,17 +46,8 @@ args = ["fmt", "--all", "--", "--check"]
 # Tests
 [tasks.test]
 description = "Run tests."
-dependencies = ["test-no-features", "test-postgres"]
-
-[tasks.test-no-features]
-description = "Run tests."
 command = "cargo"
-args = ["test", "${@}", "--workspace"]
-
-[tasks.test-postgres]
-description = "Run tests."
-command = "cargo"
-args = ["test", "${@}", "--workspace", "--features=postgres"]
+args = ["test", "${@}", "--workspace", "--all-features"]
 
 # Clippy
 [tasks.clippy-ci]
