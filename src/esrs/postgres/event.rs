@@ -16,13 +16,13 @@ pub struct PgEvent {
     pub payload: Value,
     pub occurred_on: DateTime<Utc>,
     pub sequence_number: SequenceNumber,
+    pub version: Option<i32>,
 }
 
 impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
-        dbg!(&self);
         Ok(StoreEvent {
             id: self.id,
             aggregate_id: self.aggregate_id,
@@ -32,6 +32,7 @@ impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
             payload: serde_json::from_value::<E>(self.payload)?,
             occurred_on: self.occurred_on,
             sequence_number: self.sequence_number,
+            version: self.version,
         })
     }
 }

@@ -131,6 +131,8 @@ pub struct StoreEvent<Event> {
     pub occurred_on: DateTime<Utc>,
     /// The sequence number of the event, within its specific aggregate instance.
     pub sequence_number: SequenceNumber,
+    /// The version of the event.
+    pub version: Option<i32>,
 }
 
 impl<Event> StoreEvent<Event> {

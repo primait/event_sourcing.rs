@@ -8,7 +8,6 @@ use esrs::Event;
 
 // The actual EventB
 #[derive(Event, Serialize, Deserialize, Debug)]
-#[serde(tag = "event_type")]
 pub enum Event {
     Incremented(IncPayload),
     Decremented(DecPayload),
@@ -49,7 +48,6 @@ impl Upcaster for Event {
 
 // Previous version of `Event`:
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "event_type")]
 pub enum Event20230405 {
     Incremented(IncPayload20230405),
     Decremented(DecPayload),

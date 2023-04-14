@@ -14,13 +14,12 @@ use sqlx::{Executor, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::esrs::policy;
-use crate::esrs::postgres::projector::ProjectorPersistence;
+use crate::esrs::postgres::event::PgEvent;
+use crate::esrs::postgres::projector::{self, ProjectorPersistence};
+use crate::esrs::postgres::statement::Statements;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
-use crate::event::Event;
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
-
-use super::{event, projector, statement::Statements};
+use crate::{event, Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
 type Projector<A> = Box<dyn projector::Projector<A> + Send + Sync>;
 type Policy<A> = Box<dyn policy::Policy<A> + Send + Sync>;
@@ -51,7 +50,7 @@ where
 impl<Manager> PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::Event: Event + Send + Sync,
+    Manager::Event: event::Event + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Creates a new implementation of an aggregate
@@ -133,12 +132,21 @@ where
     ) -> Result<StoreEvent<Manager::Event>, Manager::Error> {
         let id: Uuid = Uuid::new_v4();
 
+        #[cfg(feature = "upcasting")]
+        let version: Option<i32> = {
+            use crate::event::Upcaster;
+            Manager::Event::current_version()
+        };
+        #[cfg(not(feature = "upcasting"))]
+        let version: Option<i32> = None;
+
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
             .bind(Json(&event))
             .bind(occurred_on)
             .bind(sequence_number)
+            .bind(version)
             .execute(executor)
             .await?;
 
@@ -148,6 +156,7 @@ where
             payload: event,
             occurred_on,
             sequence_number,
+            version,
         })
     }
 
@@ -158,7 +167,7 @@ where
         executor: impl Executor<'s, Database = Postgres> + 's,
     ) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
         Box::pin({
-            sqlx::query_as::<_, event::PgEvent>(self.inner.statements.select_all())
+            sqlx::query_as::<_, PgEvent>(self.inner.statements.select_all())
                 .fetch(executor)
                 .map(|res| Ok(res?.try_into()?))
         })
@@ -215,7 +224,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<Manager> EventStore for PgStore<Manager>
 where
     Manager: AggregateManager,
-    Manager::Event: Event + Send + Sync,
+    Manager::Event: event::Event + Send + Sync,
     Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     type Manager = Manager;
@@ -233,15 +242,13 @@ where
     }
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
-        Ok(
-            sqlx::query_as::<_, event::PgEvent>(self.inner.statements.by_aggregate_id())
-                .bind(aggregate_id)
-                .fetch_all(&self.inner.pool)
-                .await?
-                .into_iter()
-                .map(|event| Ok(event.try_into()?))
-                .collect::<Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>>()?,
-        )
+        Ok(sqlx::query_as::<_, PgEvent>(self.inner.statements.by_aggregate_id())
+            .bind(aggregate_id)
+            .fetch_all(&self.inner.pool)
+            .await?
+            .into_iter()
+            .map(|event| Ok(event.try_into()?))
+            .collect::<Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>>()?)
     }
 
     #[tracing::instrument(skip_all, fields(aggregate_id = %aggregate_state.id()), err)]

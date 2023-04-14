@@ -88,6 +88,7 @@ pub async fn insert_event_with_given_event_id<T: AggregateManager>(
         .bind(Json(&payload))
         .bind(occurred_on)
         .bind(sequence_number)
+        .bind(None)
         .execute(executor)
         .await
         .expect("Failed to insert event");
@@ -162,6 +163,7 @@ pub struct Event {
     pub payload: Value,
     pub occurred_on: DateTime<Utc>,
     pub sequence_number: i32,
+    pub version: Option<i32>,
 }
 
 impl<E: DeserializeOwned> TryInto<StoreEvent<E>> for Event {
@@ -174,6 +176,7 @@ impl<E: DeserializeOwned> TryInto<StoreEvent<E>> for Event {
             payload: serde_json::from_value::<E>(self.payload)?,
             occurred_on: self.occurred_on,
             sequence_number: self.sequence_number,
+            version: self.version,
         })
     }
 }

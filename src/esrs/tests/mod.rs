@@ -126,6 +126,7 @@ async fn insert_event(id: Uuid, aggregate_id: Uuid, payload: Value, pool: &Pool<
         .bind(Json(&payload))
         .bind(Utc::now())
         .bind(SequenceNumber::default())
+        .bind(Some(1))
         .execute(pool)
         .await
         .expect("Failed to insert event");
