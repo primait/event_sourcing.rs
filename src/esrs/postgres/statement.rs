@@ -16,6 +16,7 @@ pub struct Statements {
     select_all: String,
     insert: String,
     delete_by_aggregate_id: String,
+    migrations: String,
 }
 
 impl Statements {
@@ -28,6 +29,7 @@ impl Statements {
             select_all: statement!("statements/select_all.sql", Store::Manager),
             insert: statement!("statements/insert.sql", Store::Manager),
             delete_by_aggregate_id: statement!("statements/delete_by_aggregate_id.sql", Store::Manager),
+            migrations: statement!("statements/migrations.sql", Store::Manager),
         }
     }
 
@@ -57,5 +59,13 @@ impl Statements {
 
     pub fn delete_by_aggregate_id(&self) -> &str {
         &self.delete_by_aggregate_id
+    }
+
+    pub fn migrations(&self) -> Vec<&str> {
+        self.migrations
+            .split(';')
+            .filter(|v| !v.starts_with("--"))
+            .filter(|v| !v.trim().is_empty())
+            .collect()
     }
 }

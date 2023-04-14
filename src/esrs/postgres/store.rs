@@ -108,6 +108,11 @@ where
             .execute(&mut *transaction)
             .await?;
 
+        // Run existing migrations.
+        for migration in self.inner.statements.migrations() {
+            let _: PgQueryResult = sqlx::query(migration).execute(&mut *transaction).await?;
+        }
+
         transaction.commit().await?;
 
         Ok(self)
