@@ -14,4 +14,11 @@ where
 {
     // TODO: should we want this function to have a default implementation?
     fn upcast(value: serde_json::Value) -> Result<Self, serde_json::Error>;
+
+    fn version<T>() -> Option<T>
+    where
+        T: Into<u32>,
+    {
+        None
+    }
 }
