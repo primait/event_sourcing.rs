@@ -8,6 +8,8 @@ use esrs::postgres::PgStore;
 use esrs::Event;
 use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
 
+fn main() {}
+
 #[derive(Clone)]
 pub struct LoggingAggregate {
     event_store: PgStore<Self>,

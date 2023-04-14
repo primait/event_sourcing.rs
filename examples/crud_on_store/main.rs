@@ -11,6 +11,8 @@ use uuid::Uuid;
 
 use esrs::{Aggregate, AggregateManager, StoreEvent};
 
+fn main() {}
+
 // Get event by event id. The table should be the aggregate name, not the aggregate_events
 pub async fn get_event_by_id<T: AggregateManager>(
     event_id: Uuid,
@@ -22,7 +24,7 @@ where
 {
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
-    let query: String = format!(include_str!("../statements/select_by_event_id.sql"), table_name::<T>());
+    let query: String = format!(include_str!("statements/select_by_event_id.sql"), table_name::<T>());
 
     sqlx::query_as::<_, Event>(query.as_str())
         .bind(event_id)
@@ -45,7 +47,7 @@ where
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/select_by_aggregate_id.sql"),
+        include_str!("../../src/esrs/postgres/statements/select_by_aggregate_id.sql"),
         table_name::<T>()
     );
 
@@ -77,7 +79,7 @@ pub async fn insert_event_with_given_event_id<T: AggregateManager>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/insert.sql"),
+        include_str!("../../src/esrs/postgres/statements/insert.sql"),
         table_name::<T>()
     );
     let _ = sqlx::query(query.as_str())
@@ -102,7 +104,7 @@ pub async fn update_event_by_event_id<T: AggregateManager>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../statements/update_event_by_event_id.sql"),
+        include_str!("statements/update_event_by_event_id.sql"),
         table_name::<T>()
     );
 
@@ -122,7 +124,7 @@ pub async fn delete_event_by_event_id<T: AggregateManager>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../statements/delete_event_by_event_id.sql"),
+        include_str!("statements/delete_event_by_event_id.sql"),
         table_name::<T>()
     );
 
@@ -142,7 +144,7 @@ pub async fn delete_events_by_aggregate_id<T: AggregateManager>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/delete_by_aggregate_id.sql"),
+        include_str!("../../src/esrs/postgres/statements/delete_by_aggregate_id.sql"),
         table_name::<T>()
     );
 
@@ -245,7 +247,7 @@ mod tests {
     async fn crud_test(pool: PgPool) {
         // I need to create the table..
         let query: String = format!(
-            include_str!("../../../src/esrs/postgres/statements/create_table.sql"),
+            include_str!("../../src/esrs/postgres/statements/create_table.sql"),
             table_name::<Agg>()
         );
         let _ = sqlx::query(query.as_str()).execute(&pool).await.unwrap();

@@ -68,6 +68,22 @@ description = "Run given example."
 command = "cargo"
 args = ["run", "-p", "${@}"]
 
+[tasks.examples]
+description = "Check examples."
+script = [
+    "cargo check --example aggregate_merging --features=postgres",
+    "cargo check --example crud_on_store --features=postgres",
+    "cargo check --example customize_persistence_flow --features=postgres",
+    "cargo check --example delete_aggregate --features=postgres",
+    "cargo check --example dyn_event_store_in_aggregate --features=postgres",
+    "cargo check --example locking_strategies --features=postgres",
+    "cargo check --example rebuild_strategies --features=postgres",
+    "cargo check --example simple_projection --features=postgres",
+    "cargo check --example simple_saga --features=postgres",
+    "cargo check --example simple_side_effect --features=postgres",
+    "cargo check --example upcasting --features=postgres,upcasting"
+]
+
 # Docs
 [tasks.docsrs]
 description = "Build docs as they are rendered on docs.rs"

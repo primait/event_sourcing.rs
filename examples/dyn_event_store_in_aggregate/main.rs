@@ -3,6 +3,8 @@ use sqlx::{Pool, Postgres};
 use esrs::postgres::PgStore;
 use esrs::{Aggregate, AggregateManager, EventStore};
 
+fn main() {}
+
 pub struct CounterAggregate {
     pub event_store: Box<dyn EventStore<Manager = Self> + Send + Sync>,
 }

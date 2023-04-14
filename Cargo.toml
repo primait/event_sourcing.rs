@@ -17,17 +17,6 @@ all-features = true
 [workspace]
 members = [
     "esrs-macros",
-#    "examples/aggregate_merging",
-#    "examples/crud_on_store",
-#    "examples/customize_persistence_flow",
-#    "examples/delete_aggregate",
-#    "examples/dyn_event_store_in_aggregate",
-#    "examples/locking_strategies",
-#    "examples/rebuild_strategies",
-#    "examples/simple_projection",
-#    "examples/simple_saga",
-#    "examples/simple_side_effect",
-#    "examples/upcasting",
 ]
 
 [features]
@@ -63,3 +52,4 @@ tracing = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
+thiserror = "1.0"

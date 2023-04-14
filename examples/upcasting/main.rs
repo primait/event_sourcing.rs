@@ -1,5 +1,4 @@
 use thiserror::Error;
-
 pub mod a;
 pub mod aggregate;
 pub mod b;
@@ -19,6 +18,8 @@ pub enum Error {
 
 // The commands received by the application, which will produce the events
 pub enum Command {
-    Increment { u: u32 },
-    Decrement { u: u32 },
+    Increment { u: u64 },
+    Decrement { u: u64 },
 }
+
+fn main() {}
