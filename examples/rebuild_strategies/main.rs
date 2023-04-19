@@ -4,7 +4,6 @@ use uuid::Uuid;
 
 use esrs::postgres::{PgStore, Projector};
 use esrs::{AggregateManager, EventStore, StoreEvent};
-// use futures_util::stream::StreamExt;
 
 use crate::aggregates::{AggregateA, AggregateB};
 use crate::structs::{CounterError, EventA, EventB};
