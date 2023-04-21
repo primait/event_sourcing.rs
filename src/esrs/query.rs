@@ -31,10 +31,15 @@ pub trait Query<M: AggregateManager>: Send + Sync {
 // }
 
 #[async_trait]
-pub trait TransactionalQuery<AM: AggregateManager, E> {
+pub trait TransactionalQuery<AM, E>: Sync
+where
+    AM: AggregateManager,
+{
     async fn handle(&self, event: &StoreEvent<AM::Event>, executor: &mut E) -> Result<(), AM::Error>;
 
-    async fn delete(&self, aggregate_id: Uuid, executor: &mut E) -> Result<(), AM::Error>;
+    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut E) -> Result<(), AM::Error> {
+        Ok(())
+    }
 
     /// The name of the projector. By default, this is the type name of the projector,
     /// but it can be overridden to provide a custom name. This name is used as
