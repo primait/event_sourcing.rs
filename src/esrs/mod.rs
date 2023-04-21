@@ -1,5 +1,6 @@
 pub mod aggregate;
 pub mod policy;
+pub mod query;
 pub mod state;
 pub mod store;
 

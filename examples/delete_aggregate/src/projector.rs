@@ -2,18 +2,17 @@ use async_trait::async_trait;
 use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::Projector;
-use esrs::StoreEvent;
+use esrs::{StoreEvent, TransactionalQuery};
 
 use crate::aggregate::CounterAggregate;
 use crate::structs::{CounterError, CounterEvent};
 
 #[derive(Clone)]
-pub struct CounterProjector;
+pub struct CounterTransactionalQuery;
 
 #[async_trait]
-impl Projector<CounterAggregate> for CounterProjector {
-    async fn project(
+impl TransactionalQuery<CounterAggregate, PgConnection> for CounterTransactionalQuery {
+    async fn handle(
         &self,
         event: &StoreEvent<CounterEvent>,
         connection: &mut PgConnection,

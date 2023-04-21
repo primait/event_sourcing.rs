@@ -2,19 +2,18 @@ use async_trait::async_trait;
 use sqlx::{Executor, PgConnection, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::Projector;
-use esrs::StoreEvent;
+use esrs::{StoreEvent, TransactionalQuery};
 
 use crate::aggregates::{AggregateA, AggregateB};
 use crate::structs::{CounterError, EventA, EventB};
 
 #[derive(Clone)]
-pub struct CounterProjector;
+pub struct CounterTransactionalQuery;
 
 // This is a projector template that will project AggregateA events into a shared projection (DB table).
 #[async_trait]
-impl Projector<AggregateA> for CounterProjector {
-    async fn project(&self, event: &StoreEvent<EventA>, connection: &mut PgConnection) -> Result<(), CounterError> {
+impl TransactionalQuery<AggregateA, PgConnection> for CounterTransactionalQuery {
+    async fn handle(&self, event: &StoreEvent<EventA>, connection: &mut PgConnection) -> Result<(), CounterError> {
         match event.payload() {
             EventA::Inner { shared_id: id } => {
                 let existing = Counter::by_id(*id, &mut *connection).await?;
@@ -33,8 +32,8 @@ impl Projector<AggregateA> for CounterProjector {
 
 // This is a projector template that will project AggregateB events into a shared projection (DB table).
 #[async_trait]
-impl Projector<AggregateB> for CounterProjector {
-    async fn project(&self, event: &StoreEvent<EventB>, connection: &mut PgConnection) -> Result<(), CounterError> {
+impl TransactionalQuery<AggregateB, PgConnection> for CounterTransactionalQuery {
+    async fn handle(&self, event: &StoreEvent<EventB>, connection: &mut PgConnection) -> Result<(), CounterError> {
         match event.payload() {
             EventB::Inner { shared_id: id } => {
                 let existing = Counter::by_id(*id, &mut *connection).await?;

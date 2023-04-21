@@ -5,7 +5,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager, AggregateState, Policy, StoreEvent};
+use esrs::{Aggregate, AggregateManager, AggregateState, Query, StoreEvent};
 
 #[derive(Clone)]
 pub struct LoggingAggregate {
@@ -21,7 +21,7 @@ impl LoggingAggregate {
             event_store: event_store.clone(),
         };
 
-        event_store.set_policies(vec![Box::new(LoggingPolicy::new(this.clone()))]);
+        event_store.set_queries(vec![Box::new(LoggingQuery::new(this.clone()))]);
         Ok(this)
     }
 }
@@ -77,41 +77,49 @@ impl AggregateManager for LoggingAggregate {
 // A very simply policy, which tries to log an event, and creates another command after it finishes
 // which indicates success or failure to log
 #[derive(Clone)]
-struct LoggingPolicy {
+struct LoggingQuery {
     aggregate: LoggingAggregate,
 }
 
-impl LoggingPolicy {
+impl LoggingQuery {
     pub fn new(aggregate: LoggingAggregate) -> Self {
         Self { aggregate }
     }
 }
 
 #[async_trait]
-impl Policy<LoggingAggregate> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
+impl Query<LoggingAggregate> for LoggingQuery {
+    async fn handle(&self, event: &StoreEvent<LoggingEvent>) {
         let aggregate_id: Uuid = event.aggregate_id;
 
-        let aggregate_state: AggregateState<u64> = self
-            .aggregate
-            .load(aggregate_id)
-            .await?
-            .unwrap_or_else(|| AggregateState::with_id(aggregate_id)); // This should never happen
+        let aggregate_state: AggregateState<u64> = match self.aggregate.load(aggregate_id).await {
+            Ok(Some(aggregate_state)) => aggregate_state,
+            Ok(None) => AggregateState::with_id(aggregate_id),
+            Err(e) => return println!("Error loading aggregate {}", e),
+        }; // This should never happen
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {
-                self.aggregate
+                match self
+                    .aggregate
                     .handle_command(aggregate_state, LoggingCommand::Fail)
-                    .await?;
-                return Err(LoggingError::Domain(msg.clone()));
+                    .await
+                {
+                    Ok(_) => (),
+                    Err(e) => println!("Error handling command {}", e),
+                };
+                return;
             }
             println!("Logged via policy from {}: {}", aggregate_id, msg);
-            self.aggregate
+            match self
+                .aggregate
                 .handle_command(aggregate_state, LoggingCommand::Succeed)
-                .await?;
-        }
-
-        Ok(())
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => println!("Error handling command {}", e),
+            };
+        };
     }
 }
 
