@@ -13,15 +13,15 @@ use sqlx::types::Json;
 use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::esrs::query;
+use crate::esrs::event_handler;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
 use super::{event, statement::Statements};
 
-type Query<A> = Box<dyn query::Query<A> + Send + Sync>;
-type TransactionalQuery<A, E> = Box<dyn query::TransactionalQuery<A, E> + Send + Sync>;
+type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
+type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -42,8 +42,8 @@ where
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    queries: ArcSwap<Vec<Query<Manager>>>,
-    transactional_queries: ArcSwap<Vec<TransactionalQuery<Manager, PgConnection>>>,
+    queries: ArcSwap<Vec<EventHandler<Manager>>>,
+    transactional_queries: ArcSwap<Vec<TransactionalEventHandler<Manager, PgConnection>>>,
 }
 
 impl<Manager> PgStore<Manager>
@@ -66,13 +66,13 @@ where
     }
 
     /// Set the list of (non transactional) queries to the store
-    pub fn set_queries(self, queries: Vec<Query<Manager>>) -> Self {
+    pub fn set_queries(self, queries: Vec<EventHandler<Manager>>) -> Self {
         self.inner.queries.store(Arc::new(queries));
         self
     }
 
     /// Set the list of transactional queries to the store
-    pub fn set_transactional_queries(self, queries: Vec<TransactionalQuery<Manager, PgConnection>>) -> Self {
+    pub fn set_transactional_queries(self, queries: Vec<TransactionalEventHandler<Manager, PgConnection>>) -> Self {
         self.inner.transactional_queries.store(Arc::new(queries));
         self
     }
@@ -159,13 +159,13 @@ where
 
     /// This function returns the list of all projections added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn transactional_queries(&self) -> Arc<Vec<TransactionalQuery<Manager, PgConnection>>> {
+    pub fn transactional_queries(&self) -> Arc<Vec<TransactionalEventHandler<Manager, PgConnection>>> {
         self.inner.transactional_queries.load().clone()
     }
 
     /// This function returns the list of all policies added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn queries(&self) -> Arc<Vec<Query<Manager>>> {
+    pub fn queries(&self) -> Arc<Vec<EventHandler<Manager>>> {
         self.inner.queries.load().clone()
     }
 

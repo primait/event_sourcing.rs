@@ -8,7 +8,7 @@ use esrs::types::SequenceNumber;
 use esrs::{Aggregate, AggregateManager};
 use esrs::{AggregateState, StoreEvent};
 
-use crate::projector::CounterTransactionalQuery;
+use crate::projector::CounterTransactionalEventHandler;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
 pub struct CounterAggregate {
@@ -18,7 +18,7 @@ pub struct CounterAggregate {
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
-            .set_transactional_queries(vec![Box::new(CounterTransactionalQuery)])
+            .set_transactional_queries(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 

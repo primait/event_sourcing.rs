@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
-use crate::esrs::query::{Query, TransactionalQuery};
+use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
 
@@ -137,7 +137,7 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 fn event_projection_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_queries(vec![Box::new(TestTransactionalQuery {})])
+        .set_transactional_queries(vec![Box::new(TestTransactionalEventHandler {})])
         .setup()
         .await
         .unwrap();
@@ -166,7 +166,7 @@ fn event_projection_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_queries(vec![Box::new(TestTransactionalQuery {})])
+        .set_transactional_queries(vec![Box::new(TestTransactionalEventHandler {})])
         .setup()
         .await
         .unwrap();
@@ -210,7 +210,7 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 fn policy_test(pool: Pool<Postgres>) {
     let last_id: Arc<Mutex<Uuid>> = Arc::new(Mutex::new(Uuid::default()));
-    let query: Box<TestQuery> = Box::new(TestQuery {
+    let query: Box<TestEventHandler> = Box::new(TestEventHandler {
         last_id: last_id.clone(),
     });
 
@@ -307,10 +307,10 @@ impl AggregateManager for TestAggregate {
 }
 
 #[derive(Clone)]
-struct TestTransactionalQuery;
+struct TestTransactionalEventHandler;
 
 #[async_trait::async_trait]
-impl TransactionalQuery<TestAggregate, PgConnection> for TestTransactionalQuery {
+impl TransactionalEventHandler<TestAggregate, PgConnection> for TestTransactionalEventHandler {
     async fn handle(&self, event: &StoreEvent<TestEvent>, connection: &mut PgConnection) -> Result<(), TestError> {
         Ok(
             sqlx::query("INSERT INTO test_projection (id, projection_id) VALUES ($1, $2)")
@@ -338,12 +338,12 @@ struct ProjectionRow {
 }
 
 #[derive(Clone)]
-struct TestQuery {
+struct TestEventHandler {
     last_id: Arc<Mutex<Uuid>>,
 }
 
 #[async_trait::async_trait]
-impl Query<TestAggregate> for TestQuery {
+impl EventHandler<TestAggregate> for TestEventHandler {
     async fn handle(&self, event: &StoreEvent<TestEvent>) {
         let mut guard = self.last_id.lock().unwrap();
         *guard = event.payload.id;

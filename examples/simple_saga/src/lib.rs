@@ -5,7 +5,7 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager, AggregateState, Query, StoreEvent};
+use esrs::{Aggregate, AggregateManager, AggregateState, EventHandler, StoreEvent};
 
 #[derive(Clone)]
 pub struct LoggingAggregate {
@@ -21,7 +21,7 @@ impl LoggingAggregate {
             event_store: event_store.clone(),
         };
 
-        event_store.set_queries(vec![Box::new(LoggingQuery::new(this.clone()))]);
+        event_store.set_queries(vec![Box::new(LoggingEventHandler::new(this.clone()))]);
         Ok(this)
     }
 }
@@ -77,18 +77,18 @@ impl AggregateManager for LoggingAggregate {
 // A very simply policy, which tries to log an event, and creates another command after it finishes
 // which indicates success or failure to log
 #[derive(Clone)]
-struct LoggingQuery {
+struct LoggingEventHandler {
     aggregate: LoggingAggregate,
 }
 
-impl LoggingQuery {
+impl LoggingEventHandler {
     pub fn new(aggregate: LoggingAggregate) -> Self {
         Self { aggregate }
     }
 }
 
 #[async_trait]
-impl Query<LoggingAggregate> for LoggingQuery {
+impl EventHandler<LoggingAggregate> for LoggingEventHandler {
     async fn handle(&self, event: &StoreEvent<LoggingEvent>) {
         let aggregate_id: Uuid = event.aggregate_id;
 

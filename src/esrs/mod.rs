@@ -1,6 +1,6 @@
 pub mod aggregate;
+pub mod event_handler;
 pub mod policy;
-pub mod query;
 pub mod state;
 pub mod store;
 

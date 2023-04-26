@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{AggregateManager, StoreEvent};
 
 #[async_trait]
-pub trait Query<M: AggregateManager>: Send + Sync {
+pub trait EventHandler<M: AggregateManager>: Send + Sync {
     async fn handle(&self, event: &StoreEvent<M::Event>);
 
     async fn delete(&self, _aggregate_id: Uuid) {}
@@ -18,11 +18,11 @@ pub trait Query<M: AggregateManager>: Send + Sync {
 }
 //
 // #[async_trait]
-// impl<M, Q, T> Query<AM> for T
+// impl<M, Q, T> EventHandler<AM> for T
 // where
 //     AM: AggregateManager,
 //     M::Event: Send + Sync,
-//     Q: Query<AM>,
+//     Q: EventHandler<AM>,
 //     T: Deref<Target = Q> + Send + Sync,
 // {
 //     async fn handle(&self, event: StoreEvent<M::Event>) {
@@ -31,7 +31,7 @@ pub trait Query<M: AggregateManager>: Send + Sync {
 // }
 
 #[async_trait]
-pub trait TransactionalQuery<AM, E>: Sync
+pub trait TransactionalEventHandler<AM, E>: Sync
 where
     AM: AggregateManager,
 {
@@ -49,4 +49,4 @@ where
     }
 }
 
-pub trait QueryError: std::error::Error {}
+pub trait EventHandlerError: std::error::Error {}
