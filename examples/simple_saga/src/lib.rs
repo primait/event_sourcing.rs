@@ -21,7 +21,7 @@ impl LoggingAggregate {
             event_store: event_store.clone(),
         };
 
-        event_store.set_queries(vec![Box::new(LoggingEventHandler::new(this.clone()))]);
+        event_store.set_event_handlers(vec![Box::new(LoggingEventHandler::new(this.clone()))]);
         Ok(this)
     }
 }

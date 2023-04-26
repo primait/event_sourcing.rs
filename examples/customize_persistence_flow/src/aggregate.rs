@@ -18,7 +18,7 @@ pub struct CounterAggregate {
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
-            .set_transactional_queries(vec![Box::new(CounterTransactionalEventHandler)])
+            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 
@@ -85,7 +85,7 @@ impl AggregateManager for CounterAggregate {
                 }
 
                 // Acquiring the list of projectors early, as it is an expensive operation.
-                let transactional_queries = self.event_store().transactional_queries();
+                let transactional_queries = self.event_store().transactional_event_handlers();
                 for store_event in store_events.iter() {
                     for transactional_query in transactional_queries.iter() {
                         transactional_query.handle(store_event, &mut connection).await?;
@@ -98,7 +98,7 @@ impl AggregateManager for CounterAggregate {
                 drop(aggregate_state.take_lock());
 
                 // Acquiring the list of policies early, as it is an expensive operation.
-                let queries = self.event_store().queries();
+                let queries = self.event_store().event_handlers();
                 for store_event in store_events.iter() {
                     for query in queries.iter() {
                         // We want to just log errors instead of return them. This is the customization

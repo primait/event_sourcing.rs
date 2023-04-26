@@ -11,7 +11,6 @@
 
 pub use crate::esrs::aggregate::{Aggregate, AggregateManager};
 pub use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
-pub use crate::esrs::policy::Policy;
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 
@@ -20,7 +19,6 @@ mod esrs;
 #[cfg(feature = "postgres")]
 pub mod postgres {
     //! Provides implementation of the [`EventStore`] for Postgres.
-    pub use crate::esrs::postgres::projector::{Projector, ProjectorPersistence};
     pub use crate::esrs::postgres::store::PgStore;
 }
 

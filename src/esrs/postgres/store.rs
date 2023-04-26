@@ -42,8 +42,8 @@ where
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    queries: ArcSwap<Vec<EventHandler<Manager>>>,
-    transactional_queries: ArcSwap<Vec<TransactionalEventHandler<Manager, PgConnection>>>,
+    event_handlers: ArcSwap<Vec<EventHandler<Manager>>>,
+    transactional_event_handlers: ArcSwap<Vec<TransactionalEventHandler<Manager, PgConnection>>>,
 }
 
 impl<Manager> PgStore<Manager>
@@ -58,22 +58,25 @@ where
         let inner: InnerPgStore<Manager> = InnerPgStore {
             pool,
             statements: Statements::new::<Self>(),
-            queries: ArcSwap::from_pointee(vec![]),
-            transactional_queries: ArcSwap::from_pointee(vec![]),
+            event_handlers: ArcSwap::from_pointee(vec![]),
+            transactional_event_handlers: ArcSwap::from_pointee(vec![]),
         };
 
         Self { inner: Arc::new(inner) }
     }
 
-    /// Set the list of (non transactional) queries to the store
-    pub fn set_queries(self, queries: Vec<EventHandler<Manager>>) -> Self {
-        self.inner.queries.store(Arc::new(queries));
+    /// Set the list of (non transactional) event handlers to the store
+    pub fn set_event_handlers(self, event_handlers: Vec<EventHandler<Manager>>) -> Self {
+        self.inner.event_handlers.store(Arc::new(event_handlers));
         self
     }
 
-    /// Set the list of transactional queries to the store
-    pub fn set_transactional_queries(self, queries: Vec<TransactionalEventHandler<Manager, PgConnection>>) -> Self {
-        self.inner.transactional_queries.store(Arc::new(queries));
+    /// Set the list of transactional event handlers to the store
+    pub fn set_transactional_event_handlers(
+        self,
+        event_handlers: Vec<TransactionalEventHandler<Manager, PgConnection>>,
+    ) -> Self {
+        self.inner.transactional_event_handlers.store(Arc::new(event_handlers));
         self
     }
 
@@ -157,24 +160,21 @@ where
         })
     }
 
-    /// This function returns the list of all projections added to this store. This function should
-    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn transactional_queries(&self) -> Arc<Vec<TransactionalEventHandler<Manager, PgConnection>>> {
-        self.inner.transactional_queries.load().clone()
+    /// This function returns the list of all transactional event handlers added to this store.
+    /// This function should mostly used while creating a custom persistence flow using [`PgStore::persist`].
+    pub fn transactional_event_handlers(&self) -> Arc<Vec<TransactionalEventHandler<Manager, PgConnection>>> {
+        self.inner.transactional_event_handlers.load().clone()
     }
 
-    /// This function returns the list of all policies added to this store. This function should
+    /// This function returns the list of all event handlers added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn queries(&self) -> Arc<Vec<EventHandler<Manager>>> {
-        self.inner.queries.load().clone()
+    pub fn event_handlers(&self) -> Arc<Vec<EventHandler<Manager>>> {
+        self.inner.event_handlers.load().clone()
     }
 
     /// This function could be used in order to customize the way the store persist the events.
-    /// For example could be used to avoid having projectors in transaction with event saving. Or to
-    /// let the policies return or not an error if one of them fails.
     ///
-    /// An example of how to use this function is in `examples/customize_persistence_flow` example
-    /// folder.
+    /// An example of how to use this function is in `examples/customize_persistence_flow` example folder.
     ///
     /// # Errors
     ///
@@ -264,25 +264,25 @@ where
             store_events.push(store_event);
         }
 
-        // Acquiring the list of projectors early, as it is an expensive operation.
-        let transactional_queries = self.transactional_queries();
+        // Acquiring the list of transactional event handlers early, as it is an expensive operation.
+        let transactional_event_handlers = self.transactional_event_handlers();
         for store_event in &store_events {
-            for transactional_query in transactional_queries.iter() {
+            for transactional_event_handler in transactional_event_handlers.iter() {
                 let span = tracing::trace_span!(
-                    "esrs.transactional_query",
+                    "esrs.transactional_event_handler",
                     event_id = %store_event.id,
                     aggregate_id = %store_event.aggregate_id,
-                    query = transactional_query.name()
+                    transactional_event_handler = transactional_event_handler.name()
                 );
                 let _e = span.enter();
 
-                if let Err(error) = transactional_query.handle(store_event, &mut transaction).await {
+                if let Err(error) = transactional_event_handler.handle(store_event, &mut transaction).await {
                     tracing::error!({
                         event_id = %store_event.id,
                         aggregate_id = %store_event.aggregate_id,
-                        query = transactional_query.name(),
+                        transactional_event_handler = transactional_event_handler.name(),
                         error = ?error,
-                    }, "transactional query failed to handle event");
+                    }, "transactional event handler failed to handle event");
 
                     return Err(error);
                 }
@@ -293,23 +293,23 @@ where
 
         // We need to drop the lock on the aggregate state here as:
         // 1. the events have already been persisted, hence the DB has the latest aggregate;
-        // 2. the policies below might need to access this aggregate atomically (causing a deadlock!).
+        // 2. the event handlers below might need to access this aggregate atomically (causing a deadlock!).
         drop(aggregate_state.take_lock());
 
-        // Acquiring the list of queries early, as it is an expensive operation.
-        let queries = self.queries();
+        // Acquiring the list of event handlers early, as it is an expensive operation.
+        let event_handlers = self.event_handlers();
         for store_event in &store_events {
             // NOTE: should this be parallelized?
-            for query in queries.iter() {
+            for event_handler in event_handlers.iter() {
                 let span = tracing::debug_span!(
-                    "esrs.query",
+                    "esrs.event_handler",
                     event_id = %store_event.id,
                     aggregate_id = %store_event.aggregate_id,
-                    query = query.name()
+                    event_handler = event_handler.name()
                 );
                 let _e = span.enter();
 
-                query.handle(store_event).await;
+                event_handler.handle(store_event).await;
             }
         }
 
@@ -325,15 +325,17 @@ where
             .await
             .map(|_| ())?;
 
-        for transactional_query in self.transactional_queries().iter() {
-            transactional_query.delete(aggregate_id, &mut transaction).await?;
+        for transactional_event_handler in self.transactional_event_handlers().iter() {
+            transactional_event_handler
+                .delete(aggregate_id, &mut transaction)
+                .await?;
         }
 
         transaction.commit().await?;
 
         // NOTE: should this be parallelized?
-        for query in self.queries().iter() {
-            query.delete(aggregate_id).await;
+        for event_handler in self.event_handlers().iter() {
+            event_handler.delete(aggregate_id).await;
         }
 
         Ok(())

@@ -14,7 +14,7 @@ pub struct CounterAggregate {
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
-            .set_transactional_queries(vec![Box::new(CounterTransactionalEventHandler)])
+            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 

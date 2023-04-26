@@ -13,8 +13,8 @@ pub struct LoggingAggregate {
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
         let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
-            .set_transactional_queries(vec![Box::new(LoggingTransactionalEventHandler)])
-            .set_queries(vec![Box::new(LoggingEventHandler)])
+            .set_transactional_event_handlers(vec![Box::new(LoggingTransactionalEventHandler)])
+            .set_event_handlers(vec![Box::new(LoggingEventHandler)])
             .setup()
             .await?;
 

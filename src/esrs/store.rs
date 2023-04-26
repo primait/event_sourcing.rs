@@ -47,7 +47,7 @@ pub trait EventStore {
     /// Persists multiple events into the database. This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
     ///
-    /// Persisting events may additionally trigger configured Projectors.
+    /// Persisting events may additionally trigger configured event handlers (transactional and non-transactional).
     async fn persist(
         &self,
         aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
@@ -56,7 +56,7 @@ pub trait EventStore {
 
     /// Delete all events from events store related to given `aggregate_id`.
     ///
-    /// Moreover it should delete all the projections.
+    /// Moreover it should delete all the read side projections triggered by event handlers.
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
 }
 

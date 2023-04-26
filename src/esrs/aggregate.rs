@@ -48,8 +48,9 @@ pub trait Aggregate {
 /// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
 ///
 /// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
-/// 1. execute_command
+/// 1. handle_command
 /// 2. load
+/// 3. lock_and_load
 /// The other functions are used internally, but can be overridden if needed.
 #[async_trait]
 pub trait AggregateManager: Aggregate {
@@ -58,7 +59,7 @@ pub trait AggregateManager: Aggregate {
     /// The `name` function is responsible for naming an aggregate type.
     /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
     ///
-    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
+    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`. Be very careful when changing
     /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
     fn name() -> &'static str
     where
@@ -124,15 +125,10 @@ pub trait AggregateManager: Aggregate {
     }
 
     /// Transactional persists events in store - recording it in the aggregate instance's history.
-    /// The store will also project the events. If an error occurs whilst persisting the events,
-    /// the whole transaction is rolled back and the error is returned.
-    ///
-    /// The policies associated to the store are run here. A failure at this point will be silently
-    /// ignored, and the new state returned successfully anyway.
+    /// The store will also handle the events creating read side projections. If an error occurs whilst
+    /// persisting the events, the whole transaction is rolled back and the error is returned.
     ///
     /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    /// The only scenario where this function needs to be overwritten is if you need to change the
-    /// behaviour of policies, e.g. if you want to log something on error.
     async fn store_events(
         &self,
         aggregate_state: &mut AggregateState<Self::State>,
@@ -142,7 +138,7 @@ pub trait AggregateManager: Aggregate {
     }
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
-    /// and projections, or fail.
+    /// and read side projections, or fail.
     ///
     /// If the deletion succeeds only partially, it _must_ return an error.
     async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), Self::Error> {

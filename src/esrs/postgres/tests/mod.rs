@@ -135,9 +135,9 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn event_projection_test(pool: Pool<Postgres>) {
+fn event_handling_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_queries(vec![Box::new(TestTransactionalEventHandler {})])
+        .set_transactional_event_handlers(vec![Box::new(TestTransactionalEventHandler {})])
         .setup()
         .await
         .unwrap();
@@ -164,9 +164,9 @@ fn event_projection_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
+fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_queries(vec![Box::new(TestTransactionalEventHandler {})])
+        .set_transactional_event_handlers(vec![Box::new(TestTransactionalEventHandler {})])
         .setup()
         .await
         .unwrap();
@@ -208,14 +208,14 @@ fn delete_store_events_and_projections_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn policy_test(pool: Pool<Postgres>) {
+fn event_handler_test(pool: Pool<Postgres>) {
     let last_id: Arc<Mutex<Uuid>> = Arc::new(Mutex::new(Uuid::default()));
-    let query: Box<TestEventHandler> = Box::new(TestEventHandler {
+    let event_handler: Box<TestEventHandler> = Box::new(TestEventHandler {
         last_id: last_id.clone(),
     });
 
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_queries(vec![query])
+        .set_event_handlers(vec![event_handler])
         .setup()
         .await
         .unwrap();
