@@ -1,28 +1,15 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::{PgConnection, Pool, Postgres};
+use sqlx::PgConnection;
 use thiserror::Error;
 
-use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager, EventHandler, StoreEvent, TransactionalEventHandler};
+use esrs::{Aggregate, EventHandler, StoreEvent, TransactionalEventHandler};
 
-pub struct LoggingAggregate {
-    event_store: PgStore<Self>,
-}
-
-impl LoggingAggregate {
-    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
-            .set_transactional_event_handlers(vec![Box::new(LoggingTransactionalEventHandler)])
-            .set_event_handlers(vec![Box::new(LoggingEventHandler)])
-            .setup()
-            .await?;
-
-        Ok(Self { event_store })
-    }
-}
+pub struct LoggingAggregate;
 
 impl Aggregate for LoggingAggregate {
+    const NAME: &'static str = "message";
+
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
@@ -37,18 +24,6 @@ impl Aggregate for LoggingAggregate {
     fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // This aggregate state just counts the number of applied - equivalent to the number in the event store
         state + 1
-    }
-}
-
-impl AggregateManager for LoggingAggregate {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str {
-        "message"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
     }
 }
 

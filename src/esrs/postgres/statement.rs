@@ -1,9 +1,9 @@
-use crate::{AggregateManager, EventStore};
+use crate::Aggregate;
 
 #[macro_export]
 macro_rules! statement {
     ($file:expr, $ty:ty $(,)?) => {{
-        format!(include_str!($file), format!("{}_events", <$ty>::name()))
+        format!(include_str!($file), format!("{}_events", <$ty>::NAME))
     }};
 }
 
@@ -19,15 +19,15 @@ pub struct Statements {
 }
 
 impl Statements {
-    pub fn new<Store: EventStore>() -> Self {
+    pub fn new<A: Aggregate>() -> Self {
         Self {
-            create_table: statement!("statements/create_table.sql", Store::Manager),
-            create_index: statement!("statements/create_index.sql", Store::Manager),
-            create_unique_constraint: statement!("statements/create_unique_constraint.sql", Store::Manager),
-            select_by_aggregate_id: statement!("statements/select_by_aggregate_id.sql", Store::Manager),
-            select_all: statement!("statements/select_all.sql", Store::Manager),
-            insert: statement!("statements/insert.sql", Store::Manager),
-            delete_by_aggregate_id: statement!("statements/delete_by_aggregate_id.sql", Store::Manager),
+            create_table: statement!("statements/create_table.sql", A),
+            create_index: statement!("statements/create_index.sql", A),
+            create_unique_constraint: statement!("statements/create_unique_constraint.sql", A),
+            select_by_aggregate_id: statement!("statements/select_by_aggregate_id.sql", A),
+            select_all: statement!("statements/select_all.sql", A),
+            insert: statement!("statements/insert.sql", A),
+            delete_by_aggregate_id: statement!("statements/delete_by_aggregate_id.sql", A),
         }
     }
 

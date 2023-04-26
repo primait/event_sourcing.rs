@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::esrs::event_handler;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 use super::{event, statement::Statements};
 
@@ -29,35 +29,35 @@ type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEvent
 /// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
 /// reference.
 #[derive(Clone)]
-pub struct PgStore<Manager>
+pub struct PgStore<A>
 where
-    Manager: AggregateManager,
+    A: Aggregate,
 {
-    inner: Arc<InnerPgStore<Manager>>,
+    inner: Arc<InnerPgStore<A>>,
 }
 
-pub struct InnerPgStore<Manager>
+pub struct InnerPgStore<A>
 where
-    Manager: AggregateManager,
+    A: Aggregate,
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    event_handlers: ArcSwap<Vec<EventHandler<Manager>>>,
-    transactional_event_handlers: ArcSwap<Vec<TransactionalEventHandler<Manager, PgConnection>>>,
+    event_handlers: ArcSwap<Vec<EventHandler<A>>>,
+    transactional_event_handlers: ArcSwap<Vec<TransactionalEventHandler<A, PgConnection>>>,
 }
 
-impl<Manager> PgStore<Manager>
+impl<A> PgStore<A>
 where
-    Manager: AggregateManager,
-    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
-    Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
+    A: Aggregate,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Creates a new implementation of an aggregate
     #[must_use]
     pub fn new(pool: Pool<Postgres>) -> Self {
-        let inner: InnerPgStore<Manager> = InnerPgStore {
+        let inner: InnerPgStore<A> = InnerPgStore {
             pool,
-            statements: Statements::new::<Self>(),
+            statements: Statements::new::<A>(),
             event_handlers: ArcSwap::from_pointee(vec![]),
             transactional_event_handlers: ArcSwap::from_pointee(vec![]),
         };
@@ -66,7 +66,7 @@ where
     }
 
     /// Set the list of (non transactional) event handlers to the store
-    pub fn set_event_handlers(self, event_handlers: Vec<EventHandler<Manager>>) -> Self {
+    pub fn set_event_handlers(self, event_handlers: Vec<EventHandler<A>>) -> Self {
         self.inner.event_handlers.store(Arc::new(event_handlers));
         self
     }
@@ -74,7 +74,7 @@ where
     /// Set the list of transactional event handlers to the store
     pub fn set_transactional_event_handlers(
         self,
-        event_handlers: Vec<TransactionalEventHandler<Manager, PgConnection>>,
+        event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
     ) -> Self {
         self.inner.transactional_event_handlers.store(Arc::new(event_handlers));
         self
@@ -91,7 +91,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
-    pub async fn setup(self) -> Result<Self, Manager::Error> {
+    pub async fn setup(self) -> Result<Self, A::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
         // Create events table if not exists
@@ -122,11 +122,11 @@ where
     pub async fn save_event(
         &self,
         aggregate_id: Uuid,
-        event: Manager::Event,
+        event: A::Event,
         occurred_on: DateTime<Utc>,
         sequence_number: SequenceNumber,
         executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<StoreEvent<Manager::Event>, Manager::Error> {
+    ) -> Result<StoreEvent<A::Event>, A::Error> {
         let id: Uuid = Uuid::new_v4();
 
         let _ = sqlx::query(self.inner.statements.insert())
@@ -152,7 +152,7 @@ where
     pub fn stream_events<'s>(
         &'s self,
         executor: impl Executor<'s, Database = Postgres> + 's,
-    ) -> BoxStream<Result<StoreEvent<Manager::Event>, Manager::Error>> {
+    ) -> BoxStream<Result<StoreEvent<A::Event>, A::Error>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
                 .fetch(executor)
@@ -162,13 +162,13 @@ where
 
     /// This function returns the list of all transactional event handlers added to this store.
     /// This function should mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn transactional_event_handlers(&self) -> Arc<Vec<TransactionalEventHandler<Manager, PgConnection>>> {
+    pub fn transactional_event_handlers(&self) -> Arc<Vec<TransactionalEventHandler<A, PgConnection>>> {
         self.inner.transactional_event_handlers.load().clone()
     }
 
     /// This function returns the list of all event handlers added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn event_handlers(&self) -> Arc<Vec<EventHandler<Manager>>> {
+    pub fn event_handlers(&self) -> Arc<Vec<EventHandler<A>>> {
         self.inner.event_handlers.load().clone()
     }
 
@@ -180,10 +180,10 @@ where
     ///
     /// Will return an `Err` if the given `fun` returns an `Err`. In the `EventStore` implementation
     /// for `PgStore` this function return an `Err` if the event insertion or its projection fails.
-    pub async fn persist<'a, F, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>
+    pub async fn persist<'a, F, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<A::Event>>, A::Error>
     where
         F: Send + FnOnce(&'a Pool<Postgres>) -> T,
-        T: Future<Output = Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>> + Send,
+        T: Future<Output = Result<Vec<StoreEvent<A::Event>>, A::Error>> + Send,
     {
         fun(&self.inner.pool).await
     }
@@ -205,15 +205,13 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<Manager> EventStore for PgStore<Manager>
+impl<A> EventStore<A> for PgStore<A>
 where
-    Manager: AggregateManager,
-    Manager::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
-    Manager::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
+    A: Aggregate,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
-    type Manager = Manager;
-
-    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error> {
         let (key, _) = aggregate_id.as_u64_pair();
         let connection = self.inner.pool.acquire().await?;
         let lock_guard = PgStoreLockGuardAsyncSendTryBuilder {
@@ -225,7 +223,7 @@ where
         Ok(EventStoreLockGuard::new(lock_guard))
     }
 
-    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         Ok(
             sqlx::query_as::<_, event::Event>(self.inner.statements.by_aggregate_id())
                 .bind(aggregate_id)
@@ -233,25 +231,25 @@ where
                 .await?
                 .into_iter()
                 .map(|event| Ok(event.try_into()?))
-                .collect::<Result<Vec<StoreEvent<Manager::Event>>, Manager::Error>>()?,
+                .collect::<Result<Vec<StoreEvent<A::Event>>, A::Error>>()?,
         )
     }
 
     #[tracing::instrument(skip_all, fields(aggregate_id = %aggregate_state.id()), err)]
     async fn persist(
         &self,
-        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
-        events: Vec<<Self::Manager as Aggregate>::Event>,
-    ) -> Result<Vec<StoreEvent<Manager::Event>>, Manager::Error> {
+        aggregate_state: &mut AggregateState<A::State>,
+        events: Vec<A::Event>,
+    ) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
-        let mut store_events: Vec<StoreEvent<Manager::Event>> = vec![];
+        let mut store_events: Vec<StoreEvent<A::Event>> = vec![];
 
         let starting_sequence_number = aggregate_state.next_sequence_number();
         let aggregate_id = *aggregate_state.id();
 
         for (index, event) in (0..).zip(events.into_iter()) {
-            let store_event: StoreEvent<<Manager as Aggregate>::Event> = self
+            let store_event: StoreEvent<<A as Aggregate>::Event> = self
                 .save_event(
                     aggregate_id,
                     event,
@@ -316,7 +314,7 @@ where
         Ok(store_events)
     }
 
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Manager::Error> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
         let _ = sqlx::query(self.inner.statements.delete_by_aggregate_id())
@@ -344,7 +342,7 @@ where
 
 /// Debug implementation for [`PgStore`]. It just shows the statements, that are the only thing
 /// that might be useful to debug.
-impl<T: AggregateManager> std::fmt::Debug for PgStore<T> {
+impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PgStore")
             .field("statements", &self.inner.statements)
