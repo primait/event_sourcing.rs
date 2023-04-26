@@ -69,7 +69,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
-    pub async fn build(self) -> Result<PgStore<A>, sqlx::Error> {
+    pub async fn try_build(self) -> Result<PgStore<A>, sqlx::Error> {
         let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
 
         // Create events table if not exists

@@ -12,7 +12,7 @@ use esrs::{EventStore, ReplayableEventHandler, StoreEvent, TransactionalEventHan
 pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
     let event_store: PgStore<AggregateA> = PgStoreBuilder::new(pool.clone())
         .add_transactional_event_handler(Box::new(CounterTransactionalEventHandler))
-        .build()
+        .try_build()
         .await
         .expect("Failed to create PgStore");
 
@@ -64,7 +64,7 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
 pub async fn rebuild_single_projection_per_aggregate_id(pool: Pool<Postgres>) {
     let event_store: PgStore<AggregateA> = PgStoreBuilder::new(pool.clone())
         .add_transactional_event_handler(Box::new(CounterTransactionalEventHandler))
-        .build()
+        .try_build()
         .await
         .expect("Failed to create PgStore");
 
