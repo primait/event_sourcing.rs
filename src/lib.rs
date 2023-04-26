@@ -10,7 +10,7 @@
 //! performed over the event store table.
 
 pub use crate::esrs::aggregate::{Aggregate, AggregateManager};
-pub use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
+pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 

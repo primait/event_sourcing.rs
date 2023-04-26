@@ -18,7 +18,8 @@ pub trait EventHandler<M: AggregateManager>: Send + Sync {
         std::any::type_name::<Self>()
     }
 }
-//
+
+// FIXME: uncomment
 // #[async_trait]
 // impl<M, Q, T> EventHandler<AM> for T
 // where
@@ -52,6 +53,8 @@ where
         std::any::type_name::<Self>()
     }
 }
+
+pub trait ReplayableEventHandler<M: AggregateManager>: EventHandler<M> + Send + Sync {}
 
 // TODO: doc
 pub trait EventHandlerError: std::error::Error {}
