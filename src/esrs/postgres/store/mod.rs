@@ -2,13 +2,12 @@ use std::convert::TryInto;
 use std::future::Future;
 use std::sync::Arc;
 
-use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use sqlx::pool::PoolConnection;
-use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey, PgQueryResult};
+use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey};
 use sqlx::types::Json;
 use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
@@ -20,8 +19,12 @@ use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 use super::{event, statement::Statements};
 
-type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
-type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
+pub use builder::PgStoreBuilder;
+
+mod builder;
+
+pub type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
+pub type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -36,14 +39,14 @@ where
     inner: Arc<InnerPgStore<A>>,
 }
 
-pub struct InnerPgStore<A>
+struct InnerPgStore<A>
 where
     A: Aggregate,
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    event_handlers: ArcSwap<Vec<EventHandler<A>>>,
-    transactional_event_handlers: ArcSwap<Vec<TransactionalEventHandler<A, PgConnection>>>,
+    event_handlers: Vec<EventHandler<A>>,
+    transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
 }
 
 impl<A> PgStore<A>
@@ -52,68 +55,6 @@ where
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
-    /// Creates a new implementation of an aggregate
-    #[must_use]
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        let inner: InnerPgStore<A> = InnerPgStore {
-            pool,
-            statements: Statements::new::<A>(),
-            event_handlers: ArcSwap::from_pointee(vec![]),
-            transactional_event_handlers: ArcSwap::from_pointee(vec![]),
-        };
-
-        Self { inner: Arc::new(inner) }
-    }
-
-    /// Set the list of (non transactional) event handlers to the store
-    pub fn set_event_handlers(self, event_handlers: Vec<EventHandler<A>>) -> Self {
-        self.inner.event_handlers.store(Arc::new(event_handlers));
-        self
-    }
-
-    /// Set the list of transactional event handlers to the store
-    pub fn set_transactional_event_handlers(
-        self,
-        event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
-    ) -> Self {
-        self.inner.transactional_event_handlers.store(Arc::new(event_handlers));
-        self
-    }
-
-    /// This function setup the database in a transaction, creating the event store table (if not exists)
-    /// and two indexes (always if not exist). The first one is over the `aggregate_id` field to
-    /// speed up `by_aggregate_id` query. The second one is a unique constraint over the tuple
-    /// `(aggregate_id, sequence_number)` to avoid race conditions.
-    ///
-    /// This function should be used only once at your application startup. It tries to create the
-    /// event table and its indexes if they not exist.
-    ///
-    /// # Errors
-    ///
-    /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
-    pub async fn setup(self) -> Result<Self, A::Error> {
-        let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
-
-        // Create events table if not exists
-        let _: PgQueryResult = sqlx::query(self.inner.statements.create_table())
-            .execute(&mut *transaction)
-            .await?;
-
-        // Create index on aggregate_id for `by_aggregate_id` query.
-        let _: PgQueryResult = sqlx::query(self.inner.statements.create_index())
-            .execute(&mut *transaction)
-            .await?;
-
-        // Create unique constraint `aggregate_id`-`sequence_number` to avoid race conditions.
-        let _: PgQueryResult = sqlx::query(self.inner.statements.create_unique_constraint())
-            .execute(&mut *transaction)
-            .await?;
-
-        transaction.commit().await?;
-
-        Ok(self)
-    }
-
     /// Save an event in the event store and return a new `StoreEvent` instance.
     ///
     /// # Errors
@@ -162,14 +103,14 @@ where
 
     /// This function returns the list of all transactional event handlers added to this store.
     /// This function should mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn transactional_event_handlers(&self) -> Arc<Vec<TransactionalEventHandler<A, PgConnection>>> {
-        self.inner.transactional_event_handlers.load().clone()
+    pub fn transactional_event_handlers(&self) -> &[TransactionalEventHandler<A, PgConnection>] {
+        &self.inner.transactional_event_handlers
     }
 
     /// This function returns the list of all event handlers added to this store. This function should
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn event_handlers(&self) -> Arc<Vec<EventHandler<A>>> {
-        self.inner.event_handlers.load().clone()
+    pub fn event_handlers(&self) -> &[EventHandler<A>] {
+        &self.inner.event_handlers
     }
 
     /// This function could be used in order to customize the way the store persist the events.
