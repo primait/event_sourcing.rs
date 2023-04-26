@@ -28,16 +28,19 @@ where
         }
     }
 
+    /// Set event handlers list
     pub fn with_event_handlers(mut self, event_handlers: Vec<EventHandler<A>>) -> Self {
         self.event_handlers = event_handlers;
         self
     }
 
+    /// Add a single event handler
     pub fn add_event_handler(mut self, event_handler: EventHandler<A>) -> Self {
         self.event_handlers.push(event_handler);
         self
     }
 
+    /// Set transactional event handlers list
     pub fn with_transactional_event_handlers(
         mut self,
         event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
@@ -46,6 +49,7 @@ where
         self
     }
 
+    /// Add a single transactional event handler
     pub fn add_transactional_event_handler(
         mut self,
         event_handler: TransactionalEventHandler<A, PgConnection>,
@@ -54,13 +58,13 @@ where
         self
     }
 
-    /// This function sets up the database in a transaction, creating the event store table (if not exists)
-    /// and two indexes (always if not exist). The first one is over the `aggregate_id` field to
-    /// speed up `by_aggregate_id` query. The second one is a unique constraint over the tuple
-    /// `(aggregate_id, sequence_number)` to avoid race conditions.
+    /// This function sets up the database in a transaction and returns an instance of PgStore.
     ///
-    /// This function should be used only once at your application startup. It tries to create the
-    /// event table and its indexes if they not exist.
+    /// It will create the event store table (if it doesn't exist) and two indexes (if they don't exist).
+    /// The first one is over the `aggregate_id` field to speed up `by_aggregate_id` query.
+    /// The second one is a unique constraint over the tuple `(aggregate_id, sequence_number)` to avoid race conditions.
+    ///
+    /// This function should be used only once at your application startup.
     ///
     /// # Errors
     ///
