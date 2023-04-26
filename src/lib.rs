@@ -9,8 +9,9 @@
 //! while using `postgres` event store, everytime a state load is required a database query is
 //! performed over the event store table.
 
-pub use crate::esrs::aggregate::{Aggregate, AggregateManager};
+pub use crate::esrs::aggregate::Aggregate;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
+pub use crate::esrs::manager::AggregateManager;
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 

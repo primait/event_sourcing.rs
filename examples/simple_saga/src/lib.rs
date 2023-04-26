@@ -1,32 +1,15 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
 use thiserror::Error;
 use uuid::Uuid;
 
-use esrs::postgres::PgStore;
 use esrs::{Aggregate, AggregateManager, AggregateState, EventHandler, StoreEvent};
 
 #[derive(Clone)]
-pub struct LoggingAggregate {
-    event_store: PgStore<Self>,
-}
-
-impl LoggingAggregate {
-    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
-        let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone()).setup().await?;
-
-        let this: Self = Self {
-            // This clone is cheap being that the internal fields of the store are behind an Arc
-            event_store: event_store.clone(),
-        };
-
-        event_store.set_event_handlers(vec![Box::new(LoggingEventHandler::new(this.clone()))]);
-        Ok(this)
-    }
-}
+pub struct LoggingAggregate;
 
 impl Aggregate for LoggingAggregate {
+    const NAME: &'static str = "message";
     type State = u64;
     type Command = LoggingCommand;
     type Event = LoggingEvent;
@@ -62,29 +45,12 @@ impl Aggregate for LoggingAggregate {
     }
 }
 
-impl AggregateManager for LoggingAggregate {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str {
-        "message"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
-    }
-}
-
 // A very simply policy, which tries to log an event, and creates another command after it finishes
 // which indicates success or failure to log
-#[derive(Clone)]
-struct LoggingEventHandler {
-    aggregate: LoggingAggregate,
-}
 
-impl LoggingEventHandler {
-    pub fn new(aggregate: LoggingAggregate) -> Self {
-        Self { aggregate }
-    }
+struct LoggingEventHandler {
+    // It's possible here to keep an AggregateManager instance or an EventStore instance too.
+    manager: AggregateManager<LoggingAggregate>,
 }
 
 #[async_trait]
@@ -92,7 +58,7 @@ impl EventHandler<LoggingAggregate> for LoggingEventHandler {
     async fn handle(&self, event: &StoreEvent<LoggingEvent>) {
         let aggregate_id: Uuid = event.aggregate_id;
 
-        let aggregate_state: AggregateState<u64> = match self.aggregate.load(aggregate_id).await {
+        let aggregate_state: AggregateState<u64> = match self.manager.load(aggregate_id).await {
             Ok(Some(aggregate_state)) => aggregate_state,
             Ok(None) => AggregateState::with_id(aggregate_id),
             Err(e) => return println!("Error loading aggregate {}", e),
@@ -100,11 +66,7 @@ impl EventHandler<LoggingAggregate> for LoggingEventHandler {
 
         if let LoggingEvent::Received(msg) = event.payload() {
             if msg.contains("fail_policy") {
-                match self
-                    .aggregate
-                    .handle_command(aggregate_state, LoggingCommand::Fail)
-                    .await
-                {
+                match self.manager.handle_command(aggregate_state, LoggingCommand::Fail).await {
                     Ok(_) => (),
                     Err(e) => println!("Error handling command {}", e),
                 };
@@ -112,7 +74,7 @@ impl EventHandler<LoggingAggregate> for LoggingEventHandler {
             }
             println!("Logged via policy from {}: {}", aggregate_id, msg);
             match self
-                .aggregate
+                .manager
                 .handle_command(aggregate_state, LoggingCommand::Succeed)
                 .await
             {

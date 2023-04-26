@@ -1,12 +1,15 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::{AggregateManager, StoreEvent};
+use crate::{Aggregate, StoreEvent};
 
 #[async_trait]
-pub trait EventHandler<M: AggregateManager>: Send + Sync {
+pub trait EventHandler<A>: Sync
+where
+    A: Aggregate,
+{
     // TODO: doc
-    async fn handle(&self, event: &StoreEvent<M::Event>);
+    async fn handle(&self, event: &StoreEvent<A::Event>);
 
     // TODO: doc
     async fn delete(&self, _aggregate_id: Uuid) {}
@@ -34,15 +37,15 @@ pub trait EventHandler<M: AggregateManager>: Send + Sync {
 // }
 
 #[async_trait]
-pub trait TransactionalEventHandler<AM, E>: Sync
+pub trait TransactionalEventHandler<A, E>: Sync
 where
-    AM: AggregateManager,
+    A: Aggregate,
 {
     // TODO: doc
-    async fn handle(&self, event: &StoreEvent<AM::Event>, executor: &mut E) -> Result<(), AM::Error>;
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error>;
 
     // TODO: doc
-    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut E) -> Result<(), AM::Error> {
+    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut E) -> Result<(), A::Error> {
         Ok(())
     }
 
@@ -54,7 +57,12 @@ where
     }
 }
 
-pub trait ReplayableEventHandler<M: AggregateManager>: EventHandler<M> + Send + Sync {}
+pub trait ReplayableEventHandler<A>: Sync
+where
+    Self: EventHandler<A>,
+    A: Aggregate,
+{
+}
 
 // TODO: doc
 pub trait EventHandlerError: std::error::Error {}
