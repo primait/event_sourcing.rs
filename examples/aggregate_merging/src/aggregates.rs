@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres};
 use esrs::postgres::PgStore;
 use esrs::{Aggregate, AggregateManager};
 
-use crate::projectors::CounterProjector;
+use crate::projectors::CounterTransactionalEventHandler;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
 
 // We use a template here to make instantiating the near-identical
@@ -15,7 +15,7 @@ pub struct AggregateA {
 impl AggregateA {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
-            .set_projectors(vec![Box::new(CounterProjector)])
+            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 
@@ -63,7 +63,7 @@ pub struct AggregateB {
 impl AggregateB {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<AggregateB> = PgStore::new(pool.clone())
-            .set_projectors(vec![Box::new(CounterProjector)])
+            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 

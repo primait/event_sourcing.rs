@@ -8,7 +8,7 @@ use esrs::types::SequenceNumber;
 use esrs::{Aggregate, AggregateManager};
 use esrs::{AggregateState, StoreEvent};
 
-use crate::projector::CounterProjector;
+use crate::projector::CounterTransactionalEventHandler;
 use crate::structs::{CounterCommand, CounterError, CounterEvent};
 
 pub struct CounterAggregate {
@@ -18,7 +18,7 @@ pub struct CounterAggregate {
 impl CounterAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
         let event_store: PgStore<CounterAggregate> = PgStore::new(pool.clone())
-            .set_projectors(vec![Box::new(CounterProjector)])
+            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
             .setup()
             .await?;
 
@@ -85,10 +85,10 @@ impl AggregateManager for CounterAggregate {
                 }
 
                 // Acquiring the list of projectors early, as it is an expensive operation.
-                let projectors = self.event_store().projectors();
+                let transactional_queries = self.event_store().transactional_event_handlers();
                 for store_event in store_events.iter() {
-                    for projector in projectors.iter() {
-                        projector.project(store_event, &mut connection).await?;
+                    for transactional_query in transactional_queries.iter() {
+                        transactional_query.handle(store_event, &mut connection).await?;
                     }
                 }
 
@@ -98,15 +98,12 @@ impl AggregateManager for CounterAggregate {
                 drop(aggregate_state.take_lock());
 
                 // Acquiring the list of policies early, as it is an expensive operation.
-                let policies = self.event_store().policies();
+                let queries = self.event_store().event_handlers();
                 for store_event in store_events.iter() {
-                    for policy in policies.iter() {
+                    for query in queries.iter() {
                         // We want to just log errors instead of return them. This is the customization
                         // we wanted.
-                        match policy.handle_event(store_event).await {
-                            Ok(_) => (),
-                            Err(error) => println!("{:?}", error),
-                        }
+                        query.handle(store_event).await;
                     }
                 }
 

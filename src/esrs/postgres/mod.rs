@@ -1,5 +1,4 @@
 mod event;
-pub mod projector;
 mod statement;
 pub mod store;
 

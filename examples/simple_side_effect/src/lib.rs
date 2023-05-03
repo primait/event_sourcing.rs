@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgConnection, Pool, Postgres};
 use thiserror::Error;
 
-use esrs::postgres::{PgStore, Projector};
-use esrs::{Aggregate, AggregateManager, Policy, StoreEvent};
+use esrs::postgres::PgStore;
+use esrs::{Aggregate, AggregateManager, EventHandler, StoreEvent, TransactionalEventHandler};
 
 pub struct LoggingAggregate {
     event_store: PgStore<Self>,
@@ -13,8 +13,8 @@ pub struct LoggingAggregate {
 impl LoggingAggregate {
     pub async fn new(pool: &Pool<Postgres>) -> Result<Self, LoggingError> {
         let event_store: PgStore<LoggingAggregate> = PgStore::new(pool.clone())
-            .set_projectors(vec![Box::new(LoggingProjector)])
-            .set_policies(vec![Box::new(LoggingPolicy)])
+            .set_transactional_event_handlers(vec![Box::new(LoggingTransactionalEventHandler)])
+            .set_event_handlers(vec![Box::new(LoggingEventHandler)])
             .setup()
             .await?;
 
@@ -57,11 +57,11 @@ impl AggregateManager for LoggingAggregate {
 // failure is due to a simple log message filter rule, but you can imagine a
 // side effect which interacts with some 3rd party service in a failable way instead
 #[derive(Clone)]
-pub struct LoggingProjector;
+pub struct LoggingTransactionalEventHandler;
 
 #[async_trait]
-impl Projector<LoggingAggregate> for LoggingProjector {
-    async fn project(&self, event: &StoreEvent<LoggingEvent>, _: &mut PgConnection) -> Result<(), LoggingError> {
+impl TransactionalEventHandler<LoggingAggregate, PgConnection> for LoggingTransactionalEventHandler {
+    async fn handle(&self, event: &StoreEvent<LoggingEvent>, _: &mut PgConnection) -> Result<(), LoggingError> {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
@@ -83,21 +83,20 @@ impl Projector<LoggingAggregate> for LoggingProjector {
 // stops the event from being persisted to the event store, whereas a failure in
 // a policy does not.
 #[derive(Clone)]
-pub struct LoggingPolicy;
+pub struct LoggingEventHandler;
 
 #[async_trait]
-impl Policy<LoggingAggregate> for LoggingPolicy {
-    async fn handle_event(&self, event: &StoreEvent<LoggingEvent>) -> Result<(), LoggingError> {
+impl EventHandler<LoggingAggregate> for LoggingEventHandler {
+    async fn handle(&self, event: &StoreEvent<LoggingEvent>) {
         let id = event.aggregate_id;
         match event.payload() {
             LoggingEvent::Logged(msg) => {
                 if msg.contains("fail_policy") {
-                    return Err(LoggingError::Domain(msg.clone()));
+                    return;
                 }
                 println!("Logged via policy from {}: {}", id, msg);
             }
-        }
-        Ok(())
+        };
     }
 }
 

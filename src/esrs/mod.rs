@@ -1,5 +1,5 @@
 pub mod aggregate;
-pub mod policy;
+pub mod event_handler;
 pub mod state;
 pub mod store;
 
