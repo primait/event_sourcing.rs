@@ -7,12 +7,12 @@ use uuid::Uuid;
 
 use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
 use crate::postgres::PgStore;
-use crate::{Aggregate, AggregateManager, AggregateState, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 #[sqlx::test]
-fn setup_database_test(pool: Pool<Postgres>) {
+async fn setup_database_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStore::new(pool.clone());
-    let table_name: String = format!("{}_events", TestAggregate::name());
+    let table_name: String = format!("{}_events", TestAggregate::NAME);
 
     let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
         .bind(table_name.as_str())
@@ -272,11 +272,10 @@ impl From<serde_json::Error> for TestError {
     }
 }
 
-struct TestAggregate {
-    event_store: PgStore<TestAggregate>,
-}
+struct TestAggregate;
 
 impl Aggregate for TestAggregate {
+    const NAME: &'static str = "test";
     type State = ();
     type Command = ();
     type Event = TestEvent;
@@ -288,21 +287,6 @@ impl Aggregate for TestAggregate {
 
     fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {
         todo!()
-    }
-}
-
-impl AggregateManager for TestAggregate {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "test"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
     }
 }
 

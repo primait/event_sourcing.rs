@@ -3,12 +3,18 @@ use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use aggregate_merging::aggregates::AggregateA;
+use aggregate_merging::projectors::CounterTransactionalEventHandler;
 use aggregate_merging::structs::{CounterError, EventA};
-use esrs::{AggregateManager, EventStore, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
+use esrs::postgres::PgStore;
+use esrs::{EventStore, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
 
 /// A simple example demonstrating rebuilding a single projection table from an aggregate.
 pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
-    let aggregate: AggregateA = AggregateA::new(&pool).await.unwrap();
+    let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
+        .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
+        .setup()
+        .await
+        .expect("Failed to create PgStore");
 
     // Put here all the replayable event handlers you want to rebuild, but remember to add a truncate table statement
     // for every table the event handlers inside this vec insist on.
@@ -19,8 +25,7 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
     let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
     // Get all events from the event_store
-    let events: Vec<StoreEvent<EventA>> = aggregate
-        .event_store
+    let events: Vec<StoreEvent<EventA>> = event_store
         .stream_events(&mut transaction)
         .collect::<Vec<Result<StoreEvent<EventA>, CounterError>>>()
         .await
@@ -57,7 +62,11 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
 /// An alternative approach to rebuilding that rebuilds the projected table for a given event handler one
 /// aggregate ID at a time, rather than committing the entire table all at once
 pub async fn rebuild_single_projection_per_aggregate_id(pool: Pool<Postgres>) {
-    let aggregate: AggregateA = AggregateA::new(&pool).await.unwrap();
+    let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
+        .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
+        .setup()
+        .await
+        .expect("Failed to create PgStore");
 
     // Put here all the event handlers for all the projections you want to rebuild
     let event_handlers: Vec<Box<dyn ReplayableEventHandler<AggregateA>>> = vec![];
@@ -72,7 +81,7 @@ pub async fn rebuild_single_projection_per_aggregate_id(pool: Pool<Postgres>) {
         let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
         // ..then queries for all the events in the event store table..
-        let events = aggregate.event_store().by_aggregate_id(aggregate_id).await.unwrap();
+        let events = event_store.by_aggregate_id(aggregate_id).await.unwrap();
 
         // .. and for every transactional event handler..
         for transactional_event_handler in transactional_event_handlers.iter() {

@@ -4,8 +4,9 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use crate::esrs::state::AggregateState;
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateManager, AggregateState};
+use crate::Aggregate;
 
 /// Marker trait for every EventStoreLockGuard.
 ///
@@ -28,21 +29,19 @@ impl EventStoreLockGuard {
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
-pub trait EventStore {
-    type Manager: AggregateManager;
-
+pub trait EventStore<A>
+where
+    A: Aggregate,
+{
     /// Acquires a lock for the given aggregate, or waits for outstanding guards to be released.
     ///
     /// Used to prevent concurrent access to the aggregate state.
     /// Note that any process which does *not* `lock` will get immediate (possibly shared!) access.
     /// ALL accesses (regardless of this guard) are subject to the usual optimistic locking strategy on write.
-    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error>;
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error>;
 
     /// Loads the events that an aggregate instance has emitted in the past.
-    async fn by_aggregate_id(
-        &self,
-        aggregate_id: Uuid,
-    ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error>;
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, A::Error>;
 
     /// Persists multiple events into the database. This should be done in a single transaction - either
     /// all the events are persisted correctly, or none are.
@@ -50,14 +49,14 @@ pub trait EventStore {
     /// Persisting events may additionally trigger configured event handlers (transactional and non-transactional).
     async fn persist(
         &self,
-        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
-        events: Vec<<Self::Manager as Aggregate>::Event>,
-    ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error>;
+        aggregate_state: &mut AggregateState<A::State>,
+        events: Vec<A::Event>,
+    ) -> Result<Vec<StoreEvent<A::Event>>, A::Error>;
 
     /// Delete all events from events store related to given `aggregate_id`.
     ///
     /// Moreover it should delete all the read side projections triggered by event handlers.
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error>;
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error>;
 }
 
 /// Default generic implementation for every type implementing [`Deref`] where its `Target` is a
@@ -86,34 +85,29 @@ pub trait EventStore {
 /// }
 /// ```
 #[async_trait]
-impl<M, T> EventStore for T
+impl<A, T> EventStore<A> for T
 where
-    T: Deref<Target = dyn EventStore<Manager = M> + Send + Sync> + Sync,
-    M: AggregateManager,
-    <M as Aggregate>::Event: 'static,
+    T: Deref<Target = dyn EventStore<A> + Sync> + Sync,
+    A: Aggregate,
+    A::Event: 'static,
 {
-    type Manager = M;
-
-    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, <Self::Manager as Aggregate>::Error> {
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error> {
         self.deref().lock(aggregate_id).await
     }
 
-    async fn by_aggregate_id(
-        &self,
-        aggregate_id: Uuid,
-    ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error> {
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         self.deref().by_aggregate_id(aggregate_id).await
     }
 
     async fn persist(
         &self,
-        aggregate_state: &mut AggregateState<<Self::Manager as Aggregate>::State>,
-        events: Vec<<Self::Manager as Aggregate>::Event>,
-    ) -> Result<Vec<StoreEvent<<Self::Manager as Aggregate>::Event>>, <Self::Manager as Aggregate>::Error> {
+        aggregate_state: &mut AggregateState<A::State>,
+        events: Vec<A::Event>,
+    ) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         self.deref().persist(aggregate_state, events).await
     }
 
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), <Self::Manager as Aggregate>::Error> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {
         self.deref().delete(aggregate_id).await
     }
 }
@@ -134,10 +128,12 @@ pub struct StoreEvent<Event> {
 }
 
 impl<Event> StoreEvent<Event> {
+    /// Returns the sequence number of the event, within its specific aggregate instance.
     pub const fn sequence_number(&self) -> &SequenceNumber {
         &self.sequence_number
     }
 
+    /// Returns the original, emitted, event.
     pub const fn payload(&self) -> &Event {
         &self.payload
     }

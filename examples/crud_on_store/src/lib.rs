@@ -9,10 +9,10 @@ use sqlx::types::Json;
 use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
-use esrs::{Aggregate, AggregateManager, StoreEvent};
+use esrs::{Aggregate, StoreEvent};
 
 // Get event by event id. The table should be the aggregate name, not the aggregate_events
-pub async fn get_event_by_id<T: AggregateManager>(
+pub async fn get_event_by_id<T: Aggregate>(
     event_id: Uuid,
     executor: impl Executor<'_, Database = Postgres>,
 ) -> Option<StoreEvent<T::Event>>
@@ -34,7 +34,7 @@ where
 
 // In order to implement `Get all events by aggregate id` you can either use `PgStore<Manager>::by_aggregate_id`
 // function or, if there's the need to do it in a transaction, use this function.
-pub async fn get_events_by_aggregate_id<T: AggregateManager>(
+pub async fn get_events_by_aggregate_id<T: Aggregate>(
     aggregate_id: Uuid,
     executor: impl Executor<'_, Database = Postgres>,
 ) -> Vec<StoreEvent<T::Event>>
@@ -64,7 +64,7 @@ where
 // `PgStore<Manager>::save_event`. If there's the need to set the event id or to do it in a transaction,
 // use this function.
 // Note: sequence number must be larger than any sequence number in the DB for this aggregate id
-pub async fn insert_event_with_given_event_id<T: AggregateManager>(
+pub async fn insert_event_with_given_event_id<T: Aggregate>(
     id: Uuid,
     aggregate_id: Uuid,
     payload: &T::Event,
@@ -92,7 +92,7 @@ pub async fn insert_event_with_given_event_id<T: AggregateManager>(
 }
 
 // Update event by event id
-pub async fn update_event_by_event_id<T: AggregateManager>(
+pub async fn update_event_by_event_id<T: Aggregate>(
     event_id: Uuid,
     new_payload: &T::Event,
     executor: impl Executor<'_, Database = Postgres>,
@@ -115,10 +115,7 @@ pub async fn update_event_by_event_id<T: AggregateManager>(
 }
 
 // Delete event by event id
-pub async fn delete_event_by_event_id<T: AggregateManager>(
-    event_id: Uuid,
-    executor: impl Executor<'_, Database = Postgres>,
-) {
+pub async fn delete_event_by_event_id<T: Aggregate>(event_id: Uuid, executor: impl Executor<'_, Database = Postgres>) {
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
@@ -135,7 +132,7 @@ pub async fn delete_event_by_event_id<T: AggregateManager>(
 
 // In order to implement `Delete all events by aggregate id` you can either use `PgStore<Manager>::delete`
 // function or, if there's the need to do it in a transaction, use this function.
-pub async fn delete_events_by_aggregate_id<T: AggregateManager>(
+pub async fn delete_events_by_aggregate_id<T: Aggregate>(
     aggregate_id: Uuid,
     executor: impl Executor<'_, Database = Postgres>,
 ) {
@@ -178,8 +175,8 @@ impl<E: DeserializeOwned> TryInto<StoreEvent<E>> for Event {
 
 // esrs automatically makes a table with you events based on the aggregate name, called
 // <aggregate_name>_events. This function just simulates that behaviour
-fn table_name<T: AggregateManager>() -> String {
-    format!("{}_events", T::name())
+fn table_name<T: Aggregate>() -> String {
+    format!("{}_events", T::NAME)
 }
 
 #[cfg(test)]
@@ -188,8 +185,7 @@ mod tests {
     use sqlx::PgPool;
     use uuid::Uuid;
 
-    use esrs::postgres::PgStore;
-    use esrs::{Aggregate, AggregateManager};
+    use esrs::Aggregate;
 
     use crate::{
         delete_event_by_event_id, delete_events_by_aggregate_id, get_event_by_id, get_events_by_aggregate_id,
@@ -207,6 +203,7 @@ mod tests {
     pub struct Agg;
 
     impl Aggregate for Agg {
+        const NAME: &'static str = "test";
         type State = ();
         type Command = ();
         type Event = Payload;
@@ -217,21 +214,6 @@ mod tests {
         }
 
         fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {
-            todo!()
-        }
-    }
-
-    impl AggregateManager for Agg {
-        type EventStore = PgStore<Self>;
-
-        fn name() -> &'static str
-        where
-            Self: Sized,
-        {
-            "test"
-        }
-
-        fn event_store(&self) -> &Self::EventStore {
             todo!()
         }
     }

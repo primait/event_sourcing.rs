@@ -7,69 +7,63 @@ use crate::{Aggregate, AggregateManager, AggregateState};
 
 #[sqlx::test]
 async fn handle_command_test(pool: Pool<Postgres>) {
-    let aggregate: TestAggregate = TestAggregate::new(&pool).await;
+    let store: PgStore<TestAggregate> = PgStore::new(pool).setup().await.unwrap();
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+
     let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
     let aggregate_id = *aggregate_state.id();
 
-    aggregate
+    manager
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
 
-    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
+    let aggregate_state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 2);
     assert_eq!(aggregate_state.sequence_number(), &1);
 
-    aggregate
+    manager
         .handle_command(aggregate_state, TestCommand::Single)
         .await
         .unwrap();
 
-    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
+    let aggregate_state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 3);
     assert_eq!(aggregate_state.sequence_number(), &2);
 
-    aggregate
+    manager
         .handle_command(aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
 
-    let aggregate_state = aggregate.lock_and_load(aggregate_id).await.unwrap().unwrap();
+    let aggregate_state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
     assert_eq!(aggregate_state.inner().count, 5);
     assert_eq!(aggregate_state.sequence_number(), &4);
 }
 
 #[sqlx::test]
 async fn load_aggregate_state_test(pool: Pool<Postgres>) {
-    let aggregate: TestAggregate = TestAggregate::new(&pool).await;
+    let store: PgStore<TestAggregate> = PgStore::new(pool).setup().await.unwrap();
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
     let initial_id = *initial_aggregate_state.id();
     let initial_sequence_number = *initial_aggregate_state.sequence_number();
     let initial_count = initial_aggregate_state.inner().count;
 
-    aggregate
+    manager
         .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
         .unwrap();
 
-    let aggregate_state = aggregate.lock_and_load(initial_id).await.unwrap().unwrap();
+    let aggregate_state = manager.lock_and_load(initial_id).await.unwrap().unwrap();
     assert_eq!(&initial_id, aggregate_state.id());
     assert_eq!(initial_sequence_number + 2, *aggregate_state.sequence_number());
     assert_eq!(initial_count + 2, aggregate_state.inner().count);
 }
 
-struct TestAggregate {
-    event_store: PgStore<Self>,
-}
-
-impl TestAggregate {
-    async fn new(pool: &Pool<Postgres>) -> Self {
-        Self {
-            event_store: PgStore::new(pool.clone()).setup().await.unwrap(),
-        }
-    }
-}
+struct TestAggregate;
 
 #[derive(Clone)]
 pub struct TestAggregateState {
@@ -83,6 +77,7 @@ impl Default for TestAggregateState {
 }
 
 impl Aggregate for TestAggregate {
+    const NAME: &'static str = "test";
     type State = TestAggregateState;
     type Command = TestCommand;
     type Event = TestEvent;
@@ -99,21 +94,6 @@ impl Aggregate for TestAggregate {
         Self::State {
             count: state.count + payload.add,
         }
-    }
-}
-
-impl AggregateManager for TestAggregate {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "test"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
     }
 }
 

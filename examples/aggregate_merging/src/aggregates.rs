@@ -1,29 +1,13 @@
-use sqlx::{Pool, Postgres};
+use esrs::Aggregate;
 
-use esrs::postgres::PgStore;
-use esrs::{Aggregate, AggregateManager};
-
-use crate::projectors::CounterTransactionalEventHandler;
 use crate::structs::{CommandA, CommandB, CounterError, EventA, EventB};
 
 // We use a template here to make instantiating the near-identical
 // AggregateA and AggregateB easier.
-pub struct AggregateA {
-    pub event_store: PgStore<Self>,
-}
-
-impl AggregateA {
-    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<AggregateA> = PgStore::new(pool.clone())
-            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
-            .setup()
-            .await?;
-
-        Ok(Self { event_store })
-    }
-}
+pub struct AggregateA;
 
 impl Aggregate for AggregateA {
+    const NAME: &'static str = "a";
     type State = ();
     type Command = CommandA;
     type Event = EventA;
@@ -41,37 +25,10 @@ impl Aggregate for AggregateA {
     }
 }
 
-impl AggregateManager for AggregateA {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "a"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
-    }
-}
-
-pub struct AggregateB {
-    pub event_store: PgStore<Self>,
-}
-
-impl AggregateB {
-    pub async fn new(pool: &Pool<Postgres>) -> Result<Self, CounterError> {
-        let event_store: PgStore<AggregateB> = PgStore::new(pool.clone())
-            .set_transactional_event_handlers(vec![Box::new(CounterTransactionalEventHandler)])
-            .setup()
-            .await?;
-
-        Ok(Self { event_store })
-    }
-}
+pub struct AggregateB;
 
 impl Aggregate for AggregateB {
+    const NAME: &'static str = "b";
     type State = ();
     type Command = CommandB;
     type Event = EventB;
@@ -86,20 +43,5 @@ impl Aggregate for AggregateB {
     fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
         // Take no action as this aggregate has no in memory state - only the projection is stateful
         state
-    }
-}
-
-impl AggregateManager for AggregateB {
-    type EventStore = PgStore<Self>;
-
-    fn name() -> &'static str
-    where
-        Self: Sized,
-    {
-        "b"
-    }
-
-    fn event_store(&self) -> &Self::EventStore {
-        &self.event_store
     }
 }
