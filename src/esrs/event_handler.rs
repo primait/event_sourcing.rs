@@ -23,7 +23,6 @@ where
     }
 }
 
-// FIXME: uncomment
 #[async_trait]
 impl<A, Q, T> EventHandler<A> for T
 where
