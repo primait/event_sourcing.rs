@@ -2,12 +2,13 @@ use std::fmt::{Display, Formatter};
 
 use sqlx::{Pool, Postgres};
 
+use crate::esrs::postgres::store::PgStoreBuilder;
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState};
 
 #[sqlx::test]
 async fn handle_command_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
     let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
 
     let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
@@ -43,7 +44,7 @@ async fn handle_command_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 async fn load_aggregate_state_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
     let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
 
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();

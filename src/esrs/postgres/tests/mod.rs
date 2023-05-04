@@ -6,12 +6,12 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
+use crate::esrs::postgres::store::PgStoreBuilder;
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 #[sqlx::test]
 async fn setup_database_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone());
     let table_name: String = format!("{}_events", TestAggregate::NAME);
 
     let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
@@ -22,7 +22,10 @@ async fn setup_database_test(pool: Pool<Postgres>) {
 
     assert!(rows.is_empty());
 
-    store.setup().await.unwrap();
+    let _: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
+        .try_build()
+        .await
+        .expect("Failed to create PgStore");
 
     let rows = sqlx::query("SELECT table_name FROM information_schema.columns WHERE table_name = $1")
         .bind(table_name.as_str())
@@ -44,7 +47,7 @@ async fn setup_database_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
     let aggregate_id: Uuid = Uuid::new_v4();
@@ -86,7 +89,7 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
 
 #[sqlx::test]
 fn persist_single_event_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let mut aggregate_state = AggregateState::new();
     let aggregate_id = *aggregate_state.id();
@@ -107,7 +110,7 @@ fn persist_single_event_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn persist_multiple_events_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone()).setup().await.unwrap();
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let test_event_1: TestEvent = TestEvent { id: Uuid::new_v4() };
     let test_event_2: TestEvent = TestEvent { id: Uuid::new_v4() };
@@ -136,9 +139,9 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn event_handling_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_event_handlers(vec![Box::new(TestTransactionalEventHandler {})])
-        .setup()
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
+        .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
+        .try_build()
         .await
         .unwrap();
 
@@ -165,9 +168,9 @@ fn event_handling_test(pool: Pool<Postgres>) {
 
 #[sqlx::test]
 fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_transactional_event_handlers(vec![Box::new(TestTransactionalEventHandler {})])
-        .setup()
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
+        .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
+        .try_build()
         .await
         .unwrap();
 
@@ -214,9 +217,9 @@ fn event_handler_test(pool: Pool<Postgres>) {
         last_id: last_id.clone(),
     });
 
-    let store: PgStore<TestAggregate> = PgStore::new(pool.clone())
-        .set_event_handlers(vec![event_handler])
-        .setup()
+    let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
+        .add_event_handler(event_handler)
+        .try_build()
         .await
         .unwrap();
 
