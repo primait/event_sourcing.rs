@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::ops::Deref;
 use uuid::Uuid;
 
 use crate::{Aggregate, StoreEvent};
@@ -22,19 +23,18 @@ where
     }
 }
 
-// FIXME: uncomment
-// #[async_trait]
-// impl<M, Q, T> EventHandler<AM> for T
-// where
-//     AM: AggregateManager,
-//     M::Event: Send + Sync,
-//     Q: EventHandler<AM>,
-//     T: Deref<Target = Q> + Send + Sync,
-// {
-//     async fn handle(&self, event: StoreEvent<M::Event>) {
-//         self.deref().handle(event).await;
-//     }
-// }
+#[async_trait]
+impl<A, Q, T> EventHandler<A> for T
+where
+    A: Aggregate,
+    A::Event: Send + Sync,
+    Q: EventHandler<A>,
+    T: Deref<Target = Q> + Send + Sync,
+{
+    async fn handle(&self, event: &StoreEvent<A::Event>) {
+        self.deref().handle(event).await;
+    }
+}
 
 #[async_trait]
 pub trait TransactionalEventHandler<A, E>: Sync
@@ -57,12 +57,23 @@ where
     }
 }
 
+#[async_trait]
+impl<A, E, Q, T> TransactionalEventHandler<A, E> for T
+where
+    A: Aggregate,
+    A::Event: Send + Sync,
+    E: Send,
+    Q: TransactionalEventHandler<A, E>,
+    T: Deref<Target = Q> + Send + Sync,
+{
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error> {
+        self.deref().handle(event, executor).await
+    }
+}
+
 pub trait ReplayableEventHandler<A>: Sync
 where
     Self: EventHandler<A>,
     A: Aggregate,
 {
 }
-
-// TODO: doc
-pub trait EventHandlerError: std::error::Error {}

@@ -12,6 +12,8 @@ use sqlx::types::Json;
 use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
+pub use builder::PgStoreBuilder;
+
 use crate::esrs::event_handler;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
@@ -19,12 +21,11 @@ use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 use super::{event, statement::Statements};
 
-pub use builder::PgStoreBuilder;
-
 mod builder;
 
 pub type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
 pub type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
+pub type EventBus<A> = Box<dyn crate::esrs::event_bus::EventBus<A> + Send + Sync>;
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -47,6 +48,7 @@ where
     statements: Statements,
     event_handlers: Vec<EventHandler<A>>,
     transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
+    event_buses: Vec<EventBus<A>>,
 }
 
 impl<A> PgStore<A>
@@ -111,6 +113,12 @@ where
     /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
     pub fn event_handlers(&self) -> &[EventHandler<A>] {
         &self.inner.event_handlers
+    }
+
+    /// This function returns the list of all event handlers added to this store. This function should
+    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
+    pub fn event_buses(&self) -> &[EventBus<A>] {
+        &self.inner.event_buses
     }
 
     /// This function could be used in order to customize the way the store persist the events.
@@ -252,7 +260,24 @@ where
             }
         }
 
+        // Publishing to subscribed event buses
+        self.publish(&store_events).await;
+
         Ok(store_events)
+    }
+
+    async fn publish(&self, store_events: &[StoreEvent<A::Event>]) {
+        let futures: Vec<_> = self
+            .event_buses()
+            .iter()
+            .map(|bus| async move {
+                for store_event in store_events {
+                    bus.publish(store_event).await;
+                }
+            })
+            .collect();
+
+        let _ = futures::future::join_all(futures).await;
     }
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {

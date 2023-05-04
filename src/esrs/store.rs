@@ -53,6 +53,9 @@ where
         events: Vec<A::Event>,
     ) -> Result<Vec<StoreEvent<A::Event>>, A::Error>;
 
+    /// Publish the events on the configured events bus.
+    async fn publish(&self, store_events: &[StoreEvent<A::Event>]);
+
     /// Delete all events from events store related to given `aggregate_id`.
     ///
     /// Moreover it should delete all the read side projections triggered by event handlers.
@@ -61,29 +64,7 @@ where
 
 /// Default generic implementation for every type implementing [`Deref`] where its `Target` is a
 /// `dyn` [`EventStore`]. This is particularly useful when there's the need in your codebase to have
-/// a generic [`EventStore`] inside your [`Aggregate`].
-///
-/// # Example
-///
-/// ```ignore
-/// pub struct MyAggregate {
-///     event_store: Box<dyn esrs::EventStore<Manager = Self>>,
-/// }
-///
-/// // Your [`Aggregate`] impl here
-///
-/// impl esrs::AggregateManager for MyAggregate {
-///     type EventStore = Box<dyn esrs::EventStore<Manager = Self>>;
-///
-///     fn name() -> &'static str where Self: Sized {
-///         "whatever"
-///     }
-///
-///     fn event_store(&self) -> &Self::EventStore {
-///         self.event_store.as_ref()
-///     }
-/// }
-/// ```
+/// a generic [`EventStore`].
 #[async_trait]
 impl<A, T> EventStore<A> for T
 where
@@ -105,6 +86,11 @@ where
         events: Vec<A::Event>,
     ) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         self.deref().persist(aggregate_state, events).await
+    }
+
+    /// Publish the events on the configured events bus.
+    async fn publish(&self, events: &[StoreEvent<A::Event>]) {
+        self.deref().publish(events).await
     }
 
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {
