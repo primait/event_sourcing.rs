@@ -18,7 +18,6 @@ all-features = true
 members = [
     "examples/aggregate_merging",
     "examples/crud_on_store",
-    "examples/customize_persistence_flow",
     "examples/delete_aggregate",
     "examples/rebuild_strategies",
     "examples/simple_projection",
