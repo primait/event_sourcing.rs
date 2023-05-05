@@ -5,7 +5,7 @@ use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
 /// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
 ///
-/// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
+/// The basic API is:
 /// 1. handle_command
 /// 2. load
 /// 3. lock_and_load
@@ -21,6 +21,7 @@ impl<A> AggregateManager<A>
 where
     A: Aggregate,
 {
+    /// Creates a new instance of an [`AggregateManager`].
     pub fn new(event_store: Box<dyn EventStore<A> + Send + Sync>) -> Self {
         Self { event_store }
     }
@@ -89,9 +90,7 @@ where
     }
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
-    /// and read side projections, or fail.
-    ///
-    /// If the deletion succeeds only partially, it _must_ return an error.
+    /// and transactional read side projections, or fail.
     pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), A::Error> {
         self.event_store.delete(aggregate_id.into()).await
     }

@@ -53,7 +53,7 @@ where
         events: Vec<A::Event>,
     ) -> Result<Vec<StoreEvent<A::Event>>, A::Error>;
 
-    /// Publish the events on the configured events bus.
+    /// Publish multiple events on the configured events buses.
     async fn publish(&self, store_events: &[StoreEvent<A::Event>]);
 
     /// Delete all events from events store related to given `aggregate_id`.
@@ -72,14 +72,17 @@ where
     A: Aggregate,
     A::Event: 'static,
 {
+    /// Deref call to [`EventStore::lock`].
     async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error> {
         self.deref().lock(aggregate_id).await
     }
 
+    /// Deref call to [`EventStore::by_aggregate_id`].
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
         self.deref().by_aggregate_id(aggregate_id).await
     }
 
+    /// Deref call to [`EventStore::persist`].
     async fn persist(
         &self,
         aggregate_state: &mut AggregateState<A::State>,
@@ -88,11 +91,12 @@ where
         self.deref().persist(aggregate_state, events).await
     }
 
-    /// Publish the events on the configured events bus.
+    /// Deref call to [`EventStore::publish`].
     async fn publish(&self, events: &[StoreEvent<A::Event>]) {
         self.deref().publish(events).await
     }
 
+    /// Deref call to [`EventStore::delete`].
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {
         self.deref().delete(aggregate_id).await
     }
