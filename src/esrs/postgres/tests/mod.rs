@@ -46,7 +46,7 @@ async fn setup_database_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) {
+async fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let event_internal_id: Uuid = Uuid::new_v4();
@@ -88,7 +88,7 @@ fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postgres>) 
 }
 
 #[sqlx::test]
-fn persist_single_event_test(pool: Pool<Postgres>) {
+async fn persist_single_event_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let mut aggregate_state = AggregateState::new();
@@ -109,7 +109,7 @@ fn persist_single_event_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn persist_multiple_events_test(pool: Pool<Postgres>) {
+async fn persist_multiple_events_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let test_event_1: TestEvent = TestEvent { id: Uuid::new_v4() };
@@ -138,7 +138,7 @@ fn persist_multiple_events_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn event_handling_test(pool: Pool<Postgres>) {
+async fn event_handling_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
         .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
         .try_build()
@@ -167,7 +167,7 @@ fn event_handling_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
+async fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
         .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
         .try_build()
@@ -211,7 +211,7 @@ fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
 }
 
 #[sqlx::test]
-fn event_handler_test(pool: Pool<Postgres>) {
+async fn event_handler_test(pool: Pool<Postgres>) {
     let last_id: Arc<Mutex<Uuid>> = Arc::new(Mutex::new(Uuid::default()));
     let event_handler: Box<TestEventHandler> = Box::new(TestEventHandler {
         last_id: last_id.clone(),

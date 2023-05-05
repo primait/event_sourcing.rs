@@ -15,11 +15,12 @@ use uuid::Uuid;
 pub use builder::PgStoreBuilder;
 
 use crate::esrs::event_handler;
+use crate::esrs::sql::statements::Statements;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
-use super::{event, statement::Statements};
+use super::event;
 
 mod builder;
 
@@ -129,9 +130,9 @@ where
     ///
     /// Will return an `Err` if the given `fun` returns an `Err`. In the `EventStore` implementation
     /// for `PgStore` this function return an `Err` if the event insertion or its projection fails.
-    pub async fn persist<'a, F, T>(&'a self, fun: F) -> Result<Vec<StoreEvent<A::Event>>, A::Error>
+    pub async fn persist<F, T>(&self, fun: F) -> Result<Vec<StoreEvent<A::Event>>, A::Error>
     where
-        F: Send + FnOnce(&'a Pool<Postgres>) -> T,
+        F: Send + FnOnce(&Pool<Postgres>) -> T,
         T: Future<Output = Result<Vec<StoreEvent<A::Event>>, A::Error>> + Send,
     {
         fun(&self.inner.pool).await

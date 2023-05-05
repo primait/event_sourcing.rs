@@ -45,7 +45,7 @@ where
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/select_by_aggregate_id.sql"),
+        include_str!("../../../src/esrs/sql/postgres/statements/select_by_aggregate_id.sql"),
         table_name::<T>()
     );
 
@@ -77,7 +77,7 @@ pub async fn insert_event_with_given_event_id<T: Aggregate>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/insert.sql"),
+        include_str!("../../../src/esrs/sql/postgres/statements/insert.sql"),
         table_name::<T>()
     );
     let _ = sqlx::query(query.as_str())
@@ -139,7 +139,7 @@ pub async fn delete_events_by_aggregate_id<T: Aggregate>(
     // The path in the include_str! is the one for the given query. In your codebase you can copy the
     // file or directly use the content
     let query: String = format!(
-        include_str!("../../../src/esrs/postgres/statements/delete_by_aggregate_id.sql"),
+        include_str!("../../../src/esrs/sql/postgres/statements/delete_by_aggregate_id.sql"),
         table_name::<T>()
     );
 
@@ -227,7 +227,7 @@ mod tests {
     async fn crud_test(pool: PgPool) {
         // I need to create the table..
         let query: String = format!(
-            include_str!("../../../src/esrs/postgres/statements/create_table.sql"),
+            include_str!("../../../src/esrs/sql/postgres/migrations/01_create_table.sql"),
             table_name::<Agg>()
         );
         let _ = sqlx::query(query.as_str()).execute(&pool).await.unwrap();
