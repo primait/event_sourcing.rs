@@ -1,8 +1,10 @@
 use std::{sync::Arc, vec};
 
-use sqlx::{postgres::PgQueryResult, PgConnection, Pool, Postgres, Transaction};
+use sqlx::{PgConnection, Pool, Postgres};
 
-use crate::{esrs::postgres::statement::Statements, Aggregate};
+use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
+use crate::esrs::sql::statements::Statements;
+use crate::Aggregate;
 
 use super::{EventBus, EventHandler, InnerPgStore, PgStore, TransactionalEventHandler};
 
@@ -15,6 +17,7 @@ where
     event_handlers: Vec<EventHandler<A>>,
     transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
     event_buses: Vec<EventBus<A>>,
+    run_migrations: bool,
 }
 
 impl<A> PgStoreBuilder<A>
@@ -28,6 +31,7 @@ where
             event_handlers: vec![],
             transactional_event_handlers: vec![],
             event_buses: vec![],
+            run_migrations: true,
         }
     }
 
@@ -73,6 +77,13 @@ where
         self
     }
 
+    /// Calling this function the caller avoid running migrations. It is recommend to run migrations
+    /// at least once per store per startup.
+    pub fn without_running_migrations(mut self) -> Self {
+        self.run_migrations = false;
+        self
+    }
+
     /// This function sets up the database in a transaction and returns an instance of PgStore.
     ///
     /// It will create the event store table (if it doesn't exist) and two indexes (if they don't exist).
@@ -85,24 +96,9 @@ where
     ///
     /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
     pub async fn try_build(self) -> Result<PgStore<A>, sqlx::Error> {
-        let mut transaction: Transaction<Postgres> = self.pool.begin().await?;
-
-        // Create events table if not exists
-        let _: PgQueryResult = sqlx::query(self.statements.create_table())
-            .execute(&mut *transaction)
-            .await?;
-
-        // Create index on aggregate_id for `by_aggregate_id` query.
-        let _: PgQueryResult = sqlx::query(self.statements.create_index())
-            .execute(&mut *transaction)
-            .await?;
-
-        // Create unique constraint `aggregate_id`-`sequence_number` to avoid race conditions.
-        let _: PgQueryResult = sqlx::query(self.statements.create_unique_constraint())
-            .execute(&mut *transaction)
-            .await?;
-
-        transaction.commit().await?;
+        if self.run_migrations {
+            Migrations::run::<A>(&self.pool).await?;
+        }
 
         Ok(PgStore {
             inner: Arc::new(InnerPgStore {

@@ -15,11 +15,12 @@ use uuid::Uuid;
 pub use builder::PgStoreBuilder;
 
 use crate::esrs::event_handler;
+use crate::esrs::sql::statements::Statements;
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
-use super::{event, statement::Statements};
+use super::event;
 
 mod builder;
 

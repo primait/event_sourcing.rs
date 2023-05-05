@@ -2,6 +2,7 @@ pub mod aggregate;
 pub mod event_bus;
 pub mod event_handler;
 pub mod manager;
+pub mod sql;
 pub mod state;
 pub mod store;
 
