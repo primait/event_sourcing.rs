@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use std::future::Future;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -63,7 +62,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if the insert of the values into the database fails.
-    pub async fn save_event(
+    pub(crate) async fn save_event(
         &self,
         aggregate_id: Uuid,
         event: A::Event,
@@ -102,40 +101,6 @@ where
                 .fetch(executor)
                 .map(|res| Ok(res?.try_into()?))
         })
-    }
-
-    /// This function returns the list of all transactional event handlers added to this store.
-    /// This function should mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn transactional_event_handlers(&self) -> &[TransactionalEventHandler<A, PgConnection>] {
-        &self.inner.transactional_event_handlers
-    }
-
-    /// This function returns the list of all event handlers added to this store. This function should
-    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn event_handlers(&self) -> &[EventHandler<A>] {
-        &self.inner.event_handlers
-    }
-
-    /// This function returns the list of all event handlers added to this store. This function should
-    /// mostly used while creating a custom persistence flow using [`PgStore::persist`].
-    pub fn event_buses(&self) -> &[EventBus<A>] {
-        &self.inner.event_buses
-    }
-
-    /// This function could be used in order to customize the way the store persist the events.
-    ///
-    /// An example of how to use this function is in `examples/customize_persistence_flow` example folder.
-    ///
-    /// # Errors
-    ///
-    /// Will return an `Err` if the given `fun` returns an `Err`. In the `EventStore` implementation
-    /// for `PgStore` this function return an `Err` if the event insertion or its projection fails.
-    pub async fn persist<F, T>(&self, fun: F) -> Result<Vec<StoreEvent<A::Event>>, A::Error>
-    where
-        F: Send + FnOnce(&Pool<Postgres>) -> T,
-        T: Future<Output = Result<Vec<StoreEvent<A::Event>>, A::Error>> + Send,
-    {
-        fun(&self.inner.pool).await
     }
 }
 
@@ -213,7 +178,7 @@ where
         }
 
         // Acquiring the list of transactional event handlers early, as it is an expensive operation.
-        let transactional_event_handlers = self.transactional_event_handlers();
+        let transactional_event_handlers = &self.inner.transactional_event_handlers;
         for store_event in &store_events {
             for transactional_event_handler in transactional_event_handlers.iter() {
                 let span = tracing::trace_span!(
@@ -245,7 +210,7 @@ where
         drop(aggregate_state.take_lock());
 
         // Acquiring the list of event handlers early, as it is an expensive operation.
-        let event_handlers = self.event_handlers();
+        let event_handlers = &self.inner.event_handlers;
         for store_event in &store_events {
             // NOTE: should this be parallelized?
             for event_handler in event_handlers.iter() {
@@ -269,7 +234,8 @@ where
 
     async fn publish(&self, store_events: &[StoreEvent<A::Event>]) {
         let futures: Vec<_> = self
-            .event_buses()
+            .inner
+            .event_buses
             .iter()
             .map(|bus| async move {
                 for store_event in store_events {
@@ -290,7 +256,7 @@ where
             .await
             .map(|_| ())?;
 
-        for transactional_event_handler in self.transactional_event_handlers().iter() {
+        for transactional_event_handler in self.inner.transactional_event_handlers.iter() {
             transactional_event_handler
                 .delete(aggregate_id, &mut transaction)
                 .await?;
@@ -299,7 +265,7 @@ where
         transaction.commit().await?;
 
         // NOTE: should this be parallelized?
-        for event_handler in self.event_handlers().iter() {
+        for event_handler in self.inner.event_handlers.iter() {
             event_handler.delete(aggregate_id).await;
         }
 
