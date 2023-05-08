@@ -20,8 +20,8 @@ mod esrs;
 #[cfg(feature = "postgres")]
 pub mod postgres {
     //! Provides implementation of the [`EventStore`] for Postgres.
-    pub use crate::esrs::postgres::store::PgStore;
-    pub use crate::esrs::postgres::store::PgStoreBuilder;
+    pub use crate::esrs::postgres::PgStore;
+    pub use crate::esrs::postgres::PgStoreBuilder;
 }
 
 pub mod error {

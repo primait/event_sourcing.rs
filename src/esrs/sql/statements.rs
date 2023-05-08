@@ -1,4 +1,4 @@
-use sqlx::Database;
+use sqlx::{Database, Postgres};
 
 use crate::{statement, Aggregate};
 
@@ -6,6 +6,9 @@ pub trait StatementsHandler<D>
 where
     D: Database,
 {
+    fn new<A>() -> Self
+    where
+        A: Aggregate;
     fn by_aggregate_id(&self) -> &str;
     fn select_all(&self) -> &str;
     fn insert(&self) -> &str;
@@ -20,8 +23,8 @@ pub struct Statements {
     delete_by_aggregate_id: String,
 }
 
-impl Statements {
-    pub fn new<A>() -> Self
+impl StatementsHandler<Postgres> for Statements {
+    fn new<A>() -> Self
     where
         A: Aggregate,
     {
@@ -33,19 +36,19 @@ impl Statements {
         }
     }
 
-    pub fn by_aggregate_id(&self) -> &str {
+    fn by_aggregate_id(&self) -> &str {
         &self.select_by_aggregate_id
     }
 
-    pub fn select_all(&self) -> &str {
+    fn select_all(&self) -> &str {
         &self.select_all
     }
 
-    pub fn insert(&self) -> &str {
+    fn insert(&self) -> &str {
         &self.insert
     }
 
-    pub fn delete_by_aggregate_id(&self) -> &str {
+    fn delete_by_aggregate_id(&self) -> &str {
         &self.delete_by_aggregate_id
     }
 }

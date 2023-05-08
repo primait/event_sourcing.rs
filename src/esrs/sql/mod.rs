@@ -1,3 +1,4 @@
+pub mod event;
 pub mod migrations;
 pub mod statements;
 

@@ -86,6 +86,14 @@ where
     }
 }
 
+/// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`. Being
+/// replayable means that the operation performed by this `EventHandler` does not perform a side-effect
+/// (eg. an external API call).
+///
+/// The most common use case for this is when rebuilding read models: `EventHandler`s that write on
+/// the database should be marked as replayable.
+///
+/// Another use case could be if there's the need to implement a retry logic for this event handler.
 pub trait ReplayableEventHandler<A>: Sync
 where
     Self: EventHandler<A>,
