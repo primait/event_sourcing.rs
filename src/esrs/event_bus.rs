@@ -1,5 +1,9 @@
-use crate::{Aggregate, StoreEvent};
 use async_trait::async_trait;
+
+use crate::{Aggregate, StoreEvent};
+
+#[cfg(feature = "kafka")]
+mod kafka;
 
 #[async_trait]
 pub trait EventBus<A>: Sync
