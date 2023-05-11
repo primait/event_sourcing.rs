@@ -2,6 +2,8 @@ use async_trait::async_trait;
 
 use crate::{Aggregate, StoreEvent};
 
+#[cfg(feature = "kafka")]
+pub mod kafka;
 #[cfg(feature = "rabbit")]
 pub mod rabbit;
 

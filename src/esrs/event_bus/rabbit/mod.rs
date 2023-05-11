@@ -7,12 +7,14 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel, Connection, ConnectionProperties, ExchangeKind};
 use serde::Serialize;
 
-pub use builder::RabbitEventBusBuilder;
+pub use config::RabbitEventBusConfig;
 
 use crate::esrs::event_bus::EventBus;
+use crate::event_bus::rabbit::error::RabbitEventBusError;
 use crate::{Aggregate, StoreEvent};
 
-mod builder;
+mod config;
+mod error;
 
 pub struct RabbitEventBus<A> {
     channel: Channel,
@@ -39,6 +41,7 @@ where
         publish_routing_key: String,
         publish_options: BasicPublishOptions,
         publish_properties: BasicProperties,
+        error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
     ) -> Result<Self, lapin::Error> {
         let connection: Connection = Connection::connect(url, connection_properties).await?;
         let channel: Channel = connection.create_channel().await?;
@@ -53,7 +56,7 @@ where
             publish_routing_key,
             publish_options,
             publish_properties,
-            error_handler: Box::new(|_| ()),
+            error_handler,
             _phantom: PhantomData::default(),
         })
     }
@@ -96,24 +99,5 @@ where
         Confirmation::Ack(_) => Ok(()),
         Confirmation::Nack(_) => Err(RabbitEventBusError::RabbitNack),
         Confirmation::NotRequested => Err(RabbitEventBusError::RabbitNotRequested),
-    }
-}
-
-pub enum RabbitEventBusError {
-    Json(serde_json::Error),
-    Rabbit(lapin::Error),
-    RabbitNack,
-    RabbitNotRequested,
-}
-
-impl From<serde_json::Error> for RabbitEventBusError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Json(value)
-    }
-}
-
-impl From<lapin::Error> for RabbitEventBusError {
-    fn from(value: lapin::Error) -> Self {
-        Self::Rabbit(value)
     }
 }
