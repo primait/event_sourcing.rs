@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{Aggregate, StoreEvent};
 
 /// This trait is used to implement an `EventHandler`. An event handler is intended to be an entity
-/// where to create, update and delete a read side and perform side effects.
+/// which can create, update and delete a read side and perform side effects.
 ///
 /// The main purpose of an `EventHandler` is to have an eventually persistent processor.
 #[async_trait]
@@ -43,7 +43,7 @@ where
 }
 
 /// This trait is used to implement a `TransactionalEventHandler`. A transactional event handler is
-/// intended to be an entity where to create, update and delete a read side. No side effects must be
+/// intended to be an entity which can create, update and delete a read side. No side effects must be
 /// performed inside of this kind on handler.
 ///
 /// An `handle` operation will result in a _deadlock_ if the implementation of this trait is used to
@@ -86,9 +86,12 @@ where
     }
 }
 
-/// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`. Being
-/// replayable means that the operation performed by this `EventHandler` does not perform a side-effect
-/// (eg. an external API call).
+/// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`.
+///
+/// Being replayable means that the operation performed by this EventHandler should be idempotent
+/// and should be intended to be "eventually consistent".
+/// In other words it means that they should not perform external API calls, generate random numbers
+/// or do anything that relies on external state and might change the outcome of this function.
 ///
 /// The most common use case for this is when rebuilding read models: `EventHandler`s that write on
 /// the database should be marked as replayable.

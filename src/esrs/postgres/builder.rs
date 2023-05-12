@@ -86,7 +86,7 @@ where
         self
     }
 
-    /// This function runs all the needed [`Migrations`], transactional set up the database.
+    /// This function runs all the needed [`Migrations`], atomically setting up the database.
     /// Eventually returns an instance of PgStore.
     ///
     /// This function should be used only once at your application startup.
