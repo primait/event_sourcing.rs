@@ -3,47 +3,24 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ConnectionProperties, ExchangeKind};
 use typed_builder::TypedBuilder;
 
-use crate::esrs::event_bus::rabbit::RabbitEventBus;
 use crate::event_bus::rabbit::error::RabbitEventBusError;
-use crate::Aggregate;
 
 #[derive(TypedBuilder)]
 pub struct RabbitEventBusConfig<'a> {
-    url: &'a str,
-    exchange: &'a str,
+    pub(crate) url: &'a str,
+    pub(crate) exchange: &'a str,
     #[builder(default)]
-    connection_properties: ConnectionProperties,
-    exchange_kind: ExchangeKind,
+    pub(crate) connection_properties: ConnectionProperties,
+    pub(crate) exchange_kind: ExchangeKind,
     #[builder(default)]
-    options: ExchangeDeclareOptions,
+    pub(crate) options: ExchangeDeclareOptions,
     #[builder(default)]
-    arguments: FieldTable,
-    publish_routing_key: String,
+    pub(crate) arguments: FieldTable,
+    pub(crate) publish_routing_key: String,
     #[builder(default)]
-    publish_options: BasicPublishOptions,
+    pub(crate) publish_options: BasicPublishOptions,
     #[builder(default)]
-    publish_properties: BasicProperties,
+    pub(crate) publish_properties: BasicProperties,
     #[builder(default = Box::new(|_| ()))]
-    error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
-}
-
-impl RabbitEventBusConfig<'_> {
-    pub async fn into_rabbit_event_bus<A>(self) -> Result<RabbitEventBus<A>, lapin::Error>
-    where
-        A: Aggregate,
-    {
-        RabbitEventBus::new(
-            self.url,
-            self.exchange,
-            self.connection_properties,
-            self.exchange_kind,
-            self.options,
-            self.arguments,
-            self.publish_routing_key,
-            self.publish_options,
-            self.publish_properties,
-            self.error_handler,
-        )
-        .await
-    }
+    pub(crate) error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
 }

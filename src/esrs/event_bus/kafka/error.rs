@@ -13,6 +13,12 @@ impl From<Error> for KafkaEventBusError {
     }
 }
 
+impl From<KafkaError> for KafkaEventBusError {
+    fn from(value: KafkaError) -> Self {
+        Self::Kafka(value)
+    }
+}
+
 impl From<(KafkaError, OwnedMessage)> for KafkaEventBusError {
     fn from((error, _): (KafkaError, OwnedMessage)) -> Self {
         Self::Kafka(error)

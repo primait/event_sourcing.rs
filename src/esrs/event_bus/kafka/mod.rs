@@ -24,17 +24,25 @@ pub struct KafkaEventBus<A> {
 }
 
 impl<A> KafkaEventBus<A> {
-    pub(crate) fn new(
-        topic: String,
-        queue_timeout: Duration,
-        config: ClientConfig,
-        error_handler: Box<dyn Fn(KafkaEventBusError) + Sync>,
-    ) -> Result<Self, rdkafka::error::KafkaError> {
+    pub async fn new(config: KafkaEventBusConfig<'_>) -> Result<KafkaEventBus<A>, KafkaEventBusError> {
+        let mut client_config: ClientConfig = config.client_config.unwrap_or_default();
+        client_config
+            .set("metadata.broker.list", config.broker_url_list)
+            .set("request.timeout.ms", config.request_timeout.to_string());
+
+        if let Some(security) = config.security {
+            client_config
+                .set("security.protocol", "SASL_SSL")
+                .set("sasl.mechanisms", security.sasl_mechanism)
+                .set("sasl.username", security.username)
+                .set("sasl.password", security.password);
+        }
+
         Ok(Self {
-            producer: config.create()?,
-            topic,
-            request_timeout: queue_timeout,
-            error_handler,
+            producer: client_config.create()?,
+            topic: config.topic,
+            request_timeout: Duration::from_millis(config.request_timeout),
+            error_handler: config.error_handler,
             _phantom: Default::default(),
         })
     }

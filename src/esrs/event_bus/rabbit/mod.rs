@@ -1,10 +1,9 @@
 use std::marker::PhantomData;
 
 use async_trait::async_trait;
-use lapin::options::{BasicPublishOptions, ExchangeDeclareOptions};
+use lapin::options::BasicPublishOptions;
 use lapin::publisher_confirm::Confirmation;
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel, Connection, ConnectionProperties, ExchangeKind};
+use lapin::{BasicProperties, Channel, Connection};
 use serde::Serialize;
 
 pub use config::RabbitEventBusConfig;
@@ -30,33 +29,21 @@ impl<A> RabbitEventBus<A>
 where
     A: Aggregate,
 {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) async fn new(
-        url: &str,
-        exchange: &str,
-        connection_properties: ConnectionProperties,
-        exchange_kind: ExchangeKind,
-        options: ExchangeDeclareOptions,
-        arguments: FieldTable,
-        publish_routing_key: String,
-        publish_options: BasicPublishOptions,
-        publish_properties: BasicProperties,
-        error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
-    ) -> Result<Self, lapin::Error> {
-        let connection: Connection = Connection::connect(url, connection_properties).await?;
+    pub async fn new(config: RabbitEventBusConfig<'_>) -> Result<RabbitEventBus<A>, RabbitEventBusError> {
+        let connection: Connection = Connection::connect(config.url, config.connection_properties).await?;
         let channel: Channel = connection.create_channel().await?;
 
         channel
-            .exchange_declare(exchange, exchange_kind, options, arguments)
+            .exchange_declare(config.exchange, config.exchange_kind, config.options, config.arguments)
             .await?;
 
         Ok(Self {
             channel,
-            exchange: exchange.to_string(),
-            publish_routing_key,
-            publish_options,
-            publish_properties,
-            error_handler,
+            exchange: config.exchange.to_string(),
+            publish_routing_key: config.publish_routing_key,
+            publish_options: config.publish_options,
+            publish_properties: config.publish_properties,
+            error_handler: config.error_handler,
             _phantom: PhantomData::default(),
         })
     }
