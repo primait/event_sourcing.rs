@@ -5,7 +5,7 @@ use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
 /// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
 ///
-/// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
+/// The basic APIs are:
 /// 1. handle_command
 /// 2. load
 /// 3. lock_and_load
@@ -21,18 +21,21 @@ impl<A> AggregateManager<A>
 where
     A: Aggregate,
 {
+    /// Creates a new instance of an [`AggregateManager`].
     pub fn new(event_store: Box<dyn EventStore<A> + Send + Sync>) -> Self {
         Self { event_store }
     }
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
+    ///
+    /// The store transactional persists the events - recording it in the aggregate instance's history.
     pub async fn handle_command(
         &self,
         mut aggregate_state: AggregateState<A::State>,
         command: A::Command,
     ) -> Result<(), A::Error> {
         let events: Vec<A::Event> = A::handle_command(aggregate_state.inner(), command)?;
-        self.store_events(&mut aggregate_state, events).await?;
+        self.event_store.persist(&mut aggregate_state, events).await?;
         Ok(())
     }
 
@@ -77,21 +80,8 @@ where
         }))
     }
 
-    /// Transactional persists events in store - recording it in the aggregate instance's history.
-    /// The store will also handle the events creating read side projections. If an error occurs whilst
-    /// persisting the events, the whole transaction is rolled back and the error is returned.
-    pub async fn store_events(
-        &self,
-        aggregate_state: &mut AggregateState<A::State>,
-        events: Vec<A::Event>,
-    ) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
-        self.event_store.persist(aggregate_state, events).await
-    }
-
     /// `delete` should either complete the aggregate instance, along with all its associated events
-    /// and read side projections, or fail.
-    ///
-    /// If the deletion succeeds only partially, it _must_ return an error.
+    /// and transactional read side projections, or fail.
     pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), A::Error> {
         self.event_store.delete(aggregate_id.into()).await
     }
