@@ -84,7 +84,7 @@ where
 
     match confirmation {
         Confirmation::Ack(_) => Ok(()),
-        Confirmation::Nack(_) => Err(RabbitEventBusError::RabbitNack),
-        Confirmation::NotRequested => Err(RabbitEventBusError::RabbitNotRequested),
+        Confirmation::NotRequested => Ok(()),
+        Confirmation::Nack(_) => Err(RabbitEventBusError::PublishNack),
     }
 }

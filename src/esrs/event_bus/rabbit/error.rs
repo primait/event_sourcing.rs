@@ -1,8 +1,7 @@
 pub enum RabbitEventBusError {
     Json(serde_json::Error),
     Rabbit(lapin::Error),
-    RabbitNack,
-    RabbitNotRequested,
+    PublishNack,
 }
 
 impl From<serde_json::Error> for RabbitEventBusError {
