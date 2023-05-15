@@ -6,7 +6,7 @@ use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::esrs::event_handler::{EventHandler, TransactionalEventHandler};
-use crate::esrs::postgres::store::PgStoreBuilder;
+use crate::esrs::postgres::PgStoreBuilder;
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 

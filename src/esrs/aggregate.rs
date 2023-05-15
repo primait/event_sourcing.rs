@@ -17,7 +17,7 @@ pub trait Aggregate {
     /// of their type, and their events!
     const NAME: &'static str;
 
-    /// Internal aggregate state. This will be wrapped in `AggregateState` and could be used to validate
+    /// Internal aggregate state. This will be wrapped in [`AggregateState`] and could be used to validate
     /// commands.
     type State: Default + Clone + Send + Sync;
 

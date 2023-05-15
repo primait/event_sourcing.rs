@@ -4,6 +4,7 @@ use sqlx::{Database, Error, Pool, Postgres, Transaction};
 
 use crate::{statement, Aggregate};
 
+/// Trait used to handle current code migrations.
 #[async_trait]
 pub trait MigrationsHandler<D>
 where

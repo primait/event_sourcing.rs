@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use sqlx::{Pool, Postgres};
 
-use crate::esrs::postgres::store::PgStoreBuilder;
+use crate::esrs::postgres::PgStoreBuilder;
 use crate::postgres::PgStore;
 use crate::{Aggregate, AggregateManager, AggregateState};
 

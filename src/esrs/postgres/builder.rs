@@ -3,11 +3,12 @@ use std::{sync::Arc, vec};
 use sqlx::{PgConnection, Pool, Postgres};
 
 use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
-use crate::esrs::sql::statements::Statements;
+use crate::esrs::sql::statements::{Statements, StatementsHandler};
 use crate::Aggregate;
 
 use super::{EventBus, EventHandler, InnerPgStore, PgStore, TransactionalEventHandler};
 
+/// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A>
 where
     A: Aggregate,
@@ -24,6 +25,7 @@ impl<A> PgStoreBuilder<A>
 where
     A: Aggregate,
 {
+    /// Creates a new instance of a [`PgStoreBuilder`].
     pub fn new(pool: Pool<Postgres>) -> Self {
         PgStoreBuilder {
             pool,
@@ -84,17 +86,14 @@ where
         self
     }
 
-    /// This function sets up the database in a transaction and returns an instance of PgStore.
-    ///
-    /// It will create the event store table (if it doesn't exist) and two indexes (if they don't exist).
-    /// The first one is over the `aggregate_id` field to speed up `by_aggregate_id` query.
-    /// The second one is a unique constraint over the tuple `(aggregate_id, sequence_number)` to avoid race conditions.
+    /// This function runs all the needed [`Migrations`], atomically setting up the database.
+    /// Eventually returns an instance of PgStore.
     ///
     /// This function should be used only once at your application startup.
     ///
     /// # Errors
     ///
-    /// Will return an `Err` if there's an error connecting with database or creating tables/indexes.
+    /// Will return an `Err` if there's an error running [`Migrations`].
     pub async fn try_build(self) -> Result<PgStore<A>, sqlx::Error> {
         if self.run_migrations {
             Migrations::run::<A>(&self.pool).await?;
