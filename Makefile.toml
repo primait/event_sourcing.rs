@@ -1,8 +1,12 @@
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
+DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+KAFKA_BROKERS_URL = "kafka:9092"
 
 [env.drone]
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+KAFKA_BROKERS_URL = "kafka:9092"
 
 [config]
 default_to_workspace = false
@@ -22,6 +26,10 @@ script = [
 ]
 
 # Build
+[tasks.build]
+description = "Build the binaries for each feature"
+dependencies = ["build-ci"]
+
 [tasks.build-ci]
 script = [
     "cargo build -j 2 --workspace",
@@ -33,16 +41,17 @@ script = [
 
 # Format
 [tasks.format-ci]
-description = "Runs the cargo rustfmt plugin during CI."
+description = "Runs the cargo rustfmt plugin during CI"
 command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 # Tests
 [tasks.test]
-description = "Run tests."
+description = "Run tests"
 dependencies = ["test-ci"]
 
 [tasks.test-ci]
+description = "Run tests during CI"
 script = [
     "cargo test ${@} --workspace",
     "cargo test ${@} --workspace --features=postgres",
@@ -52,8 +61,12 @@ script = [
 ]
 
 # Clippy
+[tasks.clippy]
+description = "Run clippy linter"
+dependencies = ["clippy-ci"]
+
 [tasks.clippy-ci]
-description = "Run clippy linter."
+description = "Run clippy linter during CI"
 script = [
     "cargo clippy --workspace -- -D warnings",
     "cargo clippy --workspace --features=postgres -- -D warnings",
