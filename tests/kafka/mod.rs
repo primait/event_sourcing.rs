@@ -58,6 +58,7 @@ fn consumer(broker_urls: &str, topic: &str) -> StreamConsumer {
         .set("max.poll.interval.ms", "6000")
         .set("enable.auto.commit", "true")
         .set("allow.auto.create.topics", "true")
+        .set("auto.offset.reset", "earliest")
         .create()
         .expect("Consumer creation failed");
 
