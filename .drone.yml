@@ -17,9 +17,9 @@ services:
   image: public.ecr.aws/bitnami/postgresql:11
   name: postgres
 - environment:
-    RABBITMQ_PASSWORD: lira
-    RABBITMQ_USERNAME: lira
-    RABBITMQ_VHOST: lira
+    RABBITMQ_PASSWORD: rabbit
+    RABBITMQ_USERNAME: rabbit
+    RABBITMQ_VHOST: rabbit
   image: public.ecr.aws/bitnami/rabbitmq:3.8
   name: rabbit
 - environment:
