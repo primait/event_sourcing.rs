@@ -17,6 +17,7 @@ services:
       - rabbit
       - zookeeper
       - kafka
+      - kafka-ui
     environment:
       BUILD_ENV: dev
       CARGO_HOME: /home/app/.cargo
@@ -84,6 +85,19 @@ services:
       interval: 1s
       timeout: 10s
       retries: 100
+      
+  kafka-ui:
+    container_name: kafka-ui
+    image: public.ecr.aws/prima/kafka-ui:1.0.0
+    ports:
+      - "9090:8080"
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
 volumes:
   app:
