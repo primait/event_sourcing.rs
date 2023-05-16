@@ -13,14 +13,15 @@ pub struct RabbitEventBusConfig<'a> {
     pub(crate) connection_properties: ConnectionProperties,
     pub(crate) exchange_kind: ExchangeKind,
     #[builder(default)]
-    pub(crate) options: ExchangeDeclareOptions,
+    pub(crate) exchange_options: ExchangeDeclareOptions,
     #[builder(default)]
     pub(crate) arguments: FieldTable,
-    pub(crate) publish_routing_key: String,
+    #[builder(default)]
+    pub(crate) publish_routing_key: Option<String>,
     #[builder(default)]
     pub(crate) publish_options: BasicPublishOptions,
     #[builder(default)]
     pub(crate) publish_properties: BasicProperties,
     #[builder(default = Box::new(|_| ()))]
-    pub(crate) error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
+    pub(crate) error_handler: Box<dyn Fn(RabbitEventBusError) + Send + Sync>,
 }

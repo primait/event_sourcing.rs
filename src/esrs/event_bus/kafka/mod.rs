@@ -7,8 +7,8 @@ use rdkafka::ClientConfig;
 use serde::Serialize;
 
 pub use config::KafkaEventBusConfig;
+pub use error::KafkaEventBusError;
 
-use crate::event_bus::kafka::error::KafkaEventBusError;
 use crate::event_bus::EventBus;
 use crate::{Aggregate, StoreEvent};
 
@@ -19,7 +19,7 @@ pub struct KafkaEventBus<A> {
     producer: FutureProducer,
     topic: String,
     request_timeout: Duration,
-    error_handler: Box<dyn Fn(KafkaEventBusError) + Sync>,
+    error_handler: Box<dyn Fn(KafkaEventBusError) + Send + Sync>,
     _phantom: PhantomData<A>,
 }
 
@@ -40,7 +40,7 @@ impl<A> KafkaEventBus<A> {
 
         Ok(Self {
             producer: client_config.create()?,
-            topic: config.topic,
+            topic: config.topic.to_string(),
             request_timeout: Duration::from_millis(config.request_timeout),
             error_handler: config.error_handler,
             _phantom: Default::default(),

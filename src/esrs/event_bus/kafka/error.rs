@@ -2,6 +2,7 @@ use rdkafka::error::KafkaError;
 use rdkafka::message::OwnedMessage;
 use serde_json::Error;
 
+#[derive(Debug)]
 pub enum KafkaEventBusError {
     Json(Error),
     Kafka(KafkaError),

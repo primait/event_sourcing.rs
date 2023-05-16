@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum RabbitEventBusError {
     Json(serde_json::Error),
     Rabbit(lapin::Error),

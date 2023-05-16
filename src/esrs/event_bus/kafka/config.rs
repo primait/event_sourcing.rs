@@ -6,7 +6,7 @@ use crate::event_bus::kafka::error::KafkaEventBusError;
 #[derive(TypedBuilder)]
 pub struct KafkaEventBusConfig<'a> {
     pub(crate) broker_url_list: &'a str,
-    pub(crate) topic: String,
+    pub(crate) topic: &'a str,
     #[builder(default, setter(strip_option))]
     pub(crate) security: Option<Security<'a>>,
     #[builder(default = 5000)]
@@ -14,7 +14,7 @@ pub struct KafkaEventBusConfig<'a> {
     #[builder(default, setter(strip_option))]
     pub(crate) client_config: Option<ClientConfig>,
     #[builder(default = Box::new(|_| ()))]
-    pub(crate) error_handler: Box<dyn Fn(KafkaEventBusError) + Sync>,
+    pub(crate) error_handler: Box<dyn Fn(KafkaEventBusError) + Send + Sync>,
 }
 
 pub struct Security<'a> {

@@ -7,9 +7,9 @@ use lapin::{BasicProperties, Channel, Connection};
 use serde::Serialize;
 
 pub use config::RabbitEventBusConfig;
+pub use error::RabbitEventBusError;
 
 use crate::esrs::event_bus::EventBus;
-use crate::event_bus::rabbit::error::RabbitEventBusError;
 use crate::{Aggregate, StoreEvent};
 
 mod config;
@@ -18,10 +18,10 @@ mod error;
 pub struct RabbitEventBus<A> {
     channel: Channel,
     exchange: String,
-    publish_routing_key: String,
+    publish_routing_key: Option<String>,
     publish_options: BasicPublishOptions,
     publish_properties: BasicProperties,
-    error_handler: Box<dyn Fn(RabbitEventBusError) + Sync>,
+    error_handler: Box<dyn Fn(RabbitEventBusError) + Send + Sync>,
     _phantom: PhantomData<A>,
 }
 
@@ -34,7 +34,12 @@ where
         let channel: Channel = connection.create_channel().await?;
 
         channel
-            .exchange_declare(config.exchange, config.exchange_kind, config.options, config.arguments)
+            .exchange_declare(
+                config.exchange,
+                config.exchange_kind,
+                config.exchange_options,
+                config.arguments,
+            )
             .await?;
 
         Ok(Self {
@@ -69,12 +74,13 @@ where
     A::Event: Serialize,
 {
     let bytes: Vec<u8> = serde_json::to_vec(store_event)?;
+    let routing_key: String = reb.publish_routing_key.clone().unwrap_or_default();
 
     let confirmation: Confirmation = reb
         .channel
         .basic_publish(
             reb.exchange.as_str(),
-            reb.publish_routing_key.as_str(),
+            routing_key.as_str(),
             reb.publish_options,
             &bytes,
             reb.publish_properties.clone(),
