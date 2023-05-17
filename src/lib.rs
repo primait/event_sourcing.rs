@@ -37,3 +37,19 @@ pub mod types {
     //! Provides custom types.
     pub use crate::esrs::SequenceNumber;
 }
+
+pub trait Boxer {
+    /// Convenient function to return a boxed reference of self.
+    fn boxed(self) -> Box<Self>
+    where
+        Self: Sized;
+}
+
+impl<T> Boxer for T {
+    fn boxed(self) -> Box<Self>
+    where
+        Self: Sized,
+    {
+        Box::new(self)
+    }
+}

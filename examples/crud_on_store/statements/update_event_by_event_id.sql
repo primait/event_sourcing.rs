@@ -1,1 +1,0 @@
-UPDATE {} SET payload = $2 WHERE id = $1

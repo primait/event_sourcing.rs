@@ -14,18 +14,6 @@ version = "0.11.0"
 [package.metadata.docs.rs]
 all-features = true
 
-[workspace]
-members = [
-    "examples/aggregate_merging",
-    "examples/crud_on_store",
-    "examples/delete_aggregate",
-    "examples/rebuild_strategies",
-    "examples/simple_projection",
-    "examples/simple_saga",
-    "examples/simple_side_effect",
-    "examples/locking_strategies",
-]
-
 [features]
 postgres = ["sqlx/postgres", "typed-builder"]
 kafka = ["rdkafka", "typed-builder"]
@@ -57,6 +45,13 @@ typed-builder = { version = "0.14.0", optional = true }
 # To stream over sqlx results
 futures = "0.3"
 tracing = "0.1"
+cargo-examples = "0.5.0"
 
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
+thiserror = "1.0"
+
+[[example]]
+name = "shared_view"
+path = "examples/shared_view/main.rs"
+required-features = ["postgres"]
