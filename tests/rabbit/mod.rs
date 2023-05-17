@@ -23,7 +23,7 @@ async fn rabbit_event_bus_test() {
         .url(rabbit_url.as_str())
         .exchange(exchange)
         .exchange_kind(ExchangeKind::Fanout)
-        // .publish_routing_key(Some(routing_key.to_string()))
+        .publish_routing_key(Some(routing_key.to_string()))
         .error_handler(Box::new(|error| panic!("{:?}", error)))
         .build();
 
