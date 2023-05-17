@@ -9,6 +9,7 @@ pub struct BasicView {
     pub content: String,
 }
 
+#[allow(dead_code)]
 impl BasicView {
     pub async fn by_id(
         id: Uuid,

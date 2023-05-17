@@ -4,10 +4,12 @@ use thiserror::Error;
 
 pub use a::*;
 pub use b::*;
+#[cfg(feature = "postgres")]
 pub use basic::*;
 
 mod a;
 mod b;
+#[cfg(feature = "postgres")]
 mod basic;
 
 pub async fn new_pool() -> Pool<Postgres> {

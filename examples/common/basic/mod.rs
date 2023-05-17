@@ -6,6 +6,7 @@ use crate::common::Error;
 
 mod view;
 
+#[allow(dead_code)]
 pub const BASIC_TABLE_NAME: &str = "basic_view";
 
 #[derive(Clone)]
@@ -40,6 +41,7 @@ pub struct BasicEvent {
     pub content: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum BasicError {
     #[error(transparent)]
