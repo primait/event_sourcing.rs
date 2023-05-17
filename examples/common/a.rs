@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use esrs::Aggregate;
 
-use crate::Error;
+use crate::common::Error;
 
 pub struct AggregateA;
 

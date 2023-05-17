@@ -1,15 +1,17 @@
-use async_trait::async_trait;
-use sqlx::{Executor, Pool, Postgres};
-use thiserror::Error;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, Boxer, EventHandler, StoreEvent};
+use esrs::{AggregateManager, AggregateState, Boxer};
 
-use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB, EventA, EventB};
+use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB};
+use crate::event_handler::SharedEventHandler;
+use crate::view::SharedView;
 
 #[path = "../common/lib.rs"]
 mod common;
+mod event_handler;
+mod view;
 
 const CREATE_TABLE: &str = "CREATE TABLE IF NOT EXISTS shared_view \
     (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)";
@@ -64,125 +66,4 @@ async fn main() {
     assert_eq!(shared_view.sum, 12); // 5 + 7
 
     dbg!(shared_view);
-}
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error(transparent)]
-    Sql(#[from] sqlx::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
-}
-
-#[derive(Clone)]
-pub struct SharedEventHandler {
-    pool: Pool<Postgres>,
-}
-
-#[async_trait]
-impl EventHandler<AggregateA> for SharedEventHandler {
-    async fn handle(&self, event: &StoreEvent<EventA>) {
-        let result = SharedView::upsert(
-            Upsert::A {
-                shared_id: event.payload.shared_id,
-                aggregate_id: event.aggregate_id,
-                value: event.payload.v,
-            },
-            &self.pool,
-        )
-        .await;
-
-        if let Err(e) = result {
-            println!("Error inserting A to shared view: {:?}", e)
-        }
-    }
-}
-
-#[async_trait]
-impl EventHandler<AggregateB> for SharedEventHandler {
-    async fn handle(&self, event: &StoreEvent<EventB>) {
-        let result = SharedView::upsert(
-            Upsert::B {
-                shared_id: event.payload.shared_id,
-                aggregate_id: event.aggregate_id,
-                value: event.payload.v,
-            },
-            &self.pool,
-        )
-        .await;
-
-        if let Err(e) = result {
-            println!("Error inserting B to shared view: {:?}", e)
-        }
-    }
-}
-
-#[derive(sqlx::FromRow, Debug)]
-pub struct SharedView {
-    shared_id: Uuid,
-    aggregate_id_a: Option<Uuid>,
-    aggregate_id_b: Option<Uuid>,
-    sum: i32,
-}
-
-pub enum Upsert {
-    A {
-        shared_id: Uuid,
-        aggregate_id: Uuid,
-        value: i32,
-    },
-    B {
-        shared_id: Uuid,
-        aggregate_id: Uuid,
-        value: i32,
-    },
-}
-
-impl SharedView {
-    pub async fn by_id(
-        shared_id: Uuid,
-        executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, Self>("SELECT * FROM shared_view WHERE shared_id = $1")
-            .bind(shared_id)
-            .fetch_optional(executor)
-            .await
-    }
-
-    pub async fn upsert(ups: Upsert, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
-        match ups {
-            Upsert::A {
-                shared_id,
-                aggregate_id,
-                value,
-            } => upsert(shared_id, aggregate_id, value, "aggregate_id_a", executor).await,
-            Upsert::B {
-                shared_id,
-                aggregate_id,
-                value,
-            } => upsert(shared_id, aggregate_id, value, "aggregate_id_b", executor).await,
-        }
-    }
-}
-
-async fn upsert(
-    shared_id: Uuid,
-    aggregate_id: Uuid,
-    value: i32,
-    id_field: &str,
-    executor: impl Executor<'_, Database = Postgres>,
-) -> Result<(), sqlx::Error> {
-    let query = format!(
-        "INSERT INTO shared_view (shared_id, {0}, sum) VALUES ($1, $2, $3) \
-        ON CONFLICT (shared_id) DO UPDATE SET {0} = $2, sum = shared_view.sum + $3;",
-        id_field
-    );
-
-    sqlx::query(query.as_str())
-        .bind(shared_id)
-        .bind(aggregate_id)
-        .bind(value)
-        .fetch_optional(executor)
-        .await
-        .map(|_| ())
 }

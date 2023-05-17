@@ -1,5 +1,6 @@
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
+use thiserror::Error;
 
 pub use a::*;
 pub use b::*;
@@ -14,4 +15,12 @@ pub async fn new_pool() -> Pool<Postgres> {
         .connect(database_url.as_str())
         .await
         .expect("Failed to create postgres pool")
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    Sql(#[from] sqlx::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
