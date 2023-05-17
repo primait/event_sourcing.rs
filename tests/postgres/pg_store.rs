@@ -7,8 +7,7 @@ use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 use crate::aggregate::{
-    ProjectionRow, TestAggregate, TestAggregateState, TestError, TestEvent, TestEventHandler,
-    TestTransactionalEventHandler,
+    TestAggregate, TestAggregateState, TestError, TestEvent, TestEventHandler, TestTransactionalEventHandler,
 };
 
 #[sqlx::test]
@@ -244,4 +243,10 @@ async fn create_test_projection_table(pool: &Pool<Postgres>) {
         .execute(pool)
         .await
         .unwrap();
+}
+
+#[derive(sqlx::FromRow)]
+pub struct ProjectionRow {
+    pub id: Uuid,
+    pub total: i32,
 }

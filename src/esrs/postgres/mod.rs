@@ -56,6 +56,11 @@ where
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
     A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
+    /// Returns the name of the event store table
+    pub fn table_name(&self) -> &str {
+        self.inner.statements.table_name()
+    }
+
     /// Save an event in the event store and return a new `StoreEvent` instance.
     ///
     /// # Errors

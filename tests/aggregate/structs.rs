@@ -12,6 +12,7 @@ pub struct TestEvent {
 
 #[derive(Debug)]
 pub enum TestError {
+    #[cfg(feature = "postgres")]
     Sqlx(sqlx::Error),
     Json(serde_json::Error),
 }
@@ -24,6 +25,7 @@ impl Display for TestError {
 
 impl std::error::Error for TestError {}
 
+#[cfg(feature = "postgres")]
 impl From<sqlx::Error> for TestError {
     fn from(value: sqlx::Error) -> Self {
         TestError::Sqlx(value)
