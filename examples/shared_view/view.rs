@@ -1,6 +1,8 @@
 use sqlx::{Executor, Postgres};
 use uuid::Uuid;
 
+use crate::TABLE_NAME;
+
 #[derive(sqlx::FromRow, Debug)]
 pub struct SharedView {
     pub shared_id: Uuid,
@@ -27,7 +29,9 @@ impl SharedView {
         shared_id: Uuid,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<Option<Self>, sqlx::Error> {
-        sqlx::query_as::<_, Self>("SELECT * FROM shared_view WHERE shared_id = $1")
+        let query: String = format!("SELECT * FROM {} WHERE shared_id = $1", TABLE_NAME);
+
+        sqlx::query_as::<_, Self>(query.as_str())
             .bind(shared_id)
             .fetch_optional(executor)
             .await
@@ -57,9 +61,9 @@ async fn upsert(
     executor: impl Executor<'_, Database = Postgres>,
 ) -> Result<(), sqlx::Error> {
     let query = format!(
-        "INSERT INTO shared_view (shared_id, {0}, sum) VALUES ($1, $2, $3) \
-        ON CONFLICT (shared_id) DO UPDATE SET {0} = $2, sum = shared_view.sum + $3;",
-        id_field
+        "INSERT INTO {0} (shared_id, {1}, sum) VALUES ($1, $2, $3) \
+        ON CONFLICT (shared_id) DO UPDATE SET {1} = $2, sum = {0}.sum + $3;",
+        TABLE_NAME, id_field
     );
 
     sqlx::query(query.as_str())

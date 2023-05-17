@@ -13,17 +13,22 @@ mod common;
 mod event_handler;
 mod view;
 
-const CREATE_TABLE: &str = "CREATE TABLE IF NOT EXISTS shared_view \
-    (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)";
+const TABLE_NAME: &str = "shared_view";
 
 #[tokio::main]
 async fn main() {
     let pool: Pool<Postgres> = new_pool().await;
 
-    let _ = sqlx::query(CREATE_TABLE)
+    let query: String = format!(
+        "CREATE TABLE IF NOT EXISTS {} \
+        (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)",
+        TABLE_NAME
+    );
+
+    let _ = sqlx::query(query.as_str())
         .execute(&pool)
         .await
-        .expect("Failed to create shared_view table");
+        .expect("Failed to create shared view table");
 
     let shared_event_handler: Box<SharedEventHandler> = SharedEventHandler { pool: pool.clone() }.boxed();
 
@@ -57,7 +62,7 @@ async fn main() {
 
     let shared_view = SharedView::by_id(shared_id, &pool)
         .await
-        .expect("Failed to get shared_view row by aggregate id A")
+        .expect("Failed to get shared view row by aggregate id A")
         .expect("Shared view not found by shared id");
 
     assert_eq!(shared_view.shared_id, shared_id);

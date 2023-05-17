@@ -4,9 +4,11 @@ use thiserror::Error;
 
 pub use a::*;
 pub use b::*;
+pub use basic::*;
 
 mod a;
 mod b;
+mod basic;
 
 pub async fn new_pool() -> Pool<Postgres> {
     let database_url: String = std::env::var("DATABASE_URL").unwrap();
