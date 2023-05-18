@@ -81,6 +81,7 @@ description = "Run all configured examples"
 script = [
     "cargo run --example aggregate_deletion --features=postgres",
     "cargo run --example eventual_view --features=postgres",
+    "cargo run --example locking_strategies --features=postgres",
     "cargo run --example saga --features=postgres",
     "cargo run --example shared_view --features=postgres",
     "cargo run --example store_crud --features=postgres",
