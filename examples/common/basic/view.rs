@@ -1,41 +1,72 @@
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Pool, Postgres};
 use uuid::Uuid;
 
-use crate::common::basic::BASIC_TABLE_NAME;
-
 #[derive(sqlx::FromRow, Debug)]
-pub struct BasicView {
+pub struct BasicViewRow {
     pub id: Uuid,
     pub content: String,
 }
 
+#[derive(Clone)]
+pub struct BasicView {
+    table_name: String,
+}
+
 #[allow(dead_code)]
 impl BasicView {
+    pub async fn new(table_name: &str, pool: &Pool<Postgres>) -> Self {
+        let query: String = format!(
+            "CREATE TABLE IF NOT EXISTS {} (id uuid PRIMARY KEY NOT NULL, content VARCHAR)",
+            table_name
+        );
+
+        let _ = sqlx::query(query.as_str())
+            .execute(pool)
+            .await
+            .expect("Failed to create basic view table");
+
+        Self {
+            table_name: table_name.to_string(),
+        }
+    }
+
     pub async fn by_id(
+        &self,
         id: Uuid,
         executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<Option<Self>, sqlx::Error> {
-        let query: String = format!("SELECT * FROM {} WHERE id = $1", BASIC_TABLE_NAME);
+    ) -> Result<Option<BasicViewRow>, sqlx::Error> {
+        let query: String = format!("SELECT * FROM {} WHERE id = $1", &self.table_name);
 
-        sqlx::query_as::<_, Self>(query.as_str())
+        sqlx::query_as::<_, BasicViewRow>(query.as_str())
             .bind(id)
             .fetch_optional(executor)
             .await
     }
 
     pub async fn upsert(
+        &self,
         id: Uuid,
         content: String,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         let query = format!(
             "INSERT INTO {0} (id, content) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET content = $2;",
-            BASIC_TABLE_NAME
+            &self.table_name
         );
 
         sqlx::query(query.as_str())
             .bind(id)
             .bind(content)
+            .fetch_optional(executor)
+            .await
+            .map(|_| ())
+    }
+
+    pub async fn delete(&self, id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
+        let query = format!("DELETE FROM {0} WHERE id = $1;", &self.table_name);
+
+        sqlx::query(query.as_str())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map(|_| ())

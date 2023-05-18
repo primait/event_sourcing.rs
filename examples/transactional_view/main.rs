@@ -4,31 +4,21 @@ use uuid::Uuid;
 use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{AggregateManager, AggregateState, EventStore};
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView, BasicViewRow};
 use crate::transactional_event_handler::BasicTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]
 mod common;
 mod transactional_event_handler;
 
-const TABLE_NAME: &str = "transactional_view";
-
 #[tokio::main]
 async fn main() {
     let pool: Pool<Postgres> = new_pool().await;
 
-    let query: String = format!(
-        "CREATE TABLE IF NOT EXISTS {} (id uuid PRIMARY KEY NOT NULL, content VARCHAR)",
-        TABLE_NAME
-    );
-
-    let _ = sqlx::query(query.as_str())
-        .execute(&pool)
-        .await
-        .expect("Failed to create shared_view table");
+    let view: BasicView = BasicView::new("transactional_view", &pool).await;
 
     let store: PgStore<BasicAggregate> = PgStoreBuilder::new(pool.clone())
-        .add_transactional_event_handler(BasicTransactionalEventHandler)
+        .add_transactional_event_handler(BasicTransactionalEventHandler { view: view.clone() })
         .try_build()
         .await
         .expect("Failed to build PgStore for basic aggregate");
@@ -62,7 +52,8 @@ async fn main() {
         .await
         .expect("Failed to handle command");
 
-    let view: BasicView = BasicView::by_id(id, &pool)
+    let view: BasicViewRow = view
+        .by_id(id, &pool)
         .await
         .expect("Failed to get basic view")
         .expect("Basic view entry not found");

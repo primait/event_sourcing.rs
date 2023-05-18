@@ -5,7 +5,9 @@ use esrs::{StoreEvent, TransactionalEventHandler};
 
 use crate::common::{BasicAggregate, BasicError, BasicEvent, BasicView};
 
-pub struct BasicTransactionalEventHandler;
+pub struct BasicTransactionalEventHandler {
+    pub view: BasicView,
+}
 
 #[async_trait]
 impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactionalEventHandler {
@@ -15,7 +17,12 @@ impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactio
             return Err(BasicError::Custom("Event contains `error` string".to_string()));
         }
 
-        if let Err(e) = BasicView::upsert(event.aggregate_id, event.payload.content.to_string(), transaction).await {
+        let result = self
+            .view
+            .upsert(event.aggregate_id, event.payload.content.to_string(), transaction)
+            .await;
+
+        if let Err(e) = result {
             eprintln!("Error while upserting view: {:?}", e);
             Err(e.into())
         } else {

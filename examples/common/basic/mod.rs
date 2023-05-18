@@ -1,13 +1,13 @@
-use esrs::Aggregate;
 use serde::{Deserialize, Serialize};
+
+use esrs::Aggregate;
+pub use event_handler::*;
 pub use view::*;
 
 use crate::common::Error;
 
+mod event_handler;
 mod view;
-
-#[allow(dead_code)]
-pub const BASIC_TABLE_NAME: &str = "basic_view";
 
 #[derive(Clone)]
 pub struct BasicAggregate;

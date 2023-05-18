@@ -54,8 +54,13 @@ tokio = { version = "1.6", features = ["full"] }
 thiserror = "1.0"
 
 [[example]]
-name = "eventual_persistent_view"
-path = "examples/eventual_persistent_view/main.rs"
+name = "aggregate_deletion"
+path = "examples/aggregate_deletion/main.rs"
+required-features = ["postgres"]
+
+[[example]]
+name = "eventual_view"
+path = "examples/eventual_view/main.rs"
 required-features = ["postgres"]
 
 [[example]]
