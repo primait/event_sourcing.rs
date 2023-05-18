@@ -76,10 +76,15 @@ script = [
 ]
 
 # Run example
-[tasks.example]
-description = "Run given example."
-command = "cargo"
-args = ["run", "-p", "${@}"]
+[tasks.examples]
+description = "Run all configured examples"
+script = [
+    "cargo run --example aggregate_deletion --features=postgres",
+    "cargo run --example eventual_view --features=postgres",
+    "cargo run --example saga --features=postgres",
+    "cargo run --example shared_view --features=postgres",
+    "cargo run --example transactional_view --features=postgres",
+]
 
 # Docs
 [tasks.docsrs]

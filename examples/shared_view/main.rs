@@ -69,6 +69,4 @@ async fn main() {
     assert_eq!(shared_view.aggregate_id_a, Some(aggregate_id_a));
     assert_eq!(shared_view.aggregate_id_b, Some(aggregate_id_b));
     assert_eq!(shared_view.sum, 12); // 5 + 7
-
-    dbg!(shared_view);
 }

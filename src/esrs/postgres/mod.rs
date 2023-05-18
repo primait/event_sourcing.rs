@@ -272,7 +272,6 @@ where
             .map(|_| ())?;
 
         for transactional_event_handler in self.inner.transactional_event_handlers.iter() {
-            dbg!(transactional_event_handler.name());
             transactional_event_handler
                 .delete(aggregate_id, &mut transaction)
                 .await?;

@@ -56,5 +56,4 @@ async fn main() {
 
     let guard = side_effect_mutex.lock().await;
     assert!(*guard);
-    dbg!(&guard);
 }

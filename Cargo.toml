@@ -47,7 +47,6 @@ typed-builder = { version = "0.14.0", optional = true }
 # To stream over sqlx results
 futures = "0.3"
 tracing = "0.1"
-cargo-examples = "0.5.0"
 
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
@@ -64,13 +63,13 @@ path = "examples/eventual_view/main.rs"
 required-features = ["postgres"]
 
 [[example]]
-name = "shared_view"
-path = "examples/shared_view/main.rs"
+name = "saga"
+path = "examples/saga/main.rs"
 required-features = ["postgres"]
 
 [[example]]
-name = "saga"
-path = "examples/saga/main.rs"
+name = "shared_view"
+path = "examples/shared_view/main.rs"
 required-features = ["postgres"]
 
 [[example]]

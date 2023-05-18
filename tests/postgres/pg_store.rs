@@ -208,7 +208,6 @@ async fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
         .await
         .unwrap();
 
-    dbg!(&projection_rows);
     assert!(projection_rows.is_empty());
 }
 

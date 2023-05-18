@@ -44,6 +44,4 @@ async fn main() {
         .expect("Basic view entry not found");
 
     assert_eq!(row.content, content);
-
-    dbg!(row);
 }
