@@ -63,7 +63,7 @@ where
     ///
     /// This is mostly used while there's the need to have an event handler that try to apply a command
     /// on the same aggregate (implementing saga pattern with event sourcing).
-    pub fn add_event_handler(self, event_handler: impl EventHandler<A> + Send + 'static) {
+    pub fn add_event_handler(&self, event_handler: impl EventHandler<A> + Send + 'static) {
         let guard = self.inner.event_handlers.load();
         let mut handlers: Vec<Box<dyn EventHandler<A> + Send>> =
             (*(*guard)).iter().map(|handler| handler.clone_box()).collect();

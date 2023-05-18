@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use futures::lock::Mutex;
 use sqlx::{Pool, Postgres};
+use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
+use esrs::{AggregateManager, AggregateState, EventStore};
 
-use crate::aggregate::SagaAggregate;
+use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
 use crate::common::new_pool;
 use crate::event_handler::SagaEventHandler;
 
@@ -27,8 +29,32 @@ async fn main() {
 
     let saga_event_handler: SagaEventHandler = SagaEventHandler {
         store: store.clone(),
-        side_effect_mutex,
+        side_effect_mutex: side_effect_mutex.clone(),
     };
 
     store.add_event_handler(saga_event_handler);
+
+    let manager: AggregateManager<SagaAggregate> = AggregateManager::new(store.clone());
+
+    let state: AggregateState<()> = AggregateState::default();
+    let id: Uuid = *state.id();
+
+    manager
+        .handle_command(state, SagaCommand::RequestMutation)
+        .await
+        .expect("Failed to handle request mutation command");
+
+    let events = store
+        .by_aggregate_id(id)
+        .await
+        .expect("Failed to get events by aggregate id");
+
+    let payloads: Vec<_> = events.into_iter().map(|v| v.payload).collect();
+
+    assert!(payloads.contains(&SagaEvent::MutationRequested));
+    assert!(payloads.contains(&SagaEvent::MutationRegistered));
+
+    let guard = side_effect_mutex.lock().await;
+    assert!(*guard);
+    dbg!(&guard);
 }

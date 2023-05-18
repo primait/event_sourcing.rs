@@ -17,8 +17,8 @@ pub struct SagaEventHandler {
 #[async_trait]
 impl EventHandler<SagaAggregate> for SagaEventHandler {
     async fn handle(&self, event: &StoreEvent<SagaEvent>) {
-        // FIXME: save AggregateManager instead of the store
         let manager = AggregateManager::new(self.store.clone());
+
         if event.payload == SagaEvent::MutationRequested {
             match manager.load(event.aggregate_id).await {
                 Ok(Some(state)) => {
