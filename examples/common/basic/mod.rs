@@ -36,7 +36,7 @@ pub struct BasicCommand {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct BasicEvent {
     pub content: String,
 }

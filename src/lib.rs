@@ -26,6 +26,12 @@ pub mod postgres {
     pub use crate::esrs::postgres::PgStoreBuilder;
 }
 
+#[cfg(any(feature = "postgres"))]
+pub mod sql {
+    pub use crate::esrs::sql::event::Event;
+    pub use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
+}
+
 pub mod error {
     //! All possible errors returned by this crate
     pub use serde_json::Error as JsonError;

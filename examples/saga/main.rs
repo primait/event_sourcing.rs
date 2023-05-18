@@ -25,7 +25,7 @@ async fn main() {
     let store: PgStore<SagaAggregate> = PgStoreBuilder::new(pool.clone())
         .try_build()
         .await
-        .expect("Failed to build PgStore for AggregateA");
+        .expect("Failed to build PgStore for saga aggregate");
 
     let saga_event_handler: SagaEventHandler = SagaEventHandler {
         store: store.clone(),

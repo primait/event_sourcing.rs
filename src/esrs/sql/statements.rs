@@ -33,7 +33,7 @@ impl StatementsHandler<Postgres> for Statements {
         let table_name: String = format!("{}_events", A::NAME);
 
         Self {
-            table_name: "".to_string(),
+            table_name: table_name.clone(),
             select_by_aggregate_id: format!(
                 include_str!("postgres/statements/select_by_aggregate_id.sql"),
                 table_name

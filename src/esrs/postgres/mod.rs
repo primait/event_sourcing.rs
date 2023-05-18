@@ -175,16 +175,15 @@ where
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<A::Event>> = vec![];
 
-        let starting_sequence_number = aggregate_state.next_sequence_number();
         let aggregate_id = *aggregate_state.id();
 
-        for (index, event) in (0..).zip(events.into_iter()) {
+        for event in events.into_iter() {
             let store_event: StoreEvent<<A as Aggregate>::Event> = self
                 .save_event(
                     aggregate_id,
                     event,
                     occurred_on,
-                    starting_sequence_number + index,
+                    aggregate_state.next_sequence_number(),
                     &mut *transaction,
                 )
                 .await?;

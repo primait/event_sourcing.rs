@@ -83,6 +83,7 @@ script = [
     "cargo run --example eventual_view --features=postgres",
     "cargo run --example saga --features=postgres",
     "cargo run --example shared_view --features=postgres",
+    "cargo run --example store_crud --features=postgres",
     "cargo run --example transactional_view --features=postgres",
 ]
 
