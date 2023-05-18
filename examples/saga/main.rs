@@ -4,10 +4,9 @@ use futures::lock::Mutex;
 use sqlx::{Pool, Postgres};
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, Boxer};
 
 use crate::aggregate::SagaAggregate;
-use crate::common::{new_pool, AggregateA, AggregateB};
+use crate::common::new_pool;
 use crate::event_handler::SagaEventHandler;
 
 mod aggregate;

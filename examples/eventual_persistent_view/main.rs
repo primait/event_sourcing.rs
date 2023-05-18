@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, Boxer};
+use esrs::{AggregateManager, AggregateState};
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView, BASIC_TABLE_NAME};
 use crate::event_handler::BasicEventHandler;
@@ -26,7 +26,7 @@ async fn main() {
         .expect("Failed to create shared_view table");
 
     let store: PgStore<BasicAggregate> = PgStoreBuilder::new(pool.clone())
-        .add_event_handler(BasicEventHandler { pool: pool.clone() }.boxed())
+        .add_event_handler(BasicEventHandler { pool: pool.clone() })
         .try_build()
         .await
         .expect("Failed to build PgStore for basic aggregate");
@@ -39,7 +39,7 @@ async fn main() {
         content: content.to_string(),
     };
 
-    AggregateManager::new(store.boxed())
+    AggregateManager::new(store)
         .handle_command(state, command)
         .await
         .expect("Failed to handle command for basic aggregate");

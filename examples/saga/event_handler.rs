@@ -1,10 +1,10 @@
-use std::sync::{Arc, LockResult};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::lock::Mutex;
 
 use esrs::postgres::PgStore;
-use esrs::{AggregateManager, AggregateState, Boxer, EventHandler, StoreEvent};
+use esrs::{AggregateManager, EventHandler, StoreEvent};
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
 
@@ -17,7 +17,8 @@ pub struct SagaEventHandler {
 #[async_trait]
 impl EventHandler<SagaAggregate> for SagaEventHandler {
     async fn handle(&self, event: &StoreEvent<SagaEvent>) {
-        let manager = AggregateManager::new(self.store.boxed());
+        // FIXME: save AggregateManager instead of the store
+        let manager = AggregateManager::new(self.store.clone());
         if event.payload == SagaEvent::MutationRequested {
             match manager.load(event.aggregate_id).await {
                 Ok(Some(state)) => {

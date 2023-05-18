@@ -1,12 +1,14 @@
 use std::{sync::Arc, vec};
 
+use arc_swap::ArcSwap;
 use sqlx::{PgConnection, Pool, Postgres};
 
+use crate::esrs::event_bus::EventBus;
 use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
-use crate::Aggregate;
+use crate::{Aggregate, EventHandler, TransactionalEventHandler};
 
-use super::{EventBus, EventHandler, InnerPgStore, PgStore, TransactionalEventHandler};
+use super::{InnerPgStore, PgStore};
 
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A>
@@ -15,9 +17,9 @@ where
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    event_handlers: Vec<EventHandler<A>>,
-    transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
-    event_buses: Vec<EventBus<A>>,
+    event_handlers: Vec<Box<dyn EventHandler<A> + Send>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    event_buses: Vec<Box<dyn EventBus<A> + Send>>,
     run_migrations: bool,
 }
 
@@ -38,21 +40,21 @@ where
     }
 
     /// Set event handlers list
-    pub fn with_event_handlers(mut self, event_handlers: Vec<EventHandler<A>>) -> Self {
+    pub fn with_event_handlers(mut self, event_handlers: Vec<Box<dyn EventHandler<A> + Send>>) -> Self {
         self.event_handlers = event_handlers;
         self
     }
 
     /// Add a single event handler
-    pub fn add_event_handler(mut self, event_handler: EventHandler<A>) -> Self {
-        self.event_handlers.push(event_handler);
+    pub fn add_event_handler(mut self, event_handler: impl EventHandler<A> + Send + 'static) -> Self {
+        self.event_handlers.push(Box::new(event_handler));
         self
     }
 
     /// Set transactional event handlers list
     pub fn with_transactional_event_handlers(
         mut self,
-        transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
+        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
     ) -> Self {
         self.transactional_event_handlers = transactional_event_handlers;
         self
@@ -61,21 +63,22 @@ where
     /// Add a single transactional event handler
     pub fn add_transactional_event_handler(
         mut self,
-        transaction_event_handler: TransactionalEventHandler<A, PgConnection>,
+        transaction_event_handler: impl TransactionalEventHandler<A, PgConnection> + Send + 'static,
     ) -> Self {
-        self.transactional_event_handlers.push(transaction_event_handler);
+        self.transactional_event_handlers
+            .push(Box::new(transaction_event_handler));
         self
     }
 
     /// Set event buses list
-    pub fn with_event_buses(mut self, event_buses: Vec<EventBus<A>>) -> Self {
+    pub fn with_event_buses(mut self, event_buses: Vec<Box<dyn EventBus<A> + Send>>) -> Self {
         self.event_buses = event_buses;
         self
     }
 
     /// Add a single event bus
-    pub fn add_event_bus(mut self, event_bus: EventBus<A>) -> Self {
-        self.event_buses.push(event_bus);
+    pub fn add_event_bus(mut self, event_bus: impl EventBus<A> + Send + 'static) -> Self {
+        self.event_buses.push(Box::new(event_bus));
         self
     }
 
@@ -103,7 +106,7 @@ where
             inner: Arc::new(InnerPgStore {
                 pool: self.pool,
                 statements: self.statements,
-                event_handlers: self.event_handlers,
+                event_handlers: ArcSwap::from_pointee(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),

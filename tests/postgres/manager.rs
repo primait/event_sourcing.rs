@@ -10,7 +10,7 @@ use crate::aggregate::{TestAggregate, TestAggregateState, TestCommand};
 #[sqlx::test]
 async fn handle_command_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
-    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(store);
 
     let aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
     let aggregate_id = *aggregate_state.id();
@@ -46,7 +46,7 @@ async fn handle_command_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn load_aggregate_state_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
-    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(store);
 
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
@@ -68,7 +68,7 @@ async fn load_aggregate_state_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn lock_and_load_aggregate_state_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
-    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(store);
 
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
@@ -108,7 +108,7 @@ async fn lock_and_load_aggregate_state_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn lock_and_load_aggregate_state_test_2(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
-    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(store);
 
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 
@@ -136,7 +136,7 @@ async fn lock_and_load_aggregate_state_test_2(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn delete_aggregate_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool).try_build().await.unwrap();
-    let manager: AggregateManager<TestAggregate> = AggregateManager::new(Box::new(store));
+    let manager: AggregateManager<TestAggregate> = AggregateManager::new(store);
 
     let initial_aggregate_state: AggregateState<TestAggregateState> = AggregateState::new();
 

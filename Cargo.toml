@@ -30,6 +30,8 @@ chrono = { version = "0.4", features = ["serde"] }
 # Build async trait
 async-trait = "0.1.50"
 
+# Atomic Arc
+arc-swap = "1.6"
 # Self-referential structs (for PgStoreLockGuard)
 ouroboros = "0.15"
 
@@ -59,6 +61,11 @@ required-features = ["postgres"]
 [[example]]
 name = "shared_view"
 path = "examples/shared_view/main.rs"
+required-features = ["postgres"]
+
+[[example]]
+name = "saga"
+path = "examples/saga/main.rs"
 required-features = ["postgres"]
 
 [[example]]

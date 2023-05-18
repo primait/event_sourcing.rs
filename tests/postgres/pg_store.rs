@@ -144,7 +144,7 @@ async fn persist_multiple_events_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn event_handling_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
-        .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
+        .add_transactional_event_handler(TestTransactionalEventHandler)
         .try_build()
         .await
         .unwrap();
@@ -171,7 +171,7 @@ async fn event_handling_test(pool: Pool<Postgres>) {
 #[sqlx::test]
 async fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
-        .add_transactional_event_handler(Box::new(TestTransactionalEventHandler {}))
+        .add_transactional_event_handler(TestTransactionalEventHandler)
         .try_build()
         .await
         .unwrap();
@@ -208,13 +208,14 @@ async fn delete_store_events_and_handle_events_test(pool: Pool<Postgres>) {
         .await
         .unwrap();
 
+    dbg!(&projection_rows);
     assert!(projection_rows.is_empty());
 }
 
 #[sqlx::test]
 async fn event_handler_test(pool: Pool<Postgres>) {
     let total: Arc<Mutex<i32>> = Arc::new(Mutex::new(100));
-    let event_handler: Box<TestEventHandler> = Box::new(TestEventHandler { total: total.clone() });
+    let event_handler: TestEventHandler = TestEventHandler { total: total.clone() };
 
     let store: PgStore<TestAggregate> = PgStoreBuilder::new(pool.clone())
         .add_event_handler(event_handler)
@@ -245,7 +246,7 @@ async fn create_test_projection_table(pool: &Pool<Postgres>) {
         .unwrap();
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Debug)]
 pub struct ProjectionRow {
     pub id: Uuid,
     pub total: i32,

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use esrs::Aggregate;
 
@@ -22,7 +21,7 @@ impl Aggregate for SagaAggregate {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {}
+    fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {}
 }
 
 pub enum SagaCommand {

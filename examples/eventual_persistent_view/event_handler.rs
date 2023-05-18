@@ -5,6 +5,7 @@ use esrs::{EventHandler, StoreEvent};
 
 use crate::common::{BasicAggregate, BasicEvent, BasicView};
 
+#[derive(Clone)]
 pub struct BasicEventHandler {
     pub pool: Pool<Postgres>,
 }

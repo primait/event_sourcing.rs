@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, Boxer};
+use esrs::{AggregateManager, AggregateState};
 
 use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB};
 use crate::event_handler::SharedEventHandler;
@@ -30,7 +30,7 @@ async fn main() {
         .await
         .expect("Failed to create shared view table");
 
-    let shared_event_handler: Box<SharedEventHandler> = SharedEventHandler { pool: pool.clone() }.boxed();
+    let shared_event_handler: SharedEventHandler = SharedEventHandler { pool: pool.clone() };
 
     let store_a: PgStore<AggregateA> = PgStoreBuilder::new(pool.clone())
         .add_event_handler(shared_event_handler.clone())
@@ -48,14 +48,14 @@ async fn main() {
 
     let state_a: AggregateState<i32> = AggregateState::new();
     let aggregate_id_a: Uuid = *state_a.id();
-    AggregateManager::new(store_a.boxed())
+    AggregateManager::new(store_a)
         .handle_command(state_a, CommandA { v: 5, shared_id })
         .await
         .expect("Failed to handle command for aggregate A");
 
     let state_b: AggregateState<i32> = AggregateState::new();
     let aggregate_id_b: Uuid = *state_b.id();
-    AggregateManager::new(store_b.boxed())
+    AggregateManager::new(store_b)
         .handle_command(state_b, CommandB { v: 7, shared_id })
         .await
         .expect("Failed to handle command for aggregate A");
