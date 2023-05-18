@@ -22,7 +22,7 @@ async fn main() {
         })
         .try_build()
         .await
-        .expect("Failed to build PgStore for basic aggregate");
+        .unwrap();
 
     let state: AggregateState<()> = AggregateState::new();
     let id: Uuid = *state.id();
@@ -35,13 +35,9 @@ async fn main() {
     AggregateManager::new(store)
         .handle_command(state, command)
         .await
-        .expect("Failed to handle command for basic aggregate");
+        .unwrap();
 
-    let row = view
-        .by_id(id, &pool)
-        .await
-        .expect("Failed to get basic view")
-        .expect("Basic view entry not found");
+    let row = view.by_id(id, &pool).await.unwrap().unwrap();
 
     assert_eq!(row.content, content);
 }

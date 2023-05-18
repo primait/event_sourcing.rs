@@ -15,7 +15,8 @@ version = "0.11.0"
 all-features = true
 
 [features]
-postgres = ["sqlx/postgres", "typed-builder"]
+sql = ["sqlx"]
+postgres = ["sql", "sqlx/postgres", "typed-builder"]
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
 

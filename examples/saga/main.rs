@@ -22,10 +22,7 @@ async fn main() {
 
     let side_effect_mutex: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
-    let store: PgStore<SagaAggregate> = PgStoreBuilder::new(pool.clone())
-        .try_build()
-        .await
-        .expect("Failed to build PgStore for saga aggregate");
+    let store: PgStore<SagaAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let saga_event_handler: SagaEventHandler = SagaEventHandler {
         store: store.clone(),
@@ -42,12 +39,9 @@ async fn main() {
     manager
         .handle_command(state, SagaCommand::RequestMutation)
         .await
-        .expect("Failed to handle request mutation command");
+        .unwrap();
 
-    let events = store
-        .by_aggregate_id(id)
-        .await
-        .expect("Failed to get events by aggregate id");
+    let events = store.by_aggregate_id(id).await.unwrap();
 
     let payloads: Vec<_> = events.into_iter().map(|v| v.payload).collect();
 

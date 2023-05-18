@@ -20,10 +20,7 @@ impl BasicView {
             table_name
         );
 
-        let _ = sqlx::query(query.as_str())
-            .execute(pool)
-            .await
-            .expect("Failed to create basic view table");
+        let _ = sqlx::query(query.as_str()).execute(pool).await.unwrap();
 
         Self {
             table_name: table_name.to_string(),

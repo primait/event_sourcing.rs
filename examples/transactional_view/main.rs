@@ -21,7 +21,7 @@ async fn main() {
         .add_transactional_event_handler(BasicTransactionalEventHandler { view: view.clone() })
         .try_build()
         .await
-        .expect("Failed to build PgStore for basic aggregate");
+        .unwrap();
 
     let state: AggregateState<()> = AggregateState::new();
     let id: Uuid = *state.id();
@@ -47,16 +47,9 @@ async fn main() {
     let state: AggregateState<()> = AggregateState::new();
     let id: Uuid = *state.id();
 
-    manager
-        .handle_command(state, command)
-        .await
-        .expect("Failed to handle command");
+    manager.handle_command(state, command).await.unwrap();
 
-    let view: BasicViewRow = view
-        .by_id(id, &pool)
-        .await
-        .expect("Failed to get basic view")
-        .expect("Basic view entry not found");
+    let view: BasicViewRow = view.by_id(id, &pool).await.unwrap().unwrap();
 
     assert_eq!(view.content, content);
 }

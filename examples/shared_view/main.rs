@@ -25,10 +25,7 @@ async fn main() {
         TABLE_NAME
     );
 
-    let _ = sqlx::query(query.as_str())
-        .execute(&pool)
-        .await
-        .expect("Failed to create shared view table");
+    let _ = sqlx::query(query.as_str()).execute(&pool).await.unwrap();
 
     let shared_event_handler: SharedEventHandler = SharedEventHandler { pool: pool.clone() };
 
@@ -36,13 +33,13 @@ async fn main() {
         .add_event_handler(shared_event_handler.clone())
         .try_build()
         .await
-        .expect("Failed to build PgStore for AggregateA");
+        .unwrap();
 
     let store_b: PgStore<AggregateB> = PgStoreBuilder::new(pool.clone())
         .add_event_handler(shared_event_handler)
         .try_build()
         .await
-        .expect("Failed to build PgStore for AggregateB");
+        .unwrap();
 
     let shared_id: Uuid = Uuid::new_v4();
 
@@ -51,19 +48,16 @@ async fn main() {
     AggregateManager::new(store_a)
         .handle_command(state_a, CommandA { v: 5, shared_id })
         .await
-        .expect("Failed to handle command for aggregate A");
+        .unwrap();
 
     let state_b: AggregateState<i32> = AggregateState::new();
     let aggregate_id_b: Uuid = *state_b.id();
     AggregateManager::new(store_b)
         .handle_command(state_b, CommandB { v: 7, shared_id })
         .await
-        .expect("Failed to handle command for aggregate A");
+        .unwrap();
 
-    let shared_view = SharedView::by_id(shared_id, &pool)
-        .await
-        .expect("Failed to get shared view row by aggregate id A")
-        .expect("Shared view not found by shared id");
+    let shared_view = SharedView::by_id(shared_id, &pool).await.unwrap().unwrap();
 
     assert_eq!(shared_view.shared_id, shared_id);
     assert_eq!(shared_view.aggregate_id_a, Some(aggregate_id_a));

@@ -18,10 +18,7 @@ mod common;
 async fn main() {
     let pool: Pool<Postgres> = new_pool().await;
 
-    let store: PgStore<BasicAggregate> = PgStoreBuilder::new(pool.clone())
-        .try_build()
-        .await
-        .expect("Failed to build PgStore for basic aggregate");
+    let store: PgStore<BasicAggregate> = PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let aggregate_id: Uuid = Uuid::new_v4();
     let mut aggregate_state: AggregateState<()> = AggregateState::with_id(aggregate_id);

@@ -22,7 +22,7 @@ async fn main() {
         })
         .try_build()
         .await
-        .expect("Failed to build PgStore for basic aggregate");
+        .unwrap();
 
     let state: AggregateState<()> = AggregateState::new();
     let id: Uuid = *state.id();
@@ -34,28 +34,18 @@ async fn main() {
 
     let manager = AggregateManager::new(store.clone());
 
-    manager
-        .handle_command(state, command)
-        .await
-        .expect("Failed to handle command for basic aggregate");
+    manager.handle_command(state, command).await.unwrap();
 
-    let row = view
-        .by_id(id, &pool)
-        .await
-        .expect("Failed to get basic view")
-        .expect("Basic view entry not found");
+    let row = view.by_id(id, &pool).await.unwrap().unwrap();
 
     assert_eq!(row.content, content);
 
-    manager.delete(id).await.expect("Failed to delete aggregate");
+    manager.delete(id).await.unwrap();
 
-    let events: Vec<StoreEvent<BasicEvent>> = store
-        .by_aggregate_id(id)
-        .await
-        .expect("Failed to get events from store");
+    let events: Vec<StoreEvent<BasicEvent>> = store.by_aggregate_id(id).await.unwrap();
 
     assert!(events.is_empty());
 
-    let row = view.by_id(id, &pool).await.expect("Failed to get row from view");
+    let row = view.by_id(id, &pool).await.unwrap();
     assert!(row.is_none());
 }
