@@ -111,7 +111,7 @@ async fn main() {
     let future_1 = tokio::spawn(async move {
         let manager = AggregateManager::new(cloned);
 
-        assert_eq!(*lock_info_cloned.lock().await, false);
+        assert!(!*lock_info_cloned.lock().await);
         let _state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
 
         // Here is known that the aggregate state is locked. Updating lock_info `true`.
@@ -119,7 +119,7 @@ async fn main() {
         *guard = true;
         drop(guard);
 
-        let _ = tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Updating lock_info being that after this statement the state will be dropped and the lock
         // released.
@@ -134,14 +134,14 @@ async fn main() {
         let manager = AggregateManager::new(store);
 
         // This asserts that the first thread is holding the lock on the aggregate state..
-        assert_eq!(*lock_info.lock().await, true);
+        assert!(*lock_info.lock().await);
 
         // This statement is now pending, waiting for the first thread lock to be released.
         let _state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
 
         // ..and than that the first thread has released the lock, allowing this thread to take a
         // new lock.
-        assert_eq!(*lock_info.lock().await, false);
+        assert!(!*lock_info.lock().await);
     });
 
     let _ = tokio::join!(future_1, future_2);

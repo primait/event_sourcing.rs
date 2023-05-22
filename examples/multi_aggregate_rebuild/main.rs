@@ -5,15 +5,13 @@ use uuid::Uuid;
 use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{AggregateManager, AggregateState, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
 
-use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, EventA, EventB};
-use crate::shared_view::{SharedEventHandler, SharedView, UpsertSharedView};
+use crate::common::{
+    new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, EventA, EventB, SharedEventHandler, SharedView,
+};
 use crate::transactional_event_handler::SharedTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]
 mod common;
-#[allow(dead_code)]
-#[path = "../shared_view/main.rs"]
-mod shared_view;
 mod transactional_event_handler;
 
 #[tokio::main]
@@ -118,7 +116,7 @@ async fn rebuild_multi_aggregate(
                     transactional_event_handler.handle(b, &mut transaction).await.unwrap();
                 }
                 for event_handler in &event_handlers_b {
-                    event_handler.handle(&b).await;
+                    event_handler.handle(b).await;
                 }
 
                 // Get next value from AggregateB events stream

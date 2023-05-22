@@ -165,7 +165,7 @@ where
         )
     }
 
-    #[tracing::instrument(skip_all, fields(aggregate_id = %aggregate_state.id()), err)]
+    #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]
     async fn persist(
         &self,
         aggregate_state: &mut AggregateState<A::State>,

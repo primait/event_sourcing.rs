@@ -3,8 +3,7 @@ use sqlx::{Pool, Postgres};
 
 use esrs::{EventHandler, ReplayableEventHandler, StoreEvent};
 
-use crate::common::{AggregateA, AggregateB, EventA, EventB};
-use crate::{SharedView, UpsertSharedView};
+use crate::common::{AggregateA, AggregateB, EventA, EventB, SharedView, UpsertSharedView};
 
 #[derive(Clone)]
 pub struct SharedEventHandler {
@@ -55,4 +54,5 @@ impl EventHandler<AggregateB> for SharedEventHandler {
 }
 
 impl ReplayableEventHandler<AggregateA> for SharedEventHandler {}
+
 impl ReplayableEventHandler<AggregateB> for SharedEventHandler {}

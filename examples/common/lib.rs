@@ -7,11 +7,17 @@ pub use a::*;
 pub use b::*;
 #[cfg(feature = "postgres")]
 pub use basic::*;
+#[cfg(feature = "postgres")]
+pub use shared::*;
 
 mod a;
 mod b;
 #[cfg(feature = "postgres")]
 mod basic;
+
+#[allow(dead_code)]
+#[cfg(feature = "postgres")]
+mod shared;
 
 pub async fn new_pool() -> Pool<Postgres> {
     let database_url: String = std::env::var("DATABASE_URL").unwrap();
@@ -30,8 +36,7 @@ pub enum CommonError {
 pub fn random_letters() -> String {
     let mut rng = rand::thread_rng();
     let chars: String = (0..6)
-        .into_iter()
-        .map(|_| (b'a'..b'z').choose(&mut rng).unwrap() as char)
+        .map(|_| (b'a'..=b'z').choose(&mut rng).unwrap() as char)
         .collect();
     chars
 }

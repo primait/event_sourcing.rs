@@ -22,6 +22,7 @@ script = [
     "cargo check --workspace --features=postgres",
     "cargo check --workspace --features=kafka",
     "cargo check --workspace --features=rabbit",
+    "cargo check --workspace --features=rebuilder",
     "cargo check --workspace --all-features"
 ]
 
@@ -36,6 +37,7 @@ script = [
     "cargo build -j 2 --workspace --features=postgres",
     "cargo build -j 2 --workspace --features=kafka",
     "cargo build -j 2 --workspace --features=rabbit",
+    "cargo build -j 2 --workspace --features=rebuilder",
     "cargo build -j 2 --workspace --all-features"
 ]
 
@@ -58,13 +60,14 @@ script = [
     "cargo test ${@} --workspace --features=rebuilder",
     "cargo test ${@} --workspace --features=kafka",
     "cargo test ${@} --workspace --features=rabbit",
+    "cargo test ${@} --workspace --features=rebuilder",
     "cargo test ${@} --workspace --all-features"
 ]
 
 # Clippy
 [tasks.clippy]
 description = "Run clippy linter"
-dependencies = ["clippy-ci"]
+dependencies = ["clippy-ci", "clippy-examples"]
 
 [tasks.clippy-ci]
 description = "Run clippy linter during CI"
@@ -73,6 +76,7 @@ script = [
     "cargo clippy --workspace --features=postgres -- -D warnings",
     "cargo clippy --workspace --features=kafka -- -D warnings",
     "cargo clippy --workspace --features=rabbit -- -D warnings",
+    "cargo clippy --workspace --features=rebuilder -- -D warnings",
     "cargo clippy --workspace --all-features -- -D warnings"
 ]
 
@@ -89,6 +93,20 @@ script = [
     "cargo run --example shared_view --features=postgres",
     "cargo run --example store_crud --features=postgres",
     "cargo run --example transactional_view --features=postgres",
+]
+
+[tasks.clippy-examples]
+description = "Run clippy over all examples"
+script = [
+    "cargo clippy --example aggregate_deletion --features=postgres -- -D warnings",
+    "cargo clippy --example eventual_view --features=postgres -- -D warnings",
+    "cargo clippy --example locking_strategies --features=postgres -- -D warnings",
+    "cargo clippy --example multi_aggregate_rebuild --features=postgres -- -D warnings",
+    "cargo clippy --example rebuilder --features=rebuilder,postgres -- -D warnings",
+    "cargo clippy --example saga --features=postgres -- -D warnings",
+    "cargo clippy --example shared_view --features=postgres -- -D warnings",
+    "cargo clippy --example store_crud --features=postgres -- -D warnings",
+    "cargo clippy --example transactional_view --features=postgres -- -D warnings",
 ]
 
 # Docs

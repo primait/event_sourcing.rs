@@ -3,15 +3,11 @@ use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{AggregateManager, AggregateState};
-pub use event_handler::*;
-pub use view::*;
 
-use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB};
+use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB, SharedEventHandler, SharedView};
 
 #[path = "../common/lib.rs"]
 mod common;
-mod event_handler;
-mod view;
 
 #[tokio::main]
 async fn main() {

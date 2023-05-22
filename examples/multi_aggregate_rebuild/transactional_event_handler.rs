@@ -3,8 +3,7 @@ use sqlx::PgConnection;
 
 use esrs::{StoreEvent, TransactionalEventHandler};
 
-use crate::common::{AggregateA, AggregateB, CommonError, EventA, EventB};
-use crate::shared_view::{SharedView, UpsertSharedView};
+use crate::common::{AggregateA, AggregateB, CommonError, EventA, EventB, SharedView, UpsertSharedView};
 
 #[derive(Clone)]
 pub struct SharedTransactionalEventHandler {

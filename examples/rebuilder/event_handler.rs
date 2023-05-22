@@ -55,7 +55,5 @@ impl ReplayableEventHandler<BasicAggregate> for BasicEventHandlerV2 {}
 
 #[async_trait]
 impl EventHandler<BasicAggregate> for AnotherEventHandler {
-    async fn handle(&self, _event: &StoreEvent<BasicEvent>) {
-        ()
-    }
+    async fn handle(&self, _event: &StoreEvent<BasicEvent>) {}
 }

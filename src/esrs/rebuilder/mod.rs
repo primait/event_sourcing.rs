@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 
-use crate::Aggregate;
-
 #[cfg(all(feature = "rebuilder", feature = "postgres"))]
 pub use pg_rebuilder::PgRebuilder;
+
+use crate::Aggregate;
 
 #[cfg(all(feature = "rebuilder", feature = "postgres"))]
 mod pg_rebuilder;
