@@ -22,11 +22,7 @@ where
     A: Aggregate,
 {
     pub fn new() -> Self {
-        Self {
-            event_handlers: vec![],
-            transactional_event_handlers: vec![],
-            event_buses: vec![],
-        }
+        Default::default()
     }
 
     pub fn with_event_handlers(self, event_handlers: Vec<Box<dyn ReplayableEventHandler<A> + Send>>) -> Self {
@@ -45,6 +41,19 @@ where
 
     pub fn with_event_buses(self, event_buses: Vec<Box<dyn EventBus<A> + Send>>) -> Self {
         Self { event_buses, ..self }
+    }
+}
+
+impl<A> Default for PgRebuilder<A>
+where
+    A: Aggregate,
+{
+    fn default() -> Self {
+        Self {
+            event_handlers: vec![],
+            transactional_event_handlers: vec![],
+            event_buses: vec![],
+        }
     }
 }
 

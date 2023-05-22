@@ -17,6 +17,7 @@ all-features = true
 [features]
 sql = ["sqlx"]
 postgres = ["sql", "sqlx/postgres", "typed-builder"]
+rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
 
@@ -77,7 +78,7 @@ required-features = ["postgres"]
 [[example]]
 name = "rebuilder"
 path = "examples/rebuilder/main.rs"
-required-features = ["postgres"]
+required-features = ["rebuilder", "postgres"]
 
 [[example]]
 name = "saga"

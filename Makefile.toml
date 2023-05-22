@@ -55,6 +55,7 @@ description = "Run tests during CI"
 script = [
     "cargo test ${@} --workspace",
     "cargo test ${@} --workspace --features=postgres",
+    "cargo test ${@} --workspace --features=rebuilder",
     "cargo test ${@} --workspace --features=kafka",
     "cargo test ${@} --workspace --features=rabbit",
     "cargo test ${@} --workspace --all-features"
@@ -83,7 +84,7 @@ script = [
     "cargo run --example eventual_view --features=postgres",
     "cargo run --example locking_strategies --features=postgres",
     "cargo run --example multi_aggregate_rebuild --features=postgres",
-    "cargo run --example rebuilder --features=postgres",
+    "cargo run --example rebuilder --features=rebuilder,postgres",
     "cargo run --example saga --features=postgres",
     "cargo run --example shared_view --features=postgres",
     "cargo run --example store_crud --features=postgres",

@@ -1,6 +1,8 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use sqlx::{Pool, Postgres};
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
@@ -101,46 +103,46 @@ async fn main() {
 
     drop(locked_state_1.take_lock());
 
-    // Simulation of a multithread environment
+    let lock_info: Arc<Mutex<bool>> = Arc::new(Mutex::default());
+
+    // Simulation of a multithread environment.
     let cloned = store.clone();
+    let lock_info_cloned = lock_info.clone();
     let future_1 = tokio::spawn(async move {
         let manager = AggregateManager::new(cloned);
-        println!("First thread: requesting lock");
-        let mut state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
-        println!("First thread: locked");
-        let _ = tokio::time::sleep(Duration::from_secs(2)).await;
-        println!("First thread: completed its job");
-        // The lock is released
-        drop(state.take_lock());
-        println!("First thread: lock released");
-        // Giving here the time to the second thread to acquire the lock
-        tokio::time::sleep(Duration::from_millis(100)).await
+
+        assert_eq!(*lock_info_cloned.lock().await, false);
+        let _state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
+
+        // Here is known that the aggregate state is locked. Updating lock_info `true`.
+        let mut guard = lock_info_cloned.lock().await;
+        *guard = true;
+        drop(guard);
+
+        let _ = tokio::time::sleep(Duration::from_secs(1)).await;
+
+        // Updating lock_info being that after this statement the state will be dropped and the lock
+        // released.
+        let mut guard = lock_info_cloned.lock().await;
+        *guard = false;
     });
 
-    let cloned = store.clone();
     let future_2 = tokio::spawn(async move {
-        // Give the first thread some time in order to be the first to lock
-        tokio::time::sleep(Duration::from_millis(10)).await;
-        let manager = AggregateManager::new(cloned);
-        println!("Second thread: requesting lock");
-        let mut state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
-        println!("Second thread: locked");
-        println!("Second thread: completed its job");
-        // The lock is released when goes out of scope. In this case, for the sake of demonstrate this
-        // we will release it manually.
-        drop(state.take_lock());
-        println!("Second thread: lock released");
+        // Give the first thread some time in order to be the first to acquire the lock.
+        tokio::time::sleep(Duration::from_millis(500)).await;
+
+        let manager = AggregateManager::new(store);
+
+        // This asserts that the first thread is holding the lock on the aggregate state..
+        assert_eq!(*lock_info.lock().await, true);
+
+        // This statement is now pending, waiting for the first thread lock to be released.
+        let _state = manager.lock_and_load(aggregate_id).await.unwrap().unwrap();
+
+        // ..and than that the first thread has released the lock, allowing this thread to take a
+        // new lock.
+        assert_eq!(*lock_info.lock().await, false);
     });
 
     let _ = tokio::join!(future_1, future_2);
-
-    // Expected output:
-    // > First thread: requesting lock
-    // > First thread: locked
-    // > Second thread: requesting lock
-    // > First thread: completed its job
-    // > First thread: lock released
-    // > Second thread: locked
-    // > Second thread: completed its job
-    // > Second thread: lock released
 }

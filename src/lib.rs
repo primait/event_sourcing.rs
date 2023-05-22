@@ -14,6 +14,7 @@ pub use crate::esrs::aggregate::Aggregate;
 pub use crate::esrs::event_bus;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
 pub use crate::esrs::manager::AggregateManager;
+#[cfg(feature = "rebuilder")]
 pub use crate::esrs::rebuilder;
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
