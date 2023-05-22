@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use esrs::Aggregate;
 pub use event_handler::*;
 pub use view::*;
-
-use crate::common::Error;
 
 mod event_handler;
 mod view;

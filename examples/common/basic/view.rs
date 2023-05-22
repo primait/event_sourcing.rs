@@ -1,6 +1,8 @@
 use sqlx::{Executor, Pool, Postgres};
 use uuid::Uuid;
 
+use crate::common::random_letters;
+
 #[derive(sqlx::FromRow, Debug)]
 pub struct BasicViewRow {
     pub id: Uuid,
@@ -15,6 +17,8 @@ pub struct BasicView {
 #[allow(dead_code)]
 impl BasicView {
     pub async fn new(table_name: &str, pool: &Pool<Postgres>) -> Self {
+        let table_name: String = format!("{}_{}", random_letters(), table_name);
+
         let query: String = format!(
             "CREATE TABLE IF NOT EXISTS {} (id uuid PRIMARY KEY NOT NULL, content VARCHAR)",
             table_name
@@ -22,9 +26,7 @@ impl BasicView {
 
         let _ = sqlx::query(query.as_str()).execute(pool).await.unwrap();
 
-        Self {
-            table_name: table_name.to_string(),
-        }
+        Self { table_name }
     }
 
     pub async fn by_id(
@@ -67,5 +69,9 @@ impl BasicView {
             .fetch_optional(executor)
             .await
             .map(|_| ())
+    }
+
+    pub fn table_name(&self) -> &str {
+        &self.table_name
     }
 }

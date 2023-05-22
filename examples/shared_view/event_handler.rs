@@ -1,28 +1,31 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::{EventHandler, StoreEvent};
+use esrs::{EventHandler, ReplayableEventHandler, StoreEvent};
 
 use crate::common::{AggregateA, AggregateB, EventA, EventB};
-use crate::view::{SharedView, Upsert};
+use crate::{SharedView, UpsertSharedView};
 
 #[derive(Clone)]
 pub struct SharedEventHandler {
     pub pool: Pool<Postgres>,
+    pub view: SharedView,
 }
 
 #[async_trait]
 impl EventHandler<AggregateA> for SharedEventHandler {
     async fn handle(&self, event: &StoreEvent<EventA>) {
-        let result = SharedView::upsert(
-            Upsert::A {
-                shared_id: event.payload.shared_id,
-                aggregate_id: event.aggregate_id,
-                value: event.payload.v,
-            },
-            &self.pool,
-        )
-        .await;
+        let result = self
+            .view
+            .upsert(
+                UpsertSharedView::A {
+                    shared_id: event.payload.shared_id,
+                    aggregate_id: event.aggregate_id,
+                    value: event.payload.v,
+                },
+                &self.pool,
+            )
+            .await;
 
         if let Err(e) = result {
             eprintln!("Error inserting A to shared view: {:?}", e)
@@ -33,18 +36,23 @@ impl EventHandler<AggregateA> for SharedEventHandler {
 #[async_trait]
 impl EventHandler<AggregateB> for SharedEventHandler {
     async fn handle(&self, event: &StoreEvent<EventB>) {
-        let result = SharedView::upsert(
-            Upsert::B {
-                shared_id: event.payload.shared_id,
-                aggregate_id: event.aggregate_id,
-                value: event.payload.v,
-            },
-            &self.pool,
-        )
-        .await;
+        let result = self
+            .view
+            .upsert(
+                UpsertSharedView::B {
+                    shared_id: event.payload.shared_id,
+                    aggregate_id: event.aggregate_id,
+                    value: event.payload.v,
+                },
+                &self.pool,
+            )
+            .await;
 
         if let Err(e) = result {
             println!("Error inserting B to shared view: {:?}", e)
         }
     }
 }
+
+impl ReplayableEventHandler<AggregateA> for SharedEventHandler {}
+impl ReplayableEventHandler<AggregateB> for SharedEventHandler {}

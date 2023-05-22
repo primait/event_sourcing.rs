@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use esrs::Aggregate;
 
-use crate::common::Error;
+use crate::common::CommonError;
 
 #[derive(Clone)]
 pub struct SagaAggregate;
@@ -12,7 +12,7 @@ impl Aggregate for SagaAggregate {
     type State = ();
     type Command = SagaCommand;
     type Event = SagaEvent;
-    type Error = Error;
+    type Error = CommonError;
 
     fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {

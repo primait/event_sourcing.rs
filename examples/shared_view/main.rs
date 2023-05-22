@@ -3,31 +3,26 @@ use uuid::Uuid;
 
 use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{AggregateManager, AggregateState};
+pub use event_handler::*;
+pub use view::*;
 
 use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB};
-use crate::event_handler::SharedEventHandler;
-use crate::view::SharedView;
 
 #[path = "../common/lib.rs"]
 mod common;
 mod event_handler;
 mod view;
 
-const TABLE_NAME: &str = "shared_view";
-
 #[tokio::main]
 async fn main() {
     let pool: Pool<Postgres> = new_pool().await;
 
-    let query: String = format!(
-        "CREATE TABLE IF NOT EXISTS {} \
-        (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)",
-        TABLE_NAME
-    );
+    let shared_view: SharedView = SharedView::new("shared_view", &pool).await;
 
-    let _ = sqlx::query(query.as_str()).execute(&pool).await.unwrap();
-
-    let shared_event_handler: SharedEventHandler = SharedEventHandler { pool: pool.clone() };
+    let shared_event_handler: SharedEventHandler = SharedEventHandler {
+        pool: pool.clone(),
+        view: shared_view.clone(),
+    };
 
     let store_a: PgStore<AggregateA> = PgStoreBuilder::new(pool.clone())
         .add_event_handler(shared_event_handler.clone())
@@ -57,7 +52,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let shared_view = SharedView::by_id(shared_id, &pool).await.unwrap().unwrap();
+    let shared_view = shared_view.by_id(shared_id, &pool).await.unwrap().unwrap();
 
     assert_eq!(shared_view.shared_id, shared_id);
     assert_eq!(shared_view.aggregate_id_a, Some(aggregate_id_a));

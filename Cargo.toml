@@ -52,6 +52,7 @@ tracing = "0.1"
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
 thiserror = "1.0"
+rand = "0.8"
 
 [[example]]
 name = "aggregate_deletion"
@@ -66,6 +67,11 @@ required-features = ["postgres"]
 [[example]]
 name = "locking_strategies"
 path = "examples/locking_strategies/main.rs"
+required-features = ["postgres"]
+
+[[example]]
+name = "multi_aggregate_rebuild"
+path = "examples/multi_aggregate_rebuild/main.rs"
 required-features = ["postgres"]
 
 [[example]]

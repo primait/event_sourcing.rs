@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use esrs::Aggregate;
 
-use crate::common::Error;
+use crate::common::CommonError;
 
 pub struct AggregateA;
 
@@ -12,7 +12,7 @@ impl Aggregate for AggregateA {
     type State = i32;
     type Command = CommandA;
     type Event = EventA;
-    type Error = Error;
+    type Error = CommonError;
 
     fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         Ok(vec![EventA {
@@ -31,7 +31,7 @@ pub struct CommandA {
     pub shared_id: Uuid,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EventA {
     pub v: i32,
     pub shared_id: Uuid,
