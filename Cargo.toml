@@ -15,7 +15,8 @@ version = "0.11.0"
 all-features = true
 
 [features]
-postgres = ["sqlx/postgres", "typed-builder"]
+sql = ["sqlx"]
+postgres = ["sql", "sqlx/postgres", "typed-builder"]
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
 
@@ -65,6 +66,11 @@ required-features = ["postgres"]
 [[example]]
 name = "locking_strategies"
 path = "examples/locking_strategies/main.rs"
+required-features = ["postgres"]
+
+[[example]]
+name = "rebuilder"
+path = "examples/rebuilder/main.rs"
 required-features = ["postgres"]
 
 [[example]]

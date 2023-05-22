@@ -14,6 +14,7 @@ pub use crate::esrs::aggregate::Aggregate;
 pub use crate::esrs::event_bus;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
 pub use crate::esrs::manager::AggregateManager;
+pub use crate::esrs::rebuilder;
 pub use crate::esrs::state::AggregateState;
 pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 
@@ -26,7 +27,7 @@ pub mod postgres {
     pub use crate::esrs::postgres::PgStoreBuilder;
 }
 
-#[cfg(any(feature = "postgres"))]
+#[cfg(feature = "sql")]
 pub mod sql {
     pub use crate::esrs::sql::event::Event;
     pub use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
@@ -35,7 +36,7 @@ pub mod sql {
 pub mod error {
     //! All possible errors returned by this crate
     pub use serde_json::Error as JsonError;
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "sql")]
     pub use sqlx::Error as SqlxError;
 }
 
