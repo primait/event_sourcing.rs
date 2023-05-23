@@ -61,6 +61,11 @@ path = "examples/aggregate_deletion/main.rs"
 required-features = ["postgres"]
 
 [[example]]
+name = "event_bus"
+path = "examples/event_bus/main.rs"
+required-features = ["postgres", "rabbit", "kafka"]
+
+[[example]]
 name = "eventual_view"
 path = "examples/eventual_view/main.rs"
 required-features = ["postgres"]
