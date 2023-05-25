@@ -12,7 +12,7 @@ pub struct BasicTransactionalEventHandler {
 #[async_trait]
 impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactionalEventHandler {
     async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), BasicError> {
-        // This to show that event is rollbacked
+        // This is to show that event is rollbacked
         if event.payload.content.eq("error") {
             return Err(BasicError::Custom("Event contains `error` string".to_string()));
         }

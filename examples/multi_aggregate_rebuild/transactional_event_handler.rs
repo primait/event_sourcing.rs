@@ -33,7 +33,7 @@ impl TransactionalEventHandler<AggregateB, PgConnection> for SharedTransactional
         Ok(self
             .view
             .upsert(
-                UpsertSharedView::A {
+                UpsertSharedView::B {
                     shared_id: event.payload.shared_id,
                     aggregate_id: event.aggregate_id,
                     value: event.payload.v,

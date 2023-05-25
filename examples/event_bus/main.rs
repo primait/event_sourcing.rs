@@ -46,7 +46,7 @@ async fn main() {
     let kafka_event_bus: KafkaEventBus<BasicAggregate> = KafkaEventBus::new(config).await.unwrap();
 
     // This is a multithread code block. In the target application this should live somewhere
-    // separated from the main code. It can lives in another thread, in another process or in another
+    // separated from the main code. It can live in another thread, in another process or in another
     // machine.
     ///////////////////////////////
     // In one thread

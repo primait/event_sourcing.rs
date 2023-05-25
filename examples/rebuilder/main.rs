@@ -4,7 +4,7 @@
 //!   query. In that transaction every row having a matching aggregate id is deleted and then
 //!   reprojected.
 //!
-//! - all at once: this is done in a transaction truncating all the table content and then rebuild
+//! - all at once: this is done in a transaction truncating all the table content and then rebuilding
 //!   all the events retrieved in the moment the transaction is opened.
 //!
 //! Note that is not possible to rebuild using non-replayable event handlers.

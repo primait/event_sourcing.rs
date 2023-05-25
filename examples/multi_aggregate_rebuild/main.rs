@@ -61,7 +61,7 @@ async fn rebuild_multi_aggregate(
     let mut event_a_opt: Option<Result<StoreEvent<EventA>, CommonError>> = events_a.next().await;
     let mut event_b_opt: Option<Result<StoreEvent<EventB>, CommonError>> = events_b.next().await;
 
-    // At this point is possible to open a transaction
+    // At this point it's possible to open a transaction
     let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
     // There are 3 choices here:
@@ -83,7 +83,7 @@ async fn rebuild_multi_aggregate(
         let b_opt: Option<&StoreEvent<EventB>> = event_b_opt.as_ref().map(|v| v.as_ref().unwrap());
 
         match (a_opt, b_opt) {
-            // If both the streams returned a value we check what's the oldest. If the oldest is a
+            // If both the streams returned a value we check what's the oldest. If the oldest is `a`
             // we proceed to run the transactional event handlers from AggregateA.
             (Some(a), Some(b)) if a.occurred_on <= b.occurred_on => {
                 for transactional_event_handler in &transactional_event_handlers_a {
