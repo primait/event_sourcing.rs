@@ -10,14 +10,14 @@
 //! performed over the event store table.
 
 pub use crate::esrs::aggregate::Aggregate;
+pub use crate::esrs::aggregate_manager::AggregateManager;
+pub use crate::esrs::aggregate_state::AggregateState;
 #[cfg(any(feature = "kafka", feature = "rabbit"))]
 pub use crate::esrs::event_bus;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
-pub use crate::esrs::manager::AggregateManager;
+pub use crate::esrs::event_store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 #[cfg(feature = "rebuilder")]
 pub use crate::esrs::rebuilder;
-pub use crate::esrs::state::AggregateState;
-pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 
 mod esrs;
 

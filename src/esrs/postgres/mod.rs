@@ -15,9 +15,9 @@ use uuid::Uuid;
 pub use builder::PgStoreBuilder;
 
 use crate::esrs::event_bus::EventBus;
+use crate::esrs::event_store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::esrs::sql::event;
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
-use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState, EventHandler, EventStore, StoreEvent, TransactionalEventHandler};
 

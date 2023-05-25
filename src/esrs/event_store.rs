@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::esrs::state::AggregateState;
+use crate::esrs::aggregate_state::AggregateState;
 use crate::types::SequenceNumber;
 use crate::Aggregate;
 
