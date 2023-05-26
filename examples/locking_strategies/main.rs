@@ -5,19 +5,22 @@ use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, EventStore};
+use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use esrs::{AggregateManager, AggregateManagerError, AggregateState, EventStore};
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicEvent};
 
 #[path = "../common/lib.rs"]
 mod common;
 
-type Agg = AggregateManager<BasicAggregate>;
+type Agg = AggregateManager<PgStore<BasicAggregate>>;
 
 /// Increment the value behind this `aggregate_id` as soon as atomical access can be obtained.
 /// The lock can be obtained even if there are current optimistic accesses! Avoid mixing the two strategies when writing.
-pub async fn increment_atomically(manager: Agg, aggregate_id: Uuid) -> Result<(), BasicError> {
+pub async fn increment_atomically(
+    manager: Agg,
+    aggregate_id: Uuid,
+) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
     let aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     manager
         .handle_command(
@@ -32,7 +35,10 @@ pub async fn increment_atomically(manager: Agg, aggregate_id: Uuid) -> Result<()
 
 /// Increment the value behind this `aggregate_id` with an optimistic locking strategy.
 /// Optimistic access ignores any current active lock! Avoid mixing the two strategies when writing.
-pub async fn increment_optimistically(manager: Agg, aggregate_id: Uuid) -> Result<(), BasicError> {
+pub async fn increment_optimistically(
+    manager: Agg,
+    aggregate_id: Uuid,
+) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
     // Every optimistic access can take place concurrently...
     let aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...and events are persisted in non-deterministic order.
@@ -51,7 +57,10 @@ pub async fn increment_optimistically(manager: Agg, aggregate_id: Uuid) -> Resul
 /// Load the aggregate state for read-only purposes, preventing others (that use locking) from modifying it.
 /// Avoid using atomic reads if writes are optimistic, as the state would be modified anyway!
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
-pub async fn with_atomic_read(manager: Agg, aggregate_id: Uuid) -> Result<(), BasicError> {
+pub async fn with_atomic_read(
+    manager: Agg,
+    aggregate_id: Uuid,
+) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
     let mut aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     // No one else (employing locking!) can read or modify the state just loaded here,
     // ensuring this really is the *latest* aggregate state.
@@ -65,7 +74,10 @@ pub async fn with_atomic_read(manager: Agg, aggregate_id: Uuid) -> Result<(), Ba
 /// Load the aggregate state for read-only purposes, optimistically assuming nothing is modifying it.
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
 /// Otherwise, optimistic reads are allowed: beware there are no guarantees the state loaded is actually the latest.
-pub async fn with_optimistic_read(manager: Agg, aggregate_id: Uuid) -> Result<(), BasicError> {
+pub async fn with_optimistic_read(
+    manager: Agg,
+    aggregate_id: Uuid,
+) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
     // Read the state now, ignoring any explicit locking...
     let mut aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...but nothing prevents something else from updating the data in the store in the meanwhile,
@@ -91,7 +103,7 @@ async fn main() {
     };
     let _ = store.persist(&mut aggregate_state, vec![event]).await.unwrap();
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(store.clone());
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store.clone());
 
     // It is possible to load the aggregate state multiple times.
     let _state_1 = manager.load(aggregate_id).await.unwrap().unwrap();

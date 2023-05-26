@@ -4,6 +4,7 @@ use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::esrs::event_bus::EventBus;
+use crate::esrs::postgres::PgStoreError;
 use crate::esrs::rebuilder::Rebuilder;
 use crate::postgres::{PgStore, PgStoreBuilder};
 use crate::{Aggregate, EventStore, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
@@ -13,7 +14,7 @@ where
     A: Aggregate,
 {
     event_handlers: Vec<Box<dyn ReplayableEventHandler<A> + Send>>,
-    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
@@ -31,7 +32,7 @@ where
 
     pub fn with_transactional_event_handlers(
         self,
-        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     ) -> Self {
         Self {
             transactional_event_handlers,
@@ -58,13 +59,15 @@ where
 }
 
 #[async_trait]
-impl<A> Rebuilder<A, Pool<Postgres>> for PgRebuilder<A>
+impl<A> Rebuilder<A> for PgRebuilder<A>
 where
     A: Aggregate,
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
-    A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error + Send,
 {
-    async fn by_aggregate_id(&self, pool: Pool<Postgres>) -> Result<(), A::Error> {
+    type Executor = Pool<Postgres>;
+    type Error = PgStoreError;
+
+    async fn by_aggregate_id(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
         let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
             .without_running_migrations()
             .try_build()
@@ -105,7 +108,7 @@ where
         Ok(())
     }
 
-    async fn all_at_once(&self, pool: Pool<Postgres>) -> Result<(), A::Error> {
+    async fn all_at_once(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
         let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
             .without_running_migrations()
             .try_build()
@@ -115,10 +118,10 @@ where
 
         let events: Vec<StoreEvent<A::Event>> = store
             .stream_events(&mut transaction)
-            .collect::<Vec<Result<StoreEvent<A::Event>, A::Error>>>()
+            .collect::<Vec<Result<StoreEvent<A::Event>, Self::Error>>>()
             .await
             .into_iter()
-            .collect::<Result<Vec<StoreEvent<A::Event>>, A::Error>>()?;
+            .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?;
 
         for event in &events {
             for handler in self.transactional_event_handlers.iter() {

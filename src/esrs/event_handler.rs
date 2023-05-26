@@ -61,17 +61,17 @@ where
 /// An `handle` operation will result in a _deadlock_ if the implementation of this trait is used to
 /// apply an event on an [`Aggregate`].
 #[async_trait]
-pub trait TransactionalEventHandler<A, E>: Sync
+pub trait TransactionalEventHandler<A, Error, Executor>: Sync
 where
     A: Aggregate,
 {
     /// Handle an event in a transactional fashion and perform a read side crate, update or delete.
     /// If an error is returned the transaction will be aborted and the handling of a command by an
     /// aggregate will return an error.
-    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error>;
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut Executor) -> Result<(), Error>;
 
     /// Perform a deletion of a read side projection using the given aggregate_id.
-    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut E) -> Result<(), A::Error> {
+    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut Executor) -> Result<(), Error> {
         Ok(())
     }
 
@@ -84,21 +84,22 @@ where
 }
 
 #[async_trait]
-impl<A, E, Q, T> TransactionalEventHandler<A, E> for T
+impl<A, Error, Executor, Q, T> TransactionalEventHandler<A, Error, Executor> for T
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    E: Send,
-    Q: TransactionalEventHandler<A, E>,
+    // Error: Send,
+    Executor: Send,
+    Q: TransactionalEventHandler<A, Error, Executor>,
     T: Deref<Target = Q> + Send + Sync,
 {
     /// Deref call to [`TransactionalEventHandler::handle`].
-    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error> {
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut Executor) -> Result<(), Error> {
         self.deref().handle(event, executor).await
     }
 
     /// Deref call to [`TransactionalEventHandler::delete`].
-    async fn delete(&self, aggregate_id: Uuid, executor: &mut E) -> Result<(), A::Error> {
+    async fn delete(&self, aggregate_id: Uuid, executor: &mut Executor) -> Result<(), Error> {
         self.deref().delete(aggregate_id, executor).await
     }
 

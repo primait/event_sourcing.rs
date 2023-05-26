@@ -31,7 +31,7 @@ async fn main() {
         content: content.to_string(),
     };
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(store.clone());
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store.clone());
 
     let result = manager.handle_command(state, command).await;
 

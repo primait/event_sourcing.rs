@@ -11,6 +11,7 @@
 
 pub use crate::esrs::aggregate::Aggregate;
 pub use crate::esrs::aggregate_manager::AggregateManager;
+pub use crate::esrs::aggregate_manager::AggregateManagerError;
 pub use crate::esrs::aggregate_state::AggregateState;
 #[cfg(any(feature = "kafka", feature = "rabbit"))]
 pub use crate::esrs::event_bus;
@@ -26,6 +27,7 @@ pub mod postgres {
     //! Provides implementation of the [`EventStore`] for Postgres.
     pub use crate::esrs::postgres::PgStore;
     pub use crate::esrs::postgres::PgStoreBuilder;
+    pub use crate::esrs::postgres::PgStoreError;
 }
 
 #[cfg(feature = "sql")]

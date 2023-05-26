@@ -52,6 +52,9 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[derive(thiserror::Error, Debug)]
+    pub enum Error {}
+
     pub struct TestAggregate;
 
     impl Aggregate for TestAggregate {
@@ -59,7 +62,7 @@ mod tests {
         type State = ();
         type Command = ();
         type Event = ();
-        type Error = ();
+        type Error = Error;
 
         fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
             Ok(vec![])

@@ -4,6 +4,7 @@ use arc_swap::ArcSwap;
 use sqlx::{PgConnection, Pool, Postgres};
 
 use crate::esrs::event_bus::EventBus;
+use crate::esrs::postgres::PgStoreError;
 use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
 use crate::{Aggregate, EventHandler, TransactionalEventHandler};
@@ -18,7 +19,7 @@ where
     pool: Pool<Postgres>,
     statements: Statements,
     event_handlers: Vec<Box<dyn EventHandler<A> + Send>>,
-    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
     run_migrations: bool,
 }
@@ -54,7 +55,7 @@ where
     /// Set transactional event handlers list
     pub fn with_transactional_event_handlers(
         mut self,
-        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     ) -> Self {
         self.transactional_event_handlers = transactional_event_handlers;
         self
@@ -63,7 +64,7 @@ where
     /// Add a single transactional event handler
     pub fn add_transactional_event_handler(
         mut self,
-        transaction_event_handler: impl TransactionalEventHandler<A, PgConnection> + Send + 'static,
+        transaction_event_handler: impl TransactionalEventHandler<A, PgStoreError, PgConnection> + Send + 'static,
     ) -> Self {
         self.transactional_event_handlers
             .push(Box::new(transaction_event_handler));

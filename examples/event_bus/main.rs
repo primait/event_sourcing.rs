@@ -91,7 +91,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(store);
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store);
 
     let content: &str = "view row content";
     let aggregate_state: AggregateState<()> = AggregateState::default();

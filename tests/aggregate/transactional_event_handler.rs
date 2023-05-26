@@ -1,16 +1,17 @@
 use sqlx::PgConnection;
 use uuid::Uuid;
 
+use esrs::postgres::PgStoreError;
 use esrs::{StoreEvent, TransactionalEventHandler};
 
-use crate::aggregate::{TestAggregate, TestError, TestEvent};
+use crate::aggregate::{TestAggregate, TestEvent};
 
 #[derive(Clone)]
 pub struct TestTransactionalEventHandler;
 
 #[async_trait::async_trait]
-impl TransactionalEventHandler<TestAggregate, PgConnection> for TestTransactionalEventHandler {
-    async fn handle(&self, event: &StoreEvent<TestEvent>, connection: &mut PgConnection) -> Result<(), TestError> {
+impl TransactionalEventHandler<TestAggregate, PgStoreError, PgConnection> for TestTransactionalEventHandler {
+    async fn handle(&self, event: &StoreEvent<TestEvent>, connection: &mut PgConnection) -> Result<(), PgStoreError> {
         let query = "INSERT INTO test_projection (id, total) \
         VALUES ($1, $2)\
         ON CONFLICT (id)\
@@ -24,7 +25,7 @@ impl TransactionalEventHandler<TestAggregate, PgConnection> for TestTransactiona
             .map(|_| ())?)
     }
 
-    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), TestError> {
+    async fn delete(&self, aggregate_id: Uuid, connection: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(sqlx::query("DELETE FROM test_projection WHERE id = $1")
             .bind(aggregate_id)
             .execute(connection)

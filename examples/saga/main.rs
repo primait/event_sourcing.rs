@@ -31,7 +31,7 @@ async fn main() {
 
     store.add_event_handler(saga_event_handler);
 
-    let manager: AggregateManager<SagaAggregate> = AggregateManager::new(store.clone());
+    let manager: AggregateManager<PgStore<SagaAggregate>> = AggregateManager::new(store.clone());
 
     let state: AggregateState<()> = AggregateState::default();
     let id: Uuid = *state.id();

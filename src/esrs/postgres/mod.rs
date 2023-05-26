@@ -43,7 +43,7 @@ where
     pool: Pool<Postgres>,
     statements: Statements,
     event_handlers: ArcSwap<Vec<Box<dyn EventHandler<A> + Send>>>,
-    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
@@ -51,7 +51,6 @@ impl<A> PgStore<A>
 where
     A: Aggregate,
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
-    A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -84,7 +83,7 @@ where
         occurred_on: DateTime<Utc>,
         sequence_number: SequenceNumber,
         executor: impl Executor<'_, Database = Postgres>,
-    ) -> Result<StoreEvent<A::Event>, A::Error> {
+    ) -> Result<StoreEvent<A::Event>, PgStoreError> {
         let id: Uuid = Uuid::new_v4();
 
         let _ = sqlx::query(self.inner.statements.insert())
@@ -110,7 +109,7 @@ where
     pub fn stream_events<'s>(
         &'s self,
         executor: impl Executor<'s, Database = Postgres> + 's,
-    ) -> BoxStream<Result<StoreEvent<A::Event>, A::Error>> {
+    ) -> BoxStream<Result<StoreEvent<A::Event>, PgStoreError>> {
         Box::pin({
             sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
                 .fetch(executor)
@@ -135,13 +134,15 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<A> EventStore<A> for PgStore<A>
+impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
-    A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
-    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error> {
+    type Aggregate = A;
+    type Error = PgStoreError;
+
+    async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, Self::Error> {
         let (key, _) = aggregate_id.as_u64_pair();
         let connection = self.inner.pool.acquire().await?;
         let lock_guard = PgStoreLockGuardAsyncSendTryBuilder {
@@ -153,7 +154,7 @@ where
         Ok(EventStoreLockGuard::new(lock_guard))
     }
 
-    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
+    async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, Self::Error> {
         Ok(
             sqlx::query_as::<_, event::Event>(self.inner.statements.by_aggregate_id())
                 .bind(aggregate_id)
@@ -161,7 +162,7 @@ where
                 .await?
                 .into_iter()
                 .map(|event| Ok(event.try_into()?))
-                .collect::<Result<Vec<StoreEvent<A::Event>>, A::Error>>()?,
+                .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?,
         )
     }
 
@@ -170,7 +171,7 @@ where
         &self,
         aggregate_state: &mut AggregateState<A::State>,
         events: Vec<A::Event>,
-    ) -> Result<Vec<StoreEvent<A::Event>>, A::Error> {
+    ) -> Result<Vec<StoreEvent<A::Event>>, Self::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<A::Event>> = vec![];
@@ -261,7 +262,7 @@ where
         let _ = futures::future::join_all(futures).await;
     }
 
-    async fn delete(&self, aggregate_id: Uuid) -> Result<(), A::Error> {
+    async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error> {
         let mut transaction: Transaction<Postgres> = self.inner.pool.begin().await?;
 
         let _ = sqlx::query(self.inner.statements.delete_by_aggregate_id())
@@ -295,4 +296,14 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
             .field("statements", &self.inner.statements)
             .finish()
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum PgStoreError {
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Custom(Box<dyn std::error::Error + Send>),
 }
