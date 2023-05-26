@@ -4,12 +4,13 @@ use arc_swap::ArcSwap;
 use sqlx::{PgConnection, Pool, Postgres};
 
 use crate::esrs::event_bus::EventBus;
+use crate::esrs::postgres::event_store::InnerPgStore;
 use crate::esrs::postgres::PgStoreError;
 use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
 use crate::{Aggregate, EventHandler, TransactionalEventHandler};
 
-use super::{InnerPgStore, PgStore};
+use super::PgStore;
 
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A>
