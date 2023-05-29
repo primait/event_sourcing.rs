@@ -1,4 +1,4 @@
-FROM public.ecr.aws/prima/rust:1.68.0-1
+FROM public.ecr.aws/prima/rust:1.69.0
 
 WORKDIR /code
 

@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
@@ -13,18 +14,14 @@ use uuid::Uuid;
 
 pub use builder::PgStoreBuilder;
 
-use crate::esrs::event_handler;
+use crate::esrs::event_bus::EventBus;
 use crate::esrs::sql::event;
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
 use crate::esrs::store::{EventStoreLockGuard, UnlockOnDrop};
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
+use crate::{Aggregate, AggregateState, EventHandler, EventStore, StoreEvent, TransactionalEventHandler};
 
 mod builder;
-
-pub type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
-pub type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
-pub type EventBus<A> = Box<dyn crate::esrs::event_bus::EventBus<A> + Send + Sync>;
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -45,17 +42,36 @@ where
 {
     pool: Pool<Postgres>,
     statements: Statements,
-    event_handlers: Vec<EventHandler<A>>,
-    transactional_event_handlers: Vec<TransactionalEventHandler<A, PgConnection>>,
-    event_buses: Vec<EventBus<A>>,
+    event_handlers: ArcSwap<Vec<Box<dyn EventHandler<A> + Send>>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
 impl<A> PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
     A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
+    /// Returns the name of the event store table
+    pub fn table_name(&self) -> &str {
+        self.inner.statements.table_name()
+    }
+
+    /// Safely add an event handler to PgStore. Try not to intensively use this function: everytime
+    /// it clones all the event handlers and it might be an expensive operation.
+    ///
+    /// This is mostly used while there's the need to have an event handler that try to apply a command
+    /// on the same aggregate (implementing saga pattern with event sourcing).
+    pub fn add_event_handler(&self, event_handler: impl EventHandler<A> + Send + 'static) {
+        let guard = self.inner.event_handlers.load();
+        let mut handlers: Vec<Box<dyn EventHandler<A> + Send>> =
+            (*(*guard)).iter().map(|handler| handler.clone_box()).collect();
+
+        handlers.push(Box::new(event_handler));
+        self.inner.event_handlers.store(Arc::new(handlers));
+    }
+
     /// Save an event in the event store and return a new `StoreEvent` instance.
     ///
     /// # Errors
@@ -122,7 +138,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<A> EventStore<A> for PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
     A::Error: From<sqlx::Error> + From<serde_json::Error> + std::error::Error,
 {
     async fn lock(&self, aggregate_id: Uuid) -> Result<EventStoreLockGuard, A::Error> {
@@ -149,7 +165,7 @@ where
         )
     }
 
-    #[tracing::instrument(skip_all, fields(aggregate_id = %aggregate_state.id()), err)]
+    #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]
     async fn persist(
         &self,
         aggregate_state: &mut AggregateState<A::State>,
@@ -159,16 +175,15 @@ where
         let occurred_on: DateTime<Utc> = Utc::now();
         let mut store_events: Vec<StoreEvent<A::Event>> = vec![];
 
-        let starting_sequence_number = aggregate_state.next_sequence_number();
         let aggregate_id = *aggregate_state.id();
 
-        for (index, event) in (0..).zip(events.into_iter()) {
+        for event in events.into_iter() {
             let store_event: StoreEvent<<A as Aggregate>::Event> = self
                 .save_event(
                     aggregate_id,
                     event,
                     occurred_on,
-                    starting_sequence_number + index,
+                    aggregate_state.next_sequence_number(),
                     &mut *transaction,
                 )
                 .await?;
@@ -209,7 +224,7 @@ where
         drop(aggregate_state.take_lock());
 
         // Acquiring the list of event handlers early, as it is an expensive operation.
-        let event_handlers = &self.inner.event_handlers;
+        let event_handlers = self.inner.event_handlers.load();
         for store_event in &store_events {
             // NOTE: should this be parallelized?
             for event_handler in event_handlers.iter() {
@@ -264,7 +279,7 @@ where
         transaction.commit().await?;
 
         // NOTE: should this be parallelized?
-        for event_handler in self.inner.event_handlers.iter() {
+        for event_handler in self.inner.event_handlers.load().iter() {
             event_handler.delete(aggregate_id).await;
         }
 

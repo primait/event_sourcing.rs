@@ -1,16 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use uuid::Uuid;
-
 use esrs::{EventHandler, StoreEvent};
 
 use crate::aggregate::{TestAggregate, TestEvent};
-
-#[derive(sqlx::FromRow)]
-pub struct ProjectionRow {
-    pub id: Uuid,
-    pub total: i32,
-}
 
 #[derive(Clone)]
 pub struct TestEventHandler {

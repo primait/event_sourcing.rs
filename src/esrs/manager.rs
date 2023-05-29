@@ -22,8 +22,10 @@ where
     A: Aggregate,
 {
     /// Creates a new instance of an [`AggregateManager`].
-    pub fn new(event_store: Box<dyn EventStore<A> + Send + Sync>) -> Self {
-        Self { event_store }
+    pub fn new(event_store: impl EventStore<A> + Send + Sync + 'static) -> Self {
+        Self {
+            event_store: Box::new(event_store),
+        }
     }
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.

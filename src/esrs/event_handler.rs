@@ -1,5 +1,6 @@
-use async_trait::async_trait;
 use std::ops::Deref;
+
+use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::{Aggregate, StoreEvent};
@@ -11,6 +12,7 @@ use crate::{Aggregate, StoreEvent};
 #[async_trait]
 pub trait EventHandler<A>: Sync
 where
+    Self: EventHandlerClone<A>,
     A: Aggregate,
 {
     /// Handle an event and perform an action. This action could be over a read model or a side-effect.
@@ -33,12 +35,22 @@ impl<A, Q, T> EventHandler<A> for T
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    Q: EventHandler<A>,
-    T: Deref<Target = Q> + Send + Sync,
+    Q: EventHandler<A> + EventHandlerClone<A>,
+    T: Deref<Target = Q> + Clone + Send + Sync + 'static,
 {
     /// Deref call to [`EventHandler::handle`].
     async fn handle(&self, event: &StoreEvent<A::Event>) {
         self.deref().handle(event).await;
+    }
+
+    /// Deref call to [`EventHandler::handle`].
+    async fn delete(&self, aggregate_id: Uuid) {
+        self.deref().delete(aggregate_id).await;
+    }
+
+    /// Deref call to [`EventHandler::handle`].
+    fn name(&self) -> &'static str {
+        self.deref().name()
     }
 }
 
@@ -84,6 +96,16 @@ where
     async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error> {
         self.deref().handle(event, executor).await
     }
+
+    /// Deref call to [`TransactionalEventHandler::delete`].
+    async fn delete(&self, aggregate_id: Uuid, executor: &mut E) -> Result<(), A::Error> {
+        self.deref().delete(aggregate_id, executor).await
+    }
+
+    /// Deref call to [`TransactionalEventHandler::name`].
+    fn name(&self) -> &'static str {
+        self.deref().name()
+    }
 }
 
 /// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`.
@@ -102,4 +124,25 @@ where
     Self: EventHandler<A>,
     A: Aggregate,
 {
+}
+
+pub trait EventHandlerClone<A> {
+    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send>;
+}
+
+impl<T, A> EventHandlerClone<A> for T
+where
+    A: Aggregate,
+    T: 'static + EventHandler<A> + Clone + Send,
+{
+    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl<A> Clone for Box<dyn EventHandler<A> + Send> {
+    fn clone(&self) -> Box<dyn EventHandler<A> + Send> {
+        self.clone_box()
+    }
 }
