@@ -5,10 +5,10 @@ use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::{AggregateManager, AggregateManagerError, AggregateState, EventStore};
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicEvent};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEvent};
 
 #[path = "../common/lib.rs"]
 mod common;
@@ -20,7 +20,7 @@ type Agg = AggregateManager<PgStore<BasicAggregate>>;
 pub async fn increment_atomically(
     manager: Agg,
     aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
+) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
     let aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     manager
         .handle_command(
@@ -38,7 +38,7 @@ pub async fn increment_atomically(
 pub async fn increment_optimistically(
     manager: Agg,
     aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
+) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
     // Every optimistic access can take place concurrently...
     let aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...and events are persisted in non-deterministic order.
@@ -60,7 +60,7 @@ pub async fn increment_optimistically(
 pub async fn with_atomic_read(
     manager: Agg,
     aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
+) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
     let mut aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     // No one else (employing locking!) can read or modify the state just loaded here,
     // ensuring this really is the *latest* aggregate state.
@@ -77,7 +77,7 @@ pub async fn with_atomic_read(
 pub async fn with_optimistic_read(
     manager: Agg,
     aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<BasicError, PgStoreError>> {
+) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
     // Read the state now, ignoring any explicit locking...
     let mut aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...but nothing prevents something else from updating the data in the store in the meanwhile,

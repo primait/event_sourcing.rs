@@ -4,9 +4,6 @@ use uuid::Uuid;
 
 use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
-type ManagerError<E> =
-    AggregateManagerError<<<E as EventStore>::Aggregate as Aggregate>::Error, <E as EventStore>::Error>;
-
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
 /// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
 ///
@@ -37,7 +34,7 @@ where
         &self,
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
-    ) -> Result<(), ManagerError<E>> {
+    ) -> Result<(), AggregateManagerError<E>> {
         let events: Vec<<E::Aggregate as Aggregate>::Event> =
             <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command)
                 .map_err(AggregateManagerError::Aggregate)?;
@@ -55,7 +52,7 @@ where
     pub async fn load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, ManagerError<E>> {
+    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, AggregateManagerError<E>> {
         let aggregate_id: Uuid = aggregate_id.into();
 
         let store_events: Vec<StoreEvent<<E::Aggregate as Aggregate>::Event>> = self
@@ -82,7 +79,7 @@ where
     pub async fn lock_and_load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, ManagerError<E>> {
+    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, AggregateManagerError<E>> {
         let id = aggregate_id.into();
         let guard = self
             .event_store
@@ -98,7 +95,7 @@ where
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
     /// and transactional read side projections, or fail.
-    pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), ManagerError<E>> {
+    pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), AggregateManagerError<E>> {
         self.event_store
             .delete(aggregate_id.into())
             .await
@@ -107,11 +104,10 @@ where
 }
 
 #[derive(Debug)]
-pub enum AggregateManagerError<AggregateError, EventStoreError>
+pub enum AggregateManagerError<E>
 where
-    AggregateError: std::error::Error,
-    EventStoreError: std::error::Error,
+    E: EventStore,
 {
-    Aggregate(AggregateError),
-    EventStore(EventStoreError),
+    Aggregate(<<E as EventStore>::Aggregate as Aggregate>::Error),
+    EventStore(<E as EventStore>::Error),
 }
