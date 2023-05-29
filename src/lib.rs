@@ -10,6 +10,8 @@
 //! performed over the event store table.
 
 pub use crate::esrs::aggregate::Aggregate;
+#[cfg(any(feature = "kafka", feature = "rabbit"))]
+pub use crate::esrs::event_bus;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
 pub use crate::esrs::manager::AggregateManager;
 pub use crate::esrs::state::AggregateState;

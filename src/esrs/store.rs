@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::esrs::state::AggregateState;
@@ -103,7 +104,7 @@ where
 }
 
 /// A `StoreEvent` contains the payload (the original event) alongside the event's metadata.
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StoreEvent<Event> {
     /// Uniquely identifies an event among all events emitted from all aggregates.
     pub id: Uuid,

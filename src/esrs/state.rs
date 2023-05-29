@@ -63,7 +63,7 @@ impl<S: Default> AggregateState<S> {
     }
 
     /// Consumes the aggregate state and generates a new one with the events applied to it,
-    /// as dictaded by `apply_event`.
+    /// as dictated by `apply_event`.
     pub fn apply_store_events<T, F>(self, store_events: Vec<StoreEvent<T>>, apply_event: F) -> Self
     where
         F: Fn(S, T) -> S,

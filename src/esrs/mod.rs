@@ -10,7 +10,4 @@ pub mod postgres;
 #[cfg(any(feature = "postgres"))]
 pub mod sql;
 
-#[cfg(all(test, feature = "postgres"))]
-mod tests;
-
 pub type SequenceNumber = i32;

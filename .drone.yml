@@ -16,12 +16,13 @@ steps:
     PLUGIN_DEPTH: 5
 
 - name: cache-restore
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - . /etc/profile.d/ecs-credentials-endpoint
   - cache-restore
   environment:
     BUCKET_NAME: prima-ci-cache
+    CACHE_COMPRESSION_ALGO: gz
   volumes:
   - name: ecs
     path: /etc/profile.d/ecs-credentials-endpoint
@@ -31,7 +32,7 @@ steps:
   - git-clone
 
 - name: check-secrets
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - . /etc/profile.d/ecs-credentials-endpoint
   - check-secrets-grants
@@ -42,17 +43,19 @@ steps:
   - git-clone
 
 - name: check-public-docker-images
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - check-public-docker-images
   depends_on:
   - git-clone
 
 - name: build-image
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - sed -i 's/USER app/USER root/g' ./Dockerfile
   - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
+  environment:
+    DOCKER_DEFAULT_PLATFORM: linux/amd64
   volumes:
   - name: docker
     path: /var/run/docker.sock
@@ -94,7 +97,6 @@ steps:
   environment:
     BUILD_ENV: dev
     CARGO_HOME: /drone/src/.cargo
-    CARGO_HTTP_CAINFO: ""
   depends_on:
   - cargo-clippy-ci
 
@@ -126,12 +128,13 @@ steps:
   - cargo-test
 
 - name: cache-save
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - . /etc/profile.d/ecs-credentials-endpoint
-  - cache-save target
+  - cache-save .cargo
   environment:
     BUCKET_NAME: prima-ci-cache
+    CACHE_COMPRESSION_ALGO: gz
   volumes:
   - name: ecs
     path: /etc/profile.d/ecs-credentials-endpoint
@@ -150,6 +153,37 @@ services:
     POSTGRES_DB: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_USER: postgres
+
+- name: rabbit
+  image: public.ecr.aws/bitnami/rabbitmq:3.8
+  environment:
+    RABBITMQ_PASSWORD: rabbit
+    RABBITMQ_USERNAME: rabbit
+    RABBITMQ_VHOST: rabbit
+
+- name: zookeeper
+  image: public.ecr.aws/prima/zookeeper:7.2.2
+  environment:
+    ZOOKEEPER_CLIENT_PORT: 2181
+    ZOOKEEPER_TICK_TIME: 2000
+  ports:
+  - 2181
+
+- name: kafka
+  image: public.ecr.aws/prima/kafka:7.2.2
+  environment:
+    JMX_PORT: 9997
+    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_HOST://host.docker.internal:29092, PLAINTEXT://kafka:9092
+    KAFKA_BROKER_ID: 1
+    KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  ports:
+  - 9092
+  - 9997
+  - 29092
 
 volumes:
 - name: docker
@@ -181,12 +215,13 @@ steps:
     PLUGIN_DEPTH: 5
 
 - name: cache-restore
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - . /etc/profile.d/ecs-credentials-endpoint
   - cache-restore
   environment:
     BUCKET_NAME: prima-ci-cache
+    CACHE_COMPRESSION_ALGO: gz
   volumes:
   - name: ecs
     path: /etc/profile.d/ecs-credentials-endpoint
@@ -196,10 +231,12 @@ steps:
   - git-clone
 
 - name: build-image
-  image: public.ecr.aws/prima/drone-tools:1.21.3
+  image: public.ecr.aws/prima/drone-tools:1.22.1
   commands:
   - sed -i 's/USER app/USER root/g' ./Dockerfile
   - docker build -t prima/event_sourcing.rs-ci:${DRONE_COMMIT} ./
+  environment:
+    DOCKER_DEFAULT_PLATFORM: linux/amd64
   volumes:
   - name: docker
     path: /var/run/docker.sock
@@ -272,6 +309,6 @@ depends_on:
 
 ---
 kind: signature
-hmac: daac14d780ea3bc2a9bd3c3f4f901c64a35bdfcf876e715b672890525664ead1
+hmac: 54b252cccd203bf13c9c20e7b428b83ca0be143a5036872450e6b0fa12f2ddac
 
 ...

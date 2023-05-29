@@ -1,8 +1,14 @@
-FROM public.ecr.aws/prima/rust:1.66.1
-
-# Serve per avere l'owner dei file scritti dal container uguale all'utente Linux sull'host
-USER app
+FROM public.ecr.aws/prima/rust:1.68.0-1
 
 WORKDIR /code
 
-ENTRYPOINT ["/bin/bash"]
+COPY entrypoint /code/entrypoint
+
+RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --version 0.6.2
+
+RUN chown -R app:app /code
+
+# Needed to have the same file owner in the container and in Linux host
+USER app
+
+ENTRYPOINT ["./entrypoint"]

@@ -22,9 +22,6 @@ use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
 
 mod builder;
 
-#[cfg(test)]
-mod tests;
-
 pub type EventHandler<A> = Box<dyn event_handler::EventHandler<A> + Send + Sync>;
 pub type TransactionalEventHandler<A, E> = Box<dyn event_handler::TransactionalEventHandler<A, E> + Send + Sync>;
 pub type EventBus<A> = Box<dyn crate::esrs::event_bus::EventBus<A> + Send + Sync>;

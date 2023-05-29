@@ -1,75 +1,79 @@
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
+DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+KAFKA_BROKERS_URL = "kafka:9092"
 
 [env.drone]
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+KAFKA_BROKERS_URL = "kafka:9092"
 
 [config]
 default_to_workspace = false
 
 # Check
 [tasks.check]
-description = "Run checks"
-dependencies = ["check-no-features", "check-postgres"]
+description = "Run checks for each feature"
+dependencies = ["check-ci"]
 
-[tasks.check-no-features]
-description = "Run check without features"
-command = "cargo"
-args = ["check", "--workspace"]
-
-[tasks.check-postgres]
-description = "Run check with `postgres` feature on"
-command = "cargo"
-args = ["check", "--workspace", "--features=postgres"]
+[tasks.check-ci]
+script = [
+    "cargo check --workspace",
+    "cargo check --workspace --features=postgres",
+    "cargo check --workspace --features=kafka",
+    "cargo check --workspace --features=rabbit",
+    "cargo check --workspace --all-features"
+]
 
 # Build
+[tasks.build]
+description = "Build the binaries for each feature"
+dependencies = ["build-ci"]
+
 [tasks.build-ci]
-description = "Build prima_tracing.rs inside CI."
-dependencies = ["build-ci-no-features", "build-ci-postgres"]
-
-[tasks.build-ci-no-features]
-description = "Build prima_tracing.rs inside CI."
-command = "cargo"
-args = ["build", "-j", "2", "--all-features", "--workspace"]
-
-[tasks.build-ci-postgres]
-description = "Build prima_tracing.rs inside CI."
-command = "cargo"
-args = ["build", "-j", "2", "--all-features", "--workspace"]
+script = [
+    "cargo build -j 2 --workspace",
+    "cargo build -j 2 --workspace --features=postgres",
+    "cargo build -j 2 --workspace --features=kafka",
+    "cargo build -j 2 --workspace --features=rabbit",
+    "cargo build -j 2 --workspace --all-features"
+]
 
 # Format
 [tasks.format-ci]
-description = "Runs the cargo rustfmt plugin during CI."
+description = "Runs the cargo rustfmt plugin during CI"
 command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 # Tests
 [tasks.test]
-description = "Run tests."
-dependencies = ["test-no-features", "test-postgres"]
+description = "Run tests"
+dependencies = ["test-ci"]
 
-[tasks.test-no-features]
-description = "Run tests."
-command = "cargo"
-args = ["test", "${@}", "--workspace"]
-
-[tasks.test-postgres]
-description = "Run tests."
-command = "cargo"
-args = ["test", "${@}", "--workspace", "--features=postgres"]
+[tasks.test-ci]
+description = "Run tests during CI"
+script = [
+    "cargo test ${@} --workspace",
+    "cargo test ${@} --workspace --features=postgres",
+    "cargo test ${@} --workspace --features=kafka",
+    "cargo test ${@} --workspace --features=rabbit",
+    "cargo test ${@} --workspace --all-features"
+]
 
 # Clippy
+[tasks.clippy]
+description = "Run clippy linter"
+dependencies = ["clippy-ci"]
+
 [tasks.clippy-ci]
-description = "Run clippy linter."
-dependencies = ["clippy-ci-no-features", "clippy-ci-postgres"]
-
-[tasks.clippy-ci-no-features]
-command = "cargo"
-args = ["clippy", "--workspace", "--", "-D", "warnings"]
-
-[tasks.clippy-ci-postgres]
-command = "cargo"
-args = ["clippy", "--workspace", "--features", "postgres", "--", "-D", "warnings"]
+description = "Run clippy linter during CI"
+script = [
+    "cargo clippy --workspace -- -D warnings",
+    "cargo clippy --workspace --features=postgres -- -D warnings",
+    "cargo clippy --workspace --features=kafka -- -D warnings",
+    "cargo clippy --workspace --features=rabbit -- -D warnings",
+    "cargo clippy --workspace --all-features -- -D warnings"
+]
 
 # Run example
 [tasks.example]
