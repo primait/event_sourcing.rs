@@ -22,6 +22,6 @@ pub struct RabbitEventBusConfig<'a> {
     pub(crate) publish_options: BasicPublishOptions,
     #[builder(default)]
     pub(crate) publish_properties: BasicProperties,
-    #[builder(default = Box::new(| _ | ()))]
+    #[builder(default = Box::new(|_| ()))]
     pub(crate) error_handler: Box<dyn Fn(RabbitEventBusError) + Send + Sync>,
 }

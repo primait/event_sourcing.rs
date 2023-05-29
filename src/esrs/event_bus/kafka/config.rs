@@ -13,7 +13,7 @@ pub struct KafkaEventBusConfig<'a> {
     pub(crate) request_timeout: u64,
     #[builder(default, setter(strip_option))]
     pub(crate) client_config: Option<ClientConfig>,
-    #[builder(default = Box::new(| _ | ()))]
+    #[builder(default = Box::new(|_| ()))]
     pub(crate) error_handler: Box<dyn Fn(KafkaEventBusError) + Send + Sync>,
 }
 
