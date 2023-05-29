@@ -46,28 +46,3 @@ pub trait Aggregate {
     /// If this is not the case, this function is allowed to panic.
     fn apply_event(state: Self::State, payload: Self::Event) -> Self::State;
 }
-//
-// /// Default generic implementation for every type implementing [`Deref`] where its `Target` is a
-// /// `dyn` [`Aggregate`]. Required by [`EventStore`] [`Deref`] implementation in [`AggregateManager`].
-// impl<S, C, Ev, Er, T> Aggregate for T
-// where
-//     S: Default + Clone + Send + Sync,
-//     C: Send,
-//     Ev: Send + Sync,
-//     Er: std::error::Error,
-//     T: Deref<Target = dyn Aggregate<State = S, Command = C, Event = Ev, Error = Er> + Sync> + Sync,
-// {
-//     const NAME: &'static str = "";
-//     type State = ();
-//     type Command = ();
-//     type Event = ();
-//     type Error = ();
-//
-//     fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
-//         todo!()
-//     }
-//
-//     fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
-//         todo!()
-//     }
-// }
