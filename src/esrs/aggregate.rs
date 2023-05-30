@@ -1,7 +1,4 @@
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use crate::{AggregateState, EventStore, StoreEvent};
+use crate::event::Event;
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
@@ -14,7 +11,15 @@ use crate::{AggregateState, EventStore, StoreEvent};
 /// should not have any side effects. If you need additional information to handle commands correctly, then
 /// consider looking up that information and placing it in the command.
 pub trait Aggregate {
-    /// Internal aggregate state. This will be wrapped in `AggregateState` and could be used to validate
+    /// The `NAME` const is responsible for naming an aggregate type.
+    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
+    ///
+    /// Aggregates are linked to their instances & events using their `NAME` and their `aggregate_id`.
+    /// Be very careful when changing `NAME`, as doing so will break the link between all the aggregates
+    /// of their type, and their events!
+    const NAME: &'static str;
+
+    /// Internal aggregate state. This will be wrapped in [`AggregateState`] and could be used to validate
     /// commands.
     type State: Default + Clone + Send + Sync;
 
@@ -24,7 +29,7 @@ pub trait Aggregate {
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    type Event: Send + Sync;
+    type Event: Event + Send + Sync;
 
     /// This associated type is used to get domain errors while handling a command.
     type Error;
@@ -42,110 +47,4 @@ pub trait Aggregate {
     ///
     /// If this is not the case, this function is allowed to panic.
     fn apply_event(state: Self::State, payload: Self::Event) -> Self::State;
-}
-
-/// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
-/// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.
-///
-/// It comes batteries-included, as you only need to implement the `event_store` getter. The basic API is:
-/// 1. execute_command
-/// 2. load
-/// The other functions are used internally, but can be overridden if needed.
-#[async_trait]
-pub trait AggregateManager: Aggregate {
-    type EventStore: EventStore<Manager = Self> + Send + Sync;
-
-    /// The `name` function is responsible for naming an aggregate type.
-    /// Each aggregate type should have a name that is unique among all the aggregate types in your application.
-    ///
-    /// Aggregates are linked to their instances & events using their `name` and their `aggregate_id`.  Be very careful when changing
-    /// `name`, as doing so will break the link between all the aggregates of their type, and their events!
-    fn name() -> &'static str
-    where
-        Self: Sized;
-
-    /// Returns the event store, configured for the aggregate
-    fn event_store(&self) -> &Self::EventStore;
-
-    /// Validates and handles the command onto the given state, and then passes the events to the store.
-    async fn handle_command(
-        &self,
-        mut aggregate_state: AggregateState<Self::State>,
-        command: Self::Command,
-    ) -> Result<(), Self::Error> {
-        let events: Vec<Self::Event> = <Self as Aggregate>::handle_command(aggregate_state.inner(), command)?;
-        self.store_events(&mut aggregate_state, events).await?;
-        Ok(())
-    }
-
-    /// Loads an aggregate instance from the event store, by applying previously persisted events onto
-    /// the aggregate state by order of their sequence number
-    ///
-    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    async fn load(
-        &self,
-        aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<Self::State>>, Self::Error> {
-        let aggregate_id: Uuid = aggregate_id.into();
-
-        let store_events: Vec<StoreEvent<Self::Event>> = self
-            .event_store()
-            .by_aggregate_id(aggregate_id)
-            .await?
-            .into_iter()
-            .collect();
-
-        Ok(if store_events.is_empty() {
-            None
-        } else {
-            let aggregate_state = AggregateState::with_id(aggregate_id);
-            Some(aggregate_state.apply_store_events(store_events, Self::apply_event))
-        })
-    }
-
-    /// Acquires a lock on this aggregate instance, and only then loads it from the event store,
-    /// by applying previously persisted events onto the aggregate state by order of their sequence number.
-    ///
-    /// The lock is contained in the returned `AggregateState`, and released when this is dropped.
-    /// It can also be extracted with the `take_lock` method for more advanced uses.
-    ///
-    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    async fn lock_and_load(
-        &self,
-        aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<Self::State>>, Self::Error> {
-        let id = aggregate_id.into();
-        let guard = self.event_store().lock(id).await?;
-
-        Ok(self.load(id).await?.map(|mut state| {
-            state.set_lock(guard);
-            state
-        }))
-    }
-
-    /// Transactional persists events in store - recording it in the aggregate instance's history.
-    /// The store will also project the events. If an error occurs whilst persisting the events,
-    /// the whole transaction is rolled back and the error is returned.
-    ///
-    /// The policies associated to the store are run here. A failure at this point will be silently
-    /// ignored, and the new state returned successfully anyway.
-    ///
-    /// You should _avoid_ implementing this function, and be _very_ careful if you decide to do so.
-    /// The only scenario where this function needs to be overwritten is if you need to change the
-    /// behaviour of policies, e.g. if you want to log something on error.
-    async fn store_events(
-        &self,
-        aggregate_state: &mut AggregateState<Self::State>,
-        events: Vec<Self::Event>,
-    ) -> Result<Vec<StoreEvent<Self::Event>>, Self::Error> {
-        self.event_store().persist(aggregate_state, events).await
-    }
-
-    /// `delete` should either complete the aggregate instance, along with all its associated events
-    /// and projections, or fail.
-    ///
-    /// If the deletion succeeds only partially, it _must_ return an error.
-    async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), Self::Error> {
-        self.event_store().delete(aggregate_id.into()).await
-    }
 }

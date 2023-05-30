@@ -63,7 +63,7 @@ impl<S: Default> AggregateState<S> {
     }
 
     /// Consumes the aggregate state and generates a new one with the events applied to it,
-    /// as dictaded by `apply_event`.
+    /// as dictated by `apply_event`.
     pub fn apply_store_events<T, F>(self, store_events: Vec<StoreEvent<T>>, apply_event: F) -> Self
     where
         F: Fn(S, T) -> S,
@@ -101,8 +101,9 @@ impl<S: Default> AggregateState<S> {
     }
 
     /// Computes the internal sequence number incremented by 1.
-    pub const fn next_sequence_number(&self) -> SequenceNumber {
-        self.sequence_number + 1
+    pub fn next_sequence_number(&mut self) -> SequenceNumber {
+        self.sequence_number += 1;
+        self.sequence_number
     }
 
     /// Inserts the lock guard into self, replacing any current one.

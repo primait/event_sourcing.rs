@@ -24,28 +24,22 @@ A tracing span is produced every time a projector is used or a policy is applied
 
 ## Run examples, tests and linting
 
-Start a Postgres instance.
+Start the docker-compose stack
 
 ```shell
-docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres:11-alpine
-```
-
-Export DATABASE_URL environment variable with freshly new created database.
-
-```shell
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+docker compose run --service-ports web bash
 ```
 
 Run tests.
 
 ```shell
-cargo test --all-targets --all-features
+cargo make test
 ```
 
 Run linters.
 
 ```
-cargo clippy --all-targets --all-features -- -W clippy::nursery
+cargo make clippy
 ```
 
 Finally eventually unset `DATABASE_URL` environment variable.

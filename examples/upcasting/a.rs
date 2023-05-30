@@ -1,29 +1,37 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Error, Value};
+use serde_json::Value;
 
 use esrs::event::Upcaster;
-use esrs::Event;
+use esrs::{Aggregate, Event};
 
-// The actual EventA
-#[derive(Event, Serialize, Deserialize, Debug)]
-#[serde(tag = "event_type")]
+use crate::{Command, Error};
+
+// The actual EventA. This gets serialized as:
+// // {"event_type": "incremented", "u": 0}
+#[derive(Event, Serialize, Deserialize, PartialEq, Debug)]
+#[serde(tag = "event_type", rename_all = "snake_case")]
 pub enum Event {
     Incremented(IncPayload),
     Decremented(DecPayload),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct IncPayload {
     pub u: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct DecPayload {
     pub u: u64,
 }
 
+// Old payload for EventA was:
+// pub struct IncPayload {
+//     pub i: i64,
+// }
+
 impl Upcaster for Event {
-    fn upcast(value: Value) -> Result<Self, Error> {
+    fn upcast(value: Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
         use serde::de::Error;
 
         // First of all try to deserialize the event using current version
@@ -34,36 +42,53 @@ impl Upcaster for Event {
         // Then trying manually
         match value {
             Value::Object(fields) => match fields.get("i") {
-                None => Err(serde_json::Error::custom("Event not serializable")),
+                None => Err(serde_json::Error::custom("Event not deserializable: missing `i` field")),
                 Some(value) => match value {
                     Value::Number(n) => {
-                        let u: u64 = n
-                            .as_u64()
-                            .ok_or_else(|| serde_json::Error::custom("Event not serializable"))?;
+                        let u: u64 = n.as_u64().ok_or_else(|| {
+                            serde_json::Error::custom("Event not deserializable: cannot cast `i` value")
+                        })?;
 
-                        let event_type = fields
-                            .get("event_type")
-                            .ok_or_else(|| serde_json::Error::custom("Event not serializable"))?;
+                        let event_type = fields.get("event_type").ok_or_else(|| {
+                            serde_json::Error::custom("Event not deserializable: missing `event_type` field")
+                        })?;
 
                         if let Value::String(str) = event_type {
                             match str.as_str() {
-                                "Incremented" => Ok(Self::Incremented(IncPayload { u })),
-                                "Decremented" => Ok(Self::Decremented(DecPayload { u })),
-                                _ => Err(serde_json::Error::custom("Event not serializable")),
+                                "incremented" => Ok(Self::Incremented(IncPayload { u })),
+                                "decremented" => Ok(Self::Decremented(DecPayload { u })),
+                                _ => Err(serde_json::Error::custom("Event not deserializable: variant not found")),
                             }
                         } else {
-                            Err(serde_json::Error::custom("Event not serializable"))
+                            Err(serde_json::Error::custom("Event not deserializable"))
                         }
                     }
-                    _ => Err(serde_json::Error::custom("Event not serializable")),
+                    _ => Err(serde_json::Error::custom("Event not deserializable")),
                 },
             },
-            _ => Err(serde_json::Error::custom("TestEvent not serializable")),
+            _ => Err(serde_json::Error::custom("TestEvent not deserializable")),
         }
     }
 }
 
-// Old payloads for EventA was:
-// pub struct IncPayload {
-//     pub i: i64,
-// }
+/// This is the `Aggregate` where we use the `a::Event`, with a json upcasting approach
+pub struct AggregateA;
+
+impl Aggregate for AggregateA {
+    const NAME: &'static str = "upsert_a";
+    type State = ();
+    type Command = Command;
+    type Event = Event;
+    type Error = Error;
+
+    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+        match command {
+            Self::Command::Increment { u } => Ok(vec![Self::Event::Incremented(IncPayload { u })]),
+            Self::Command::Decrement { u } => Ok(vec![Self::Event::Decremented(DecPayload { u })]),
+        }
+    }
+
+    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
+        state
+    }
+}
