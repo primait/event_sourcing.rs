@@ -1,4 +1,0 @@
-# Simple side-effect
-
-A side-effect demonstration, implementing a very simple, failable, side effect, in both a `Projector` and a `Policy`.
-See aggregate.rs for a discussion of the difference in behaviour between the two approaches.
