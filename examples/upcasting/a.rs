@@ -31,43 +31,50 @@ pub struct DecPayload {
 // }
 
 impl Upcaster for Event {
-    fn upcast(value: Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+    fn upcast(value: Value, version: Option<i32>) -> Result<Self, serde_json::Error> {
         use serde::de::Error;
 
-        // First of all try to deserialize the event using current version
-        if let Ok(event) = serde_json::from_value::<Self>(value.clone()) {
-            return Ok(event);
-        }
+        match version {
+            None | Some(0) => match value {
+                Value::Object(fields) => match fields.get("i") {
+                    None => Err(serde_json::Error::custom("Event not deserializable: missing `i` field")),
+                    Some(value) => match value {
+                        Value::Number(n) => {
+                            let u: u64 = n.as_u64().ok_or_else(|| {
+                                serde_json::Error::custom("Event not deserializable: cannot cast `i` value")
+                            })?;
 
-        // Then trying manually
-        match value {
-            Value::Object(fields) => match fields.get("i") {
-                None => Err(serde_json::Error::custom("Event not deserializable: missing `i` field")),
-                Some(value) => match value {
-                    Value::Number(n) => {
-                        let u: u64 = n.as_u64().ok_or_else(|| {
-                            serde_json::Error::custom("Event not deserializable: cannot cast `i` value")
-                        })?;
+                            let event_type = fields.get("event_type").ok_or_else(|| {
+                                serde_json::Error::custom("Event not deserializable: missing `event_type` field")
+                            })?;
 
-                        let event_type = fields.get("event_type").ok_or_else(|| {
-                            serde_json::Error::custom("Event not deserializable: missing `event_type` field")
-                        })?;
-
-                        if let Value::String(str) = event_type {
-                            match str.as_str() {
-                                "incremented" => Ok(Self::Incremented(IncPayload { u })),
-                                "decremented" => Ok(Self::Decremented(DecPayload { u })),
-                                _ => Err(serde_json::Error::custom("Event not deserializable: variant not found")),
+                            if let Value::String(str) = event_type {
+                                match str.as_str() {
+                                    "incremented" => Ok(Self::Incremented(IncPayload { u })),
+                                    "decremented" => Ok(Self::Decremented(DecPayload { u })),
+                                    _ => Err(serde_json::Error::custom("Event not deserializable: variant not found")),
+                                }
+                            } else {
+                                Err(serde_json::Error::custom("Event not deserializable"))
                             }
-                        } else {
-                            Err(serde_json::Error::custom("Event not deserializable"))
                         }
-                    }
-                    _ => Err(serde_json::Error::custom("Event not deserializable")),
+                        _ => Err(serde_json::Error::custom("Event not deserializable")),
+                    },
                 },
+                _ => Err(serde_json::Error::custom("TestEvent not deserializable")),
             },
-            _ => Err(serde_json::Error::custom("TestEvent not deserializable")),
+            Some(1) => serde_json::from_value::<Self>(value),
+            Some(v) => {
+                return Err(serde_json::Error::custom(format!(
+                    "Invalid event version number: {}",
+                    v
+                )));
+            }
         }
+    }
+
+    fn current_version() -> Option<i32> {
+        Some(1)
     }
 }
 
