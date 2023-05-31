@@ -41,6 +41,7 @@ async fn rabbit_event_bus_test() {
         payload: TestEvent { add: 1 },
         occurred_on: Utc::now(),
         sequence_number: 1,
+        version: None,
     };
 
     bus.publish(&store_event).await;

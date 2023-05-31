@@ -34,3 +34,10 @@ pub enum SagaEvent {
     MutationRequested,
     MutationRegistered,
 }
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for SagaEvent {
+    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+        serde_json::from_value(value)
+    }
+}

@@ -37,3 +37,10 @@ pub struct EventA {
     pub v: i32,
     pub shared_id: Uuid,
 }
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for EventA {
+    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+        serde_json::from_value(value)
+    }
+}

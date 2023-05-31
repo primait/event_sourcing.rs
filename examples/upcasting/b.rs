@@ -31,13 +31,13 @@ impl Upcaster for Event {
     fn upcast(value: Value, version: Option<i32>) -> Result<Self, serde_json::Error> {
         match version {
             None | Some(0) => Event20230405::upcast(value, version)?.try_into(),
-            Some(1) => serde_json::from_value::<Self>(value.clone()),
+            Some(1) => serde_json::from_value::<Self>(value),
             Some(v) => {
                 use serde::de::Error;
-                return Err(serde_json::Error::custom(format!(
+                Err(serde_json::Error::custom(format!(
                     "Invalid event version number: {}",
                     v
-                )));
+                )))
             }
         }
     }

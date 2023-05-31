@@ -5,9 +5,16 @@ pub enum TestCommand {
     Multi,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, esrs::Event, Debug)]
 pub struct TestEvent {
     pub add: i32,
+}
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for TestEvent {
+    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+        serde_json::from_value(value)
+    }
 }
 
 #[derive(Debug)]

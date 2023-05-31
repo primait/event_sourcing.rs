@@ -115,3 +115,8 @@ required-features = ["postgres"]
 name = "transactional_view"
 path = "examples/transactional_view/main.rs"
 required-features = ["postgres"]
+
+[[example]]
+name = "upcasting"
+path = "examples/upcasting/main.rs"
+required-features = ["postgres", "upcasting"]

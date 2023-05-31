@@ -45,6 +45,7 @@ mod tests {
     use sqlx::{Pool, Postgres};
 
     use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
+    use crate::event::Event;
     use crate::Aggregate;
 
     #[sqlx::test]
@@ -55,11 +56,23 @@ mod tests {
 
     pub struct TestAggregate;
 
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct TestEvent;
+
+    #[cfg(feature = "upcasting")]
+    impl crate::event::Upcaster for TestEvent {
+        fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+            serde_json::from_value(value)
+        }
+    }
+
+    impl Event for TestEvent {}
+
     impl Aggregate for TestAggregate {
         const NAME: &'static str = "test";
         type State = ();
         type Command = ();
-        type Event = ();
+        type Event = TestEvent;
         type Error = ();
 
         fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
