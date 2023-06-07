@@ -1,7 +1,7 @@
-use std::{sync::Arc, vec};
+use std::sync::Arc;
 
-use arc_swap::ArcSwap;
 use sqlx::{PgConnection, Pool, Postgres};
+use tokio::sync::RwLock;
 
 use crate::esrs::event_bus::EventBus;
 use crate::esrs::postgres::event_store::InnerPgStore;
@@ -108,7 +108,7 @@ where
             inner: Arc::new(InnerPgStore {
                 pool: self.pool,
                 statements: self.statements,
-                event_handlers: ArcSwap::from_pointee(self.event_handlers),
+                event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),

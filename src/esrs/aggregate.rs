@@ -30,7 +30,7 @@ pub trait Aggregate {
     type Event;
 
     /// This associated type is used to get domain errors while handling a command.
-    type Error: std::error::Error;
+    type Error;
 
     /// Handles, validate a command and emits events.
     ///

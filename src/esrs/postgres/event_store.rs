@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
@@ -10,6 +9,7 @@ use sqlx::pool::PoolConnection;
 use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey};
 use sqlx::types::Json;
 use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::esrs::event_bus::EventBus;
@@ -39,7 +39,7 @@ where
 {
     pub(super) pool: Pool<Postgres>,
     pub(super) statements: Statements,
-    pub(super) event_handlers: ArcSwap<Vec<Box<dyn EventHandler<A> + Send>>>,
+    pub(super) event_handlers: RwLock<Vec<Box<dyn EventHandler<A> + Send>>>,
     pub(super) transactional_event_handlers:
         Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
@@ -60,13 +60,10 @@ where
     ///
     /// This is mostly used while there's the need to have an event handler that try to apply a command
     /// on the same aggregate (implementing saga pattern with event sourcing).
-    pub fn add_event_handler(&self, event_handler: impl EventHandler<A> + Send + 'static) {
-        let guard = self.inner.event_handlers.load();
-        let mut handlers: Vec<Box<dyn EventHandler<A> + Send>> =
-            (*(*guard)).iter().map(|handler| handler.clone_box()).collect();
+    pub async fn add_event_handler(&self, event_handler: impl EventHandler<A> + Send + 'static) {
+        let mut guard = self.inner.event_handlers.write().await;
 
-        handlers.push(Box::new(event_handler));
-        self.inner.event_handlers.store(Arc::new(handlers));
+        guard.push(Box::new(event_handler))
     }
 
     /// Save an event in the event store and return a new `StoreEvent` instance.
@@ -224,7 +221,7 @@ where
         drop(aggregate_state.take_lock());
 
         // Acquiring the list of event handlers early, as it is an expensive operation.
-        let event_handlers = self.inner.event_handlers.load();
+        let event_handlers = self.inner.event_handlers.read().await;
         for store_event in &store_events {
             // NOTE: should this be parallelized?
             for event_handler in event_handlers.iter() {
@@ -278,8 +275,9 @@ where
 
         transaction.commit().await?;
 
+        let event_handlers = self.inner.event_handlers.read().await;
         // NOTE: should this be parallelized?
-        for event_handler in self.inner.event_handlers.load().iter() {
+        for event_handler in event_handlers.iter() {
             event_handler.delete(aggregate_id).await;
         }
 

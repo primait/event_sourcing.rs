@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 
 use uuid::Uuid;
 
@@ -103,11 +103,25 @@ where
     }
 }
 
-#[derive(Debug)]
 pub enum AggregateManagerError<E>
 where
     E: EventStore,
 {
     Aggregate(<<E as EventStore>::Aggregate as Aggregate>::Error),
     EventStore(<E as EventStore>::Error),
+}
+
+impl<E> Debug for AggregateManagerError<E>
+where
+    E: EventStore,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AggregateManagerError::Aggregate(_) => {
+                let typename = std::any::type_name::<<<E as EventStore>::Aggregate as Aggregate>::Error>();
+                write!(f, "{}", typename)
+            }
+            AggregateManagerError::EventStore(err) => write!(f, "{:?}", err),
+        }
+    }
 }

@@ -12,7 +12,6 @@ use crate::{Aggregate, StoreEvent};
 #[async_trait]
 pub trait EventHandler<A>: Sync
 where
-    Self: EventHandlerClone<A>,
     A: Aggregate,
 {
     /// Handle an event and perform an action. This action could be over a read model or a side-effect.
@@ -35,8 +34,8 @@ impl<A, Q, T> EventHandler<A> for T
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    Q: EventHandler<A> + EventHandlerClone<A>,
-    T: Deref<Target = Q> + Clone + Send + Sync + 'static,
+    Q: EventHandler<A>,
+    T: Deref<Target = Q> + Clone + Send + Sync,
 {
     /// Deref call to [`EventHandler::handle`].
     async fn handle(&self, event: &StoreEvent<A::Event>) {
@@ -124,25 +123,4 @@ where
     Self: EventHandler<A>,
     A: Aggregate,
 {
-}
-
-pub trait EventHandlerClone<A> {
-    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send>;
-}
-
-impl<T, A> EventHandlerClone<A> for T
-where
-    A: Aggregate,
-    T: 'static + EventHandler<A> + Clone + Send,
-{
-    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send> {
-        Box::new(self.clone())
-    }
-}
-
-// We can now implement Clone manually by forwarding to clone_box.
-impl<A> Clone for Box<dyn EventHandler<A> + Send> {
-    fn clone(&self) -> Box<dyn EventHandler<A> + Send> {
-        self.clone_box()
-    }
 }

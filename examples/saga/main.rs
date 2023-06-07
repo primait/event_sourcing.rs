@@ -29,7 +29,7 @@ async fn main() {
         side_effect_mutex: side_effect_mutex.clone(),
     };
 
-    store.add_event_handler(saga_event_handler);
+    store.add_event_handler(saga_event_handler).await;
 
     let manager: AggregateManager<PgStore<SagaAggregate>> = AggregateManager::new(store.clone());
 
