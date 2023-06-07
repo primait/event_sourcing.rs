@@ -74,6 +74,7 @@ where
     A: crate::Aggregate,
     A::Event: 'static,
     A::Event: Send + Sync,
+    A::State: Send,
     E: std::error::Error,
     T: Deref<Target = dyn EventStore<Aggregate = A, Error = E> + Sync> + Sync,
 {

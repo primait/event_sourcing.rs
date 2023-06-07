@@ -136,6 +136,7 @@ impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
     A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::State: Send,
 {
     type Aggregate = A;
     type Error = PgStoreError;

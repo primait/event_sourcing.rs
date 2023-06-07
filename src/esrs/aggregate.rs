@@ -19,7 +19,7 @@ pub trait Aggregate {
 
     /// Internal aggregate state. This will be wrapped in [`AggregateState`] and could be used to validate
     /// commands.
-    type State: Default + Send;
+    type State: Default;
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
     /// an event.
