@@ -27,7 +27,7 @@ pub trait Aggregate {
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    type Event: Send;
+    type Event;
 
     /// This associated type is used to get domain errors while handling a command.
     type Error: std::error::Error;

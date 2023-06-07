@@ -73,7 +73,7 @@ impl<A, E, T> EventStore for T
 where
     A: crate::Aggregate,
     A::Event: 'static,
-    A::Event: Sync,
+    A::Event: Send + Sync,
     E: std::error::Error,
     T: Deref<Target = dyn EventStore<Aggregate = A, Error = E> + Sync> + Sync,
 {
