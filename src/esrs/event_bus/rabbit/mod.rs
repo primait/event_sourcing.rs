@@ -59,7 +59,7 @@ impl<A> EventBus<A> for RabbitEventBus<A>
 where
     Self: Send,
     A: Aggregate + Send + Sync,
-    A::Event: Serialize,
+    A::Event: Serialize + Sync,
 {
     async fn publish(&self, store_event: &StoreEvent<A::Event>) {
         if let Err(error) = publish(self, store_event).await {

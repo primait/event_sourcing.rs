@@ -48,7 +48,7 @@ where
 impl<A> PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -135,7 +135,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;

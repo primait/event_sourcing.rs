@@ -62,7 +62,7 @@ where
 impl<A> Rebuilder<A> for PgRebuilder<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send,
+    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
 {
     type Executor = Pool<Postgres>;
     type Error = PgStoreError;

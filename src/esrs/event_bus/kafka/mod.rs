@@ -53,7 +53,7 @@ impl<A> EventBus<A> for KafkaEventBus<A>
 where
     Self: Send,
     A: Aggregate + Send + Sync,
-    A::Event: Serialize,
+    A::Event: Serialize + Sync,
 {
     async fn publish(&self, store_event: &StoreEvent<A::Event>) {
         match publish(self, store_event).await {

@@ -19,7 +19,7 @@ pub trait Aggregate {
 
     /// Internal aggregate state. This will be wrapped in [`AggregateState`] and could be used to validate
     /// commands.
-    type State: Default + Send + Sync;
+    type State: Default + Send;
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
     /// an event.
@@ -27,7 +27,7 @@ pub trait Aggregate {
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    type Event: Send + Sync;
+    type Event: Send;
 
     /// This associated type is used to get domain errors while handling a command.
     type Error: std::error::Error;
