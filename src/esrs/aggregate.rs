@@ -23,7 +23,7 @@ pub trait Aggregate {
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
     /// an event.
-    type Command: Send;
+    type Command;
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
