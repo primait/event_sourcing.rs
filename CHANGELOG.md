@@ -8,6 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.12.0] - 2023-06-0X
+
+### Added 
+
+- [[#148]]: `ReplayableEventHandler` trait to mark an `EventHandler` as replayable or not. This does not stick to
+            `TransactionalEventHandlers` since it is taken for granted that they must always be replayable. 
+- [[#149]]: `PgStoreBuilder` struct, currently the sole method for constructing a `PgStore`.
+- [[#151]]: The `EventBus` trait is integrated with the `PgStore` implementation to facilitate the publishing of events 
+            after they have been processed by the handlers.
+- [[#152]]: `MigrationHandler` trait to run migrations while building a new `PgStore`.
+- [[#155]]: Concrete implementations of the `EventBus` interface for Apache Kafka and RabbitMQ. These implementations 
+            are available under the `rabbit` and `kafka` features.
+- [[#155]]: Docker compose file for local development and testing.
+- [[#156]]: The `table_name` and `add_event_handler` functions to `PgStore`.
+- [[#156]]: Generic `Rebuilder` trait and concrete `PgRebuilder` struct facilities to rebuild a single aggregate. These
+            implementations are available under the `rebuilder` feature.
+- [[#157]]: The `TransactionalEventHandler` now includes a new generic type argument that allow to specify the error 
+            return type.
+- [[#157]]: The `EventStore` trait now takes the `Aggregate` as associated type and now includes a new associated type 
+            that allow to specify the error return type. 
+- [[#157]]: New `PgStoreError` type as error return type for `PgStore`.
+
+### Changed
+
+- [[#148]]: `Projector` and `Policy` no longer exists. Replaced with `EventHandler` and `TransactionalEventHandler`. 
+- [[#150]]: `AggregateManager` is no longer a trait; it now lives as a struct.
+- [[#150]]: The `EventStore`, `PgStore`, `EventHandler`, `TransactionalEventHandler` and `ReplayableEventHandler` types, 
+            previously associated with the `AggregateManager` trait, now have a simplified constraint that they are bound
+            to the `Aggregate` trait.
+- [[#153]]: The `save_event` function in the `PgStore` is now accessible only within the crate scope.
+- [[#156]]: The examples have been refactored as external executables and are no longer part of the cargo workspace.
+- [[#157]]: The `AggregateManager` type bound has been changed from `Aggregate` to an `EventStore` type.
+- [[#157]]: 
+- [[#157]]: The return type error of the inner functions in `AggregateManager` has been modified from `Aggregate::Error`
+            to a new type called `AggregateManagerError<E>`. This change introduces a clear differentiation between an 
+            `Aggregate` error and an `EventStore` error.
+- [[#157]]: The functions in the `EventStore`, including those in the `PgStore`, now utilize the new error associated type 
+            as their return type.
+
+### Removed
+
+- [[#153]]: `PgStore` getters functions `transactional_event_handlers`, `event_handlers` and `event_buses`.
+- [[#153]]: `PgStore` custom `persist` function.
+- [[#157]]: The `Clone`, `Send`, and `Sync` bounds on the associated types of `Aggregate` have been eliminated.
+
+---
 ## [0.11.0] - 2023-04-03
 
 ### Changed
@@ -224,7 +270,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/primait/event_sourcing.rs/compare/0.10.2...0.11.0
 [0.10.2]: https://github.com/primait/event_sourcing.rs/compare/0.10.1...0.10.2
 [0.10.1]: https://github.com/primait/event_sourcing.rs/compare/0.10.0...0.10.1
@@ -235,6 +282,16 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
+
+[#157]: https://github.com/primait/event_sourcing.rs/pull/148
+[#156]: https://github.com/primait/event_sourcing.rs/pull/148
+[#155]: https://github.com/primait/event_sourcing.rs/pull/148
+[#153]: https://github.com/primait/event_sourcing.rs/pull/148
+[#152]: https://github.com/primait/event_sourcing.rs/pull/148
+[#151]: https://github.com/primait/event_sourcing.rs/pull/148
+[#150]: https://github.com/primait/event_sourcing.rs/pull/148
+[#149]: https://github.com/primait/event_sourcing.rs/pull/148
+[#148]: https://github.com/primait/event_sourcing.rs/pull/148
 [#144]: https://github.com/primait/event_sourcing.rs/pull/144
 [#141]: https://github.com/primait/event_sourcing.rs/pull/141
 [#136]: https://github.com/primait/event_sourcing.rs/pull/136
