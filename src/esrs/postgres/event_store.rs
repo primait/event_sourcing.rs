@@ -188,7 +188,6 @@ where
             store_events.push(store_event);
         }
 
-        // Acquiring the list of transactional event handlers early, as it is an expensive operation.
         for store_event in &store_events {
             for transactional_event_handler in &self.inner.transactional_event_handlers {
                 let span = tracing::trace_span!(
@@ -219,7 +218,6 @@ where
         // 2. the event handlers below might need to access this aggregate atomically (causing a deadlock!).
         drop(aggregate_state.take_lock());
 
-        // Acquiring the list of event handlers early, as it is an expensive operation.
         let event_handlers = self.inner.event_handlers.read().await;
         for store_event in &store_events {
             // NOTE: should this be parallelized?
