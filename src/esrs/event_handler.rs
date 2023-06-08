@@ -5,17 +5,17 @@ use uuid::Uuid;
 
 use crate::{Aggregate, StoreEvent};
 
-/// This trait is used to implement an `EventHandler`. An event handler is intended to be an entity
+/// This trait is used to implement an [`EventHandler`]. An event handler is intended to be an entity
 /// which can create, update and delete a read side and perform side effects.
 ///
-/// The main purpose of an `EventHandler` is to have an eventually persistent processor.
+/// The main purpose of an [`EventHandler`] is to have an eventually persistent processor.
 #[async_trait]
 pub trait EventHandler<A>: Sync
 where
     A: Aggregate,
 {
     /// Handle an event and perform an action. This action could be over a read model or a side-effect.
-    /// All the errors should be handled from within the `EventHandler` and shouldn't panic.
+    /// All the errors should be handled from within the [`EventHandler`] and shouldn't panic.
     async fn handle(&self, event: &StoreEvent<A::Event>);
 
     /// Perform a deletion of a resource using the given aggregate_id.
@@ -53,7 +53,7 @@ where
     }
 }
 
-/// This trait is used to implement a `TransactionalEventHandler`. A transactional event handler is
+/// This trait is used to implement a [`TransactionalEventHandler`]. A transactional event handler is
 /// intended to be an entity which can create, update and delete a read side. No side effects must be
 /// performed inside of this kind on handler.
 ///
@@ -107,14 +107,14 @@ where
     }
 }
 
-/// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`.
+/// The [`ReplayableEventHandler`] trait is used to add the `replay` behavior on an [`EventHandler`].
 ///
 /// Being replayable means that the operation performed by this EventHandler should be idempotent
 /// and should be intended to be "eventually consistent".
 /// In other words it means that they should not perform external API calls, generate random numbers
 /// or do anything that relies on external state and might change the outcome of this function.
 ///
-/// The most common use case for this is when rebuilding read models: `EventHandler`s that write on
+/// The most common use case for this is when rebuilding read models: [`EventHandler`]s that write on
 /// the database should be marked as replayable.
 ///
 /// Another use case could be if there's the need to implement a retry logic for this event handler.

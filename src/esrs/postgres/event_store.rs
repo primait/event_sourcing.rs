@@ -55,8 +55,8 @@ where
         self.inner.statements.table_name()
     }
 
-    /// Safely add an event handler to PgStore. Try not to intensively use this function: everytime
-    /// it clones all the event handlers and it might be an expensive operation.
+    /// Safely add an event handler to PgStore. Since it appends an event handler to a tokio::sync::RwLock
+    /// this function needs to be async.
     ///
     /// This is mostly used while there's the need to have an event handler that try to apply a command
     /// on the same aggregate (implementing saga pattern with event sourcing).
@@ -189,9 +189,8 @@ where
         }
 
         // Acquiring the list of transactional event handlers early, as it is an expensive operation.
-        let transactional_event_handlers = &self.inner.transactional_event_handlers;
         for store_event in &store_events {
-            for transactional_event_handler in transactional_event_handlers.iter() {
+            for transactional_event_handler in &self.inner.transactional_event_handlers {
                 let span = tracing::trace_span!(
                     "esrs.transactional_event_handler",
                     event_id = %store_event.id,

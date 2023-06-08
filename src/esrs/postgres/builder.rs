@@ -91,10 +91,11 @@ where
         self
     }
 
-    /// This function runs all the needed [`Migrations`], atomically setting up the database.
-    /// Eventually returns an instance of PgStore.
+    /// This function runs all the needed [`Migrations`], atomically setting up the database if
+    /// `run_migrations` isn't explicitly set to false. [`Migrations`] should be run only at application
+    /// startup due to avoid performance issues.
     ///
-    /// This function should be used only once at your application startup.
+    /// Eventually returns an instance of PgStore.
     ///
     /// # Errors
     ///

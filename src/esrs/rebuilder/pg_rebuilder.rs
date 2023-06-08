@@ -68,6 +68,12 @@ where
     type Executor = Pool<Postgres>;
     type Error = PgStoreError;
 
+    /// To optimize performance, the code can be modified to open a single transaction for all the
+    /// aggregate IDs fetched by a pre-made query. Within this transaction, the list of events for
+    /// each aggregate ID is extracted. Then, for every [`TransactionalEventHandler`] and [`EventHandler`],
+    /// the corresponding aggregate is deleted, and the list of events is processed by the mentioned
+    /// handlers.
+    /// Finally the events are passed to every configured [`EventBus`].
     async fn by_aggregate_id(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
         let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
             .without_running_migrations()
@@ -109,6 +115,10 @@ where
         Ok(())
     }
 
+    /// To process all events in the database, a single transaction is opened, and within this
+    /// transaction, all aggregates are deleted and for each [`TransactionalEventHandler`], the
+    /// events are handled. After the transaction ends, for each [`EventHandler`] and [`EventBus`],
+    /// the events are handled.
     async fn all_at_once(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
         let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
             .without_running_migrations()

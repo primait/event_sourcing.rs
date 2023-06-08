@@ -103,6 +103,11 @@ where
     }
 }
 
+/// The Aggregate Manager may return errors of two types: `Aggregate` errors and `EventStore` errors.
+/// An `Aggregate` error is returned when a validation error occurs while handling a specific command
+/// within the underlying [`Aggregate`].
+/// On the other hand, an `EventStore` error can be generated during event insertion into the store,
+/// due to serialization issues, or as a result of a [`TransactionalEventHandler`] error.  
 pub enum AggregateManagerError<E>
 where
     E: EventStore,
