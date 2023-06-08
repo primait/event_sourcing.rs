@@ -1,3 +1,16 @@
+//! This example serves as a demonstration of creating a custom script to rebuild two separate
+//! [`Aggregate`]s that share the same view.
+//!
+//! The script streams events from two different event stores, opens a transaction, and truncates
+//! both tables.
+//!
+//! It's important to note that the view handled by the `SharedEventHandler` is truncated without
+//! using the transaction. This is because the view is eventually consistent and its deletion is
+//! unlikely to cause an outage.
+//!
+//! After truncation, each event is passed to its respective handler in chronological order.
+//! Finally, the transaction is committed.
+
 use futures::StreamExt;
 use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
@@ -64,9 +77,6 @@ async fn rebuild_multi_aggregate(
     let mut event_a_opt: Option<Result<StoreEvent<EventA>, PgStoreError>> = events_a.next().await;
     let mut event_b_opt: Option<Result<StoreEvent<EventB>, PgStoreError>> = events_b.next().await;
 
-    // At this point it's possible to open a transaction
-    let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
-
     // There are 3 choices here:
     // - Truncate all the tables where the event handlers and transactional event handlers insist on.
     // - Implement the EventHandler::delete and TransactionalEventHandler::delete functions
@@ -77,6 +87,9 @@ async fn rebuild_multi_aggregate(
 
     let query: String = format!("TRUNCATE TABLE {}", view.table_name());
     let _ = sqlx::query(query.as_str()).execute(&pool).await.unwrap();
+
+    // At this point it's possible to open a transaction
+    let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
     let query: String = format!("TRUNCATE TABLE {}", transactional_view.table_name());
     let _ = sqlx::query(query.as_str()).execute(&mut *transaction).await.unwrap();

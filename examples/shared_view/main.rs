@@ -1,3 +1,5 @@
+//! This example demonstrates how to construct a view that encompasses two distinct [`Aggregates`].
+
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 

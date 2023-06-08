@@ -1,3 +1,7 @@
+//! In this example, we provide a demonstration of building a view using an [`EventHandler`]. The
+//! example illustrates the process of handling events and processing them to construct a
+//! comprehensive view of the underlying data.
+
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
