@@ -55,8 +55,8 @@ where
         self.inner.statements.table_name()
     }
 
-    /// Safely add an event handler to PgStore. Since it appends an event handler to a tokio::sync::RwLock
-    /// this function needs to be async.
+    /// Safely add an event handler to [`PgStore`]. Since it appends an event handler to a [`RwLock`]
+    /// this function needs to be `async`.
     ///
     /// This is mostly used while there's the need to have an event handler that try to apply a command
     /// on the same aggregate (implementing saga pattern with event sourcing).
@@ -66,7 +66,7 @@ where
         guard.push(Box::new(event_handler))
     }
 
-    /// Save an event in the event store and return a new `StoreEvent` instance.
+    /// Save an event in the event store and return a new [`StoreEvent`] instance.
     ///
     /// # Errors
     ///
@@ -113,10 +113,10 @@ where
     }
 }
 
-/// Concrete implementation of EventStoreLockGuard for the PgStore.
+/// Concrete implementation of [`EventStoreLockGuard`] for the [`PgStore`].
 ///
-/// It holds both the PgAdvisoryLock and its child PgAdvisoryLockGuard.
-/// When dropped, the PgAdvisoryLockGuard is dropped thus releasing the PgAdvisoryLock.
+/// It holds both the [`PgAdvisoryLock`] and its child [`PgAdvisoryLockGuard`].
+/// When dropped, the [`PgAdvisoryLockGuard`] is dropped thus releasing the [`PgAdvisoryLock`].
 #[ouroboros::self_referencing]
 pub struct PgStoreLockGuard {
     lock: PgAdvisoryLock,
@@ -125,7 +125,7 @@ pub struct PgStoreLockGuard {
     guard: PgAdvisoryLockGuard<'this, PoolConnection<Postgres>>,
 }
 
-/// Marking PgStoreLockGuard as an UnlockOnDrop trait object.
+/// Marking [`PgStoreLockGuard`] as an [`UnlockOnDrop`] trait object.
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
