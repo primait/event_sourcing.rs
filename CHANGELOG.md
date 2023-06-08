@@ -283,14 +283,14 @@ Refer to: [#107], [#108] and [#109]
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 
-[#157]: https://github.com/primait/event_sourcing.rs/pull/148
-[#156]: https://github.com/primait/event_sourcing.rs/pull/148
-[#155]: https://github.com/primait/event_sourcing.rs/pull/148
-[#153]: https://github.com/primait/event_sourcing.rs/pull/148
-[#152]: https://github.com/primait/event_sourcing.rs/pull/148
-[#151]: https://github.com/primait/event_sourcing.rs/pull/148
-[#150]: https://github.com/primait/event_sourcing.rs/pull/148
-[#149]: https://github.com/primait/event_sourcing.rs/pull/148
+[#157]: https://github.com/primait/event_sourcing.rs/pull/157
+[#156]: https://github.com/primait/event_sourcing.rs/pull/156
+[#155]: https://github.com/primait/event_sourcing.rs/pull/155
+[#153]: https://github.com/primait/event_sourcing.rs/pull/153
+[#152]: https://github.com/primait/event_sourcing.rs/pull/152
+[#151]: https://github.com/primait/event_sourcing.rs/pull/151
+[#150]: https://github.com/primait/event_sourcing.rs/pull/150
+[#149]: https://github.com/primait/event_sourcing.rs/pull/149
 [#148]: https://github.com/primait/event_sourcing.rs/pull/148
 [#144]: https://github.com/primait/event_sourcing.rs/pull/144
 [#141]: https://github.com/primait/event_sourcing.rs/pull/141
