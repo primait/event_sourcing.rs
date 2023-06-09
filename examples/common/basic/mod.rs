@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use esrs::{Aggregate, Event};
+use esrs::Aggregate;
 pub use event_handler::*;
 pub use view::*;
 
@@ -35,7 +35,8 @@ pub struct BasicCommand {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize, Event, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct BasicEvent {
     pub content: String,
 }

@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 pub enum TestCommand {
@@ -5,7 +6,8 @@ pub enum TestCommand {
     Multi,
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize, esrs::Event, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct TestEvent {
     pub add: i32,
 }

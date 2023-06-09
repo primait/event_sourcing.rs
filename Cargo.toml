@@ -22,13 +22,15 @@ members = [
 [features]
 default = []
 sql = ["sqlx"]
-postgres = ["sql", "sqlx/postgres", "typed-builder"]
+postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
 upcasting = []
 
 [dependencies]
+tokio = { version = "1.6", optional = true }
+
 # Serialization/Deserialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -41,9 +43,6 @@ async-trait = "0.1.50"
 
 # esrs macros
 esrs-macros = { version = "0.1.0", path = "esrs-macros" }
-
-# Used as faster alternative for read scenarios of RwLock
-arc-swap = "1.5"
 
 # Self-referential structs (for PgStoreLockGuard)
 ouroboros = "0.15"
@@ -61,9 +60,10 @@ typed-builder = { version = "0.14.0", optional = true }
 futures = "0.3"
 tracing = "0.1"
 
+thiserror = "1.0"
+
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
-thiserror = "1.0"
 rand = "0.8"
 
 [[example]]

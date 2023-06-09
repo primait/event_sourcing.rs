@@ -9,8 +9,9 @@ use uuid::Uuid;
 
 use esrs::event_bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
 use esrs::event_bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
+use esrs::manager::AggregateManager;
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, random_letters, BasicAggregate, BasicCommand, BasicEventHandler, BasicView};
 use crate::kafka::KafkaEventBusConsumer;
@@ -91,7 +92,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(store);
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store);
 
     let content: &str = "view row content";
     let aggregate_state: AggregateState<()> = AggregateState::default();

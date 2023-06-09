@@ -33,9 +33,10 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use esrs::manager::AggregateManager;
 use esrs::postgres::{PgStore, PgStoreBuilder};
 use esrs::rebuilder::{PgRebuilder, Rebuilder};
-use esrs::{AggregateManager, AggregateState};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView};
 use crate::event_handler::{AnotherEventHandler, BasicEventHandlerV1, BasicEventHandlerV2};
@@ -81,7 +82,7 @@ async fn setup(aggregate_id: Uuid, view: BasicView, transactional_view: BasicVie
         .await
         .unwrap();
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(pg_store);
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(pg_store);
     manager
         .handle_command(
             AggregateState::with_id(aggregate_id),

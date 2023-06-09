@@ -3,12 +3,10 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
+use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::{Aggregate, AggregateState, EventStore, StoreEvent};
 
-use crate::aggregate::{
-    TestAggregate, TestAggregateState, TestError, TestEvent, TestEventHandler, TestTransactionalEventHandler,
-};
+use crate::aggregate::{TestAggregate, TestAggregateState, TestEvent, TestEventHandler, TestTransactionalEventHandler};
 
 #[sqlx::test]
 async fn setup_database_test(pool: Pool<Postgres>) {
@@ -72,7 +70,7 @@ async fn by_aggregate_id_insert_and_delete_by_aggregate_id_test(pool: Pool<Postg
     // events on that state.
     let mut aggregate_state: AggregateState<TestAggregateState> = AggregateState::with_id(aggregate_id);
 
-    let store_events: Result<Vec<StoreEvent<TestEvent>>, TestError> =
+    let store_events: Result<Vec<StoreEvent<TestEvent>>, PgStoreError> =
         store.persist(&mut aggregate_state, vec![TestEvent { add: 1 }]).await;
 
     // Violation of aggregate_id - sequence_number unique constraint

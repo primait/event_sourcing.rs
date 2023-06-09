@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use esrs::{Aggregate, Event};
+use esrs::Aggregate;
 
 use crate::common::CommonError;
 
@@ -29,7 +29,8 @@ pub enum SagaCommand {
     RegisterMutation,
 }
 
-#[derive(Serialize, Deserialize, Event, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub enum SagaEvent {
     MutationRequested,
     MutationRegistered,

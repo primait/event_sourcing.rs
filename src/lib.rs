@@ -12,36 +12,41 @@
 pub use esrs_macros::Event;
 
 pub use crate::esrs::aggregate::Aggregate;
+pub use crate::esrs::aggregate_state::AggregateState;
 pub use crate::esrs::event;
 #[cfg(any(feature = "kafka", feature = "rabbit"))]
 pub use crate::esrs::event_bus;
 pub use crate::esrs::event_handler::{EventHandler, ReplayableEventHandler, TransactionalEventHandler};
-pub use crate::esrs::manager::AggregateManager;
+pub use crate::esrs::event_store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 #[cfg(feature = "rebuilder")]
 pub use crate::esrs::rebuilder;
-pub use crate::esrs::state::AggregateState;
-pub use crate::esrs::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 
 mod esrs;
-
-#[cfg(feature = "postgres")]
-pub mod postgres {
-    //! Provides implementation of the [`EventStore`] for Postgres.
-    pub use crate::esrs::postgres::PgStore;
-    pub use crate::esrs::postgres::PgStoreBuilder;
-}
-
-#[cfg(feature = "sql")]
-pub mod sql {
-    pub use crate::esrs::sql::event::PgEvent;
-    pub use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
-}
 
 pub mod error {
     //! All possible errors returned by this crate
     pub use serde_json::Error as JsonError;
     #[cfg(feature = "sql")]
     pub use sqlx::Error as SqlxError;
+}
+
+pub mod manager {
+    pub use crate::esrs::aggregate_manager::AggregateManager;
+    pub use crate::esrs::aggregate_manager::AggregateManagerError;
+}
+
+#[cfg(feature = "postgres")]
+pub mod postgres {
+    //! Provides implementation of the [`EventStore`] for Postgres.
+    pub use crate::esrs::postgres::PgStore;
+    pub use crate::esrs::postgres::PgStoreBuilder;
+    pub use crate::esrs::postgres::PgStoreError;
+}
+
+#[cfg(feature = "sql")]
+pub mod sql {
+    pub use crate::esrs::sql::event::PgEvent;
+    pub use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
 }
 
 pub mod types {

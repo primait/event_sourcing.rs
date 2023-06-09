@@ -1,4 +1,3 @@
-use esrs::Event;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -32,7 +31,8 @@ pub struct CommandA {
     pub shared_id: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Event, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct EventA {
     pub v: i32,
     pub shared_id: Uuid,

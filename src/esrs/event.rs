@@ -4,6 +4,9 @@ use serde::Serialize;
 #[cfg(not(feature = "upcasting"))]
 pub trait Event: Serialize + DeserializeOwned {}
 
+#[cfg(not(feature = "upcasting"))]
+impl<T> Event for T where T: Serialize + DeserializeOwned {}
+
 #[cfg(feature = "upcasting")]
 pub trait Event: Serialize + DeserializeOwned + Upcaster {}
 

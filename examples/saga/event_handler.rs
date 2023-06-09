@@ -3,8 +3,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures::lock::Mutex;
 
+use esrs::manager::AggregateManager;
 use esrs::postgres::PgStore;
-use esrs::{AggregateManager, EventHandler, StoreEvent};
+use esrs::{EventHandler, StoreEvent};
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
 

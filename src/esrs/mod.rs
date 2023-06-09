@@ -1,11 +1,11 @@
 pub mod aggregate;
+pub mod aggregate_manager;
+pub mod aggregate_state;
 pub mod event;
 pub mod event_bus;
 pub mod event_handler;
-pub mod manager;
+pub mod event_store;
 pub mod rebuilder;
-pub mod state;
-pub mod store;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;

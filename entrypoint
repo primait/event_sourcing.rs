@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
-source /setup_common.sh
-source /decrypt_secrets.sh
+export DATABASE_URL="postgresql://postgres:postgres@postgres:5432/postgres"
+export RABBIT_URL="amqp://rabbit:rabbit@rabbit/rabbit"
+export KAFKA_BROKERS_URL="kafka:9092"
 
-if [ -n "$1" ]; then
-  sh -c "$@"
-else
-  cargo watch -x 'run'
-fi
+sh -c "$@"

@@ -2,7 +2,7 @@
 
 It is an opinionated library used to achieve cqrs/es in Rust.
 
-A set of example snippets can be found in the `example` folder.
+A set of example snippets could be found in the `example` folder.
 
 ## Install
 
@@ -38,12 +38,7 @@ cargo make test
 
 Run linters.
 
-```
+```shell
 cargo make clippy
 ```
 
-Finally eventually unset `DATABASE_URL` environment variable.
-
-```shell
-unset DATABASE_URL
-```

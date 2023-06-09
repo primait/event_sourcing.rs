@@ -1,8 +1,9 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use esrs::manager::AggregateManager;
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, EventStore};
+use esrs::{AggregateState, EventStore};
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView, BasicViewRow};
 use crate::transactional_event_handler::BasicTransactionalEventHandler;
@@ -31,7 +32,7 @@ async fn main() {
         content: content.to_string(),
     };
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(store.clone());
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store.clone());
 
     let result = manager.handle_command(state, command).await;
 

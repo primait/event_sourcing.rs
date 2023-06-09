@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use esrs::{Aggregate, Event};
+use esrs::Aggregate;
 
 use crate::common::CommonError;
 
@@ -31,7 +31,8 @@ pub struct CommandB {
     pub shared_id: Uuid,
 }
 
-#[derive(Serialize, Deserialize, Event, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct EventB {
     pub v: i32,
     pub shared_id: Uuid,

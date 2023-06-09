@@ -4,8 +4,9 @@ use futures::lock::Mutex;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use esrs::manager::AggregateManager;
 use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, EventStore};
+use esrs::{AggregateState, EventStore};
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
 use crate::common::new_pool;
@@ -29,9 +30,9 @@ async fn main() {
         side_effect_mutex: side_effect_mutex.clone(),
     };
 
-    store.add_event_handler(saga_event_handler);
+    store.add_event_handler(saga_event_handler).await;
 
-    let manager: AggregateManager<SagaAggregate> = AggregateManager::new(store.clone());
+    let manager: AggregateManager<PgStore<SagaAggregate>> = AggregateManager::new(store.clone());
 
     let state: AggregateState<()> = AggregateState::default();
     let id: Uuid = *state.id();
