@@ -2,7 +2,8 @@ use std::fmt::{Debug, Formatter};
 
 use uuid::Uuid;
 
-use crate::{Aggregate, AggregateState, EventStore, StoreEvent};
+use crate::store::{EventStore, StoreEvent};
+use crate::{Aggregate, AggregateState};
 
 /// The AggregateManager is responsible for coupling the Aggregate with a Store, so that the events
 /// can be persisted when handled, and the state can be reconstructed by loading and apply events sequentially.

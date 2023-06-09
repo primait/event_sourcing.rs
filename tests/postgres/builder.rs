@@ -1,8 +1,9 @@
-use esrs::Aggregate;
 use sqlx::{Pool, Postgres};
 
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::Aggregate;
+
 use crate::aggregate::TestAggregate;
-use esrs::postgres::{PgStore, PgStoreBuilder};
 
 #[sqlx::test]
 async fn builder_can_skip_migrations_test(pool: Pool<Postgres>) {

@@ -4,7 +4,9 @@ use lapin::types::FieldTable;
 use lapin::{Connection, ConnectionProperties, Consumer};
 use serde::de::DeserializeOwned;
 
-use esrs::{Aggregate, EventHandler, StoreEvent};
+use esrs::handler::EventHandler;
+use esrs::store::StoreEvent;
+use esrs::Aggregate;
 
 use crate::common::random_letters;
 

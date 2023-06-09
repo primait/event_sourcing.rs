@@ -1,3 +1,38 @@
+//! # Locking Strategies Example
+//!
+//! This example is divided into two sections, each focusing on different aspects of locking strategies:
+//! Optimistic Concurrency Control (OCC) and Pessimistic Concurrency Control (PCC).
+//!
+//! ## Section 1: Optimistic and Pessimistic Concurrency Control
+//! The first section demonstrates how to implement and utilize Optimistic Concurrency Control and
+//! Pessimistic Concurrency Control in event sourcing scenarios.
+//!
+//! - Optimistic Concurrency Control (OCC):
+//!   This part showcases the usage of optimistic locks, which allow multiple threads to read and
+//!   modify data concurrently. The example illustrates how conflicts are detected during the write
+//!   operation by employing a versioning mechanism.
+//!
+//! - Pessimistic Concurrency Control (PCC):
+//!   In this section, the example demonstrates the application of pessimistic locks, which acquire
+//!   locks on data before performing modifications. It showcases how these locks ensure exclusive
+//!   access to data, preventing concurrent modifications and maintaining data integrity.
+//!
+//! ## Section 2: Showcase of Optimistic and Pessimistic Locks
+//! The second section of the example provides a detailed showcase of how optimistic and pessimistic
+//! locks function in practice.
+//!
+//! - Pessimistic Locking Showcase:
+//!   This part demonstrates the behavior of a pessimistic lock where one thread remains blocked
+//!   while another thread holds a lock on a specific aggregate state. The example employs guard
+//!   assertions to verify that the blocked thread remains suspended until the lock is released by
+//!   the other thread.
+//!
+//! - Optimistic Locking Showcase:
+//!   This section highlights the versatility of optimistic locking, even when a pessimistic lock is
+//!   already in progress. It demonstrates how optimistic locks can still be utilized effectively,
+//!   allowing other operations to proceed while ensuring conflicts are detected and resolved during
+//!   write operations.
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -5,8 +40,10 @@ use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateManagerError, AggregateState, EventStore};
+use esrs::manager::{AggregateManager, AggregateManagerError};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::EventStore;
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEvent};
 

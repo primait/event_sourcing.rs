@@ -3,8 +3,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
-use esrs::{Aggregate, AggregateState, EventStore, StoreEvent};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use esrs::store::{EventStore, StoreEvent};
+use esrs::{Aggregate, AggregateState};
 
 use crate::aggregate::{TestAggregate, TestAggregateState, TestEvent, TestEventHandler, TestTransactionalEventHandler};
 

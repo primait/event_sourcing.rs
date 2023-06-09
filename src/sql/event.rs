@@ -4,8 +4,8 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
-use crate::StoreEvent;
 
 /// Event representation on the event store
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]

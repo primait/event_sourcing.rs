@@ -1,13 +1,15 @@
-//! Basic example showing how to rebuild with two different strategies:
+//! This basic example demonstrates how to rebuild data using two different strategies:
 //!
-//! - by aggregate id: the rebuild is made opening a transaction for every id fetched by a pre-made
-//!   query. In that transaction every row having a matching aggregate id is deleted and then
-//!   reprojected.
+//! - Rebuilding by aggregate ID:
+//!   This strategy involves opening a transaction for each aggregate ID obtained through a
+//!   predefined query. Within each transaction, all rows with a matching aggregate ID are deleted,
+//!   and then the events are reprojected.
 //!
-//! - all at once: this is done in a transaction truncating all the table content and then rebuilding
-//!   all the events retrieved in the moment the transaction is opened.
+//! - Rebuilding all at once:
+//!   In this strategy, a transaction is opened to truncate the entire table, removing all existing
+//!   content. Subsequently, all events retrieved at the time the transaction is initiated are rebuilt.
 //!
-//! Note that is not possible to rebuild using non-replayable event handlers.
+//! Please note that rebuilding using non-replayable event handlers is not possible in this context.
 //!
 //! This will not compile:
 //!
@@ -33,9 +35,10 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
+use esrs::manager::AggregateManager;
 use esrs::rebuilder::{PgRebuilder, Rebuilder};
-use esrs::{AggregateManager, AggregateState};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView};
 use crate::event_handler::{AnotherEventHandler, BasicEventHandlerV1, BasicEventHandlerV2};

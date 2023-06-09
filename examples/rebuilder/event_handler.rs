@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::{EventHandler, ReplayableEventHandler, StoreEvent};
+use esrs::handler::{EventHandler, ReplayableEventHandler};
+use esrs::store::StoreEvent;
 
 /// This is just an example. The need of v1 and v2 is due to having both the version of this event
 /// handler compiled in the code. In user codebase there will be only one `BasicEventHandler`

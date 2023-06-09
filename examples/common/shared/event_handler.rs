@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 
-use esrs::{EventHandler, ReplayableEventHandler, StoreEvent};
+use esrs::handler::{EventHandler, ReplayableEventHandler};
+use esrs::store::StoreEvent;
 
 use crate::common::{AggregateA, AggregateB, EventA, EventB, SharedView, UpsertSharedView};
 

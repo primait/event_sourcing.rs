@@ -3,12 +3,12 @@ use std::sync::Arc;
 use sqlx::{PgConnection, Pool, Postgres};
 use tokio::sync::RwLock;
 
-use crate::esrs::event_bus::EventBus;
-use crate::esrs::postgres::event_store::InnerPgStore;
-use crate::esrs::postgres::PgStoreError;
-use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
-use crate::esrs::sql::statements::{Statements, StatementsHandler};
-use crate::{Aggregate, EventHandler, TransactionalEventHandler};
+use crate::bus::EventBus;
+use crate::handler::{EventHandler, TransactionalEventHandler};
+use crate::sql::migrations::{Migrations, MigrationsHandler};
+use crate::sql::statements::{Statements, StatementsHandler};
+use crate::store::postgres::{InnerPgStore, PgStoreError};
+use crate::Aggregate;
 
 use super::PgStore;
 

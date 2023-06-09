@@ -5,8 +5,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::esrs::aggregate_state::AggregateState;
+use crate::state::AggregateState;
 use crate::types::SequenceNumber;
+
+#[cfg(feature = "postgres")]
+pub mod postgres;
 
 /// Marker trait for every EventStoreLockGuard.
 ///

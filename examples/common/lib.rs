@@ -1,3 +1,5 @@
+//! Common structs shared between all the other examples
+
 use rand::prelude::IteratorRandom;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
