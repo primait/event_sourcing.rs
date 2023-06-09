@@ -7,10 +7,11 @@ use rdkafka::ClientConfig;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::event_bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
-use esrs::event_bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState};
+use esrs::bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
+use esrs::bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
+use esrs::manager::AggregateManager;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, random_letters, BasicAggregate, BasicCommand, BasicEventHandler, BasicView};
 use crate::kafka::KafkaEventBusConsumer;

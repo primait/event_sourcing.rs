@@ -5,8 +5,10 @@ use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateManagerError, AggregateState, EventStore};
+use esrs::manager::{AggregateManager, AggregateManagerError};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::EventStore;
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEvent};
 

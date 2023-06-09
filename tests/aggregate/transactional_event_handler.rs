@@ -1,8 +1,9 @@
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use esrs::postgres::PgStoreError;
-use esrs::{StoreEvent, TransactionalEventHandler};
+use esrs::handler::TransactionalEventHandler;
+use esrs::store::postgres::PgStoreError;
+use esrs::store::StoreEvent;
 
 use crate::aggregate::{TestAggregate, TestEvent};
 

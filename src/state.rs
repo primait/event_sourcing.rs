@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use crate::esrs::event_store::EventStoreLockGuard;
-use crate::esrs::event_store::StoreEvent;
+use crate::store::EventStoreLockGuard;
+use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
 
 /// The internal state for an Aggregate.

@@ -2,8 +2,11 @@ use futures::StreamExt;
 use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
-use esrs::{AggregateManager, AggregateState, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
+use esrs::handler::{ReplayableEventHandler, TransactionalEventHandler};
+use esrs::manager::AggregateManager;
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use esrs::store::StoreEvent;
+use esrs::AggregateState;
 
 use crate::common::{
     new_pool, AggregateA, AggregateB, CommandA, CommandB, EventA, EventB, SharedEventHandler, SharedView,

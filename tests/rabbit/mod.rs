@@ -5,9 +5,9 @@ use lapin::types::FieldTable;
 use lapin::{Connection, ConnectionProperties, Consumer, ExchangeKind};
 use uuid::Uuid;
 
-use esrs::event_bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
-use esrs::event_bus::EventBus;
-use esrs::StoreEvent;
+use esrs::bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
+use esrs::bus::EventBus;
+use esrs::store::StoreEvent;
 
 use crate::aggregate::{TestAggregate, TestEvent};
 

@@ -3,8 +3,9 @@ use std::time::Duration;
 
 use sqlx::{Pool, Postgres};
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState};
+use esrs::manager::AggregateManager;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::AggregateState;
 
 use crate::aggregate::{TestAggregate, TestAggregateState, TestCommand};
 

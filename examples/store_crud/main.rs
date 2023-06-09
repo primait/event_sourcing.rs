@@ -5,9 +5,10 @@ use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::sql::Event;
-use esrs::{AggregateState, EventStore, StoreEvent};
+use esrs::sql::event::Event;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::{EventStore, StoreEvent};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicEvent};
 
