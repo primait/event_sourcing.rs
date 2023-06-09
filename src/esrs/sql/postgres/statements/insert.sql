@@ -1,1 +1,0 @@
-INSERT INTO {} (id, aggregate_id, payload, occurred_on, sequence_number) VALUES ($1, $2, $3, $4, $5)
