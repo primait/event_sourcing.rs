@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 
-#[cfg(all(feature = "rebuilder", feature = "postgres"))]
+#[cfg(feature = "postgres")]
 pub use pg_rebuilder::PgRebuilder;
 
 use crate::Aggregate;
 
-#[cfg(all(feature = "rebuilder", feature = "postgres"))]
+#[cfg(feature = "postgres")]
 mod pg_rebuilder;
 
 #[async_trait]

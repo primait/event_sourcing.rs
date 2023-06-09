@@ -12,13 +12,14 @@ use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::esrs::event_bus::EventBus;
-use crate::esrs::event_store::{EventStoreLockGuard, UnlockOnDrop};
-use crate::esrs::sql::event;
-use crate::esrs::sql::statements::{Statements, StatementsHandler};
-use crate::postgres::PgStoreError;
+use crate::bus::EventBus;
+use crate::handler::{EventHandler, TransactionalEventHandler};
+use crate::sql::event;
+use crate::sql::statements::{Statements, StatementsHandler};
+use crate::store::postgres::PgStoreError;
+use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateState, EventHandler, EventStore, StoreEvent, TransactionalEventHandler};
+use crate::{Aggregate, AggregateState};
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.

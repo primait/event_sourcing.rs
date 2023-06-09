@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS {0}_aggregate_id_sequence_number ON {0}(aggregate_id, sequence_number)

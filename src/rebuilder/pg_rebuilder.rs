@@ -3,11 +3,12 @@ use futures::StreamExt;
 use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::esrs::event_bus::EventBus;
-use crate::esrs::postgres::PgStoreError;
-use crate::esrs::rebuilder::Rebuilder;
-use crate::postgres::{PgStore, PgStoreBuilder};
-use crate::{Aggregate, EventStore, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
+use crate::bus::EventBus;
+use crate::handler::{ReplayableEventHandler, TransactionalEventHandler};
+use crate::rebuilder::Rebuilder;
+use crate::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use crate::store::{EventStore, StoreEvent};
+use crate::Aggregate;
 
 pub struct PgRebuilder<A>
 where

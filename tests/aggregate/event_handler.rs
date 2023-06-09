@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use esrs::{EventHandler, StoreEvent};
+use esrs::handler::EventHandler;
+use esrs::store::StoreEvent;
 
 use crate::aggregate::{TestAggregate, TestEvent};
 

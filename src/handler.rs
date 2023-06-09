@@ -3,7 +3,8 @@ use std::ops::Deref;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::{Aggregate, StoreEvent};
+use crate::store::StoreEvent;
+use crate::Aggregate;
 
 /// This trait is used to implement an [`EventHandler`]. An event handler is intended to be an entity
 /// which can create, update and delete a read side and perform side effects.

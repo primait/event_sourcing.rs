@@ -2,7 +2,9 @@ use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::{ClientConfig, Message};
 use serde::de::DeserializeOwned;
 
-use esrs::{Aggregate, EventHandler, StoreEvent};
+use esrs::handler::EventHandler;
+use esrs::store::StoreEvent;
+use esrs::Aggregate;
 
 pub struct KafkaEventBusConsumer<A> {
     consumer: StreamConsumer,

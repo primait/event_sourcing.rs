@@ -1,8 +1,10 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateManager, AggregateState, EventStore};
+use esrs::manager::AggregateManager;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::EventStore;
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView, BasicViewRow};
 use crate::transactional_event_handler::BasicTransactionalEventHandler;

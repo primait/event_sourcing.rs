@@ -9,8 +9,9 @@ use serde::Serialize;
 pub use config::KafkaEventBusConfig;
 pub use error::KafkaEventBusError;
 
-use crate::event_bus::EventBus;
-use crate::{Aggregate, StoreEvent};
+use crate::bus::EventBus;
+use crate::store::StoreEvent;
+use crate::Aggregate;
 
 mod config;
 mod error;

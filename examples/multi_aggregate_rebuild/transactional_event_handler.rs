@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use sqlx::PgConnection;
 
-use esrs::postgres::PgStoreError;
-use esrs::{StoreEvent, TransactionalEventHandler};
+use esrs::handler::TransactionalEventHandler;
+use esrs::store::postgres::PgStoreError;
+use esrs::store::StoreEvent;
 
 use crate::common::{AggregateA, AggregateB, EventA, EventB, SharedView, UpsertSharedView};
 
