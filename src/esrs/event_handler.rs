@@ -5,18 +5,17 @@ use uuid::Uuid;
 
 use crate::{Aggregate, StoreEvent};
 
-/// This trait is used to implement an `EventHandler`. An event handler is intended to be an entity
+/// This trait is used to implement an [`EventHandler`]. An event handler is intended to be an entity
 /// which can create, update and delete a read side and perform side effects.
 ///
-/// The main purpose of an `EventHandler` is to have an eventually persistent processor.
+/// The main purpose of an [`EventHandler`] is to have an eventually persistent processor.
 #[async_trait]
 pub trait EventHandler<A>: Sync
 where
-    Self: EventHandlerClone<A>,
     A: Aggregate,
 {
     /// Handle an event and perform an action. This action could be over a read model or a side-effect.
-    /// All the errors should be handled from within the `EventHandler` and shouldn't panic.
+    /// All the errors should be handled from within the [`EventHandler`] and shouldn't panic.
     async fn handle(&self, event: &StoreEvent<A::Event>);
 
     /// Perform a deletion of a resource using the given aggregate_id.
@@ -35,8 +34,8 @@ impl<A, Q, T> EventHandler<A> for T
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    Q: EventHandler<A> + EventHandlerClone<A>,
-    T: Deref<Target = Q> + Clone + Send + Sync + 'static,
+    Q: EventHandler<A>,
+    T: Deref<Target = Q> + Clone + Send + Sync,
 {
     /// Deref call to [`EventHandler::handle`].
     async fn handle(&self, event: &StoreEvent<A::Event>) {
@@ -54,24 +53,24 @@ where
     }
 }
 
-/// This trait is used to implement a `TransactionalEventHandler`. A transactional event handler is
+/// This trait is used to implement a [`TransactionalEventHandler`]. A transactional event handler is
 /// intended to be an entity which can create, update and delete a read side. No side effects must be
 /// performed inside of this kind on handler.
 ///
 /// An `handle` operation will result in a _deadlock_ if the implementation of this trait is used to
 /// apply an event on an [`Aggregate`].
 #[async_trait]
-pub trait TransactionalEventHandler<A, E>: Sync
+pub trait TransactionalEventHandler<A, Er, Ex>: Sync
 where
     A: Aggregate,
 {
     /// Handle an event in a transactional fashion and perform a read side crate, update or delete.
     /// If an error is returned the transaction will be aborted and the handling of a command by an
     /// aggregate will return an error.
-    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error>;
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut Ex) -> Result<(), Er>;
 
     /// Perform a deletion of a read side projection using the given aggregate_id.
-    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut E) -> Result<(), A::Error> {
+    async fn delete(&self, _aggregate_id: Uuid, _executor: &mut Ex) -> Result<(), Er> {
         Ok(())
     }
 
@@ -84,21 +83,21 @@ where
 }
 
 #[async_trait]
-impl<A, E, Q, T> TransactionalEventHandler<A, E> for T
+impl<A, Er, Ex, Q, T> TransactionalEventHandler<A, Er, Ex> for T
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    E: Send,
-    Q: TransactionalEventHandler<A, E>,
+    Ex: Send,
+    Q: TransactionalEventHandler<A, Er, Ex>,
     T: Deref<Target = Q> + Send + Sync,
 {
     /// Deref call to [`TransactionalEventHandler::handle`].
-    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut E) -> Result<(), A::Error> {
+    async fn handle(&self, event: &StoreEvent<A::Event>, executor: &mut Ex) -> Result<(), Er> {
         self.deref().handle(event, executor).await
     }
 
     /// Deref call to [`TransactionalEventHandler::delete`].
-    async fn delete(&self, aggregate_id: Uuid, executor: &mut E) -> Result<(), A::Error> {
+    async fn delete(&self, aggregate_id: Uuid, executor: &mut Ex) -> Result<(), Er> {
         self.deref().delete(aggregate_id, executor).await
     }
 
@@ -108,14 +107,14 @@ where
     }
 }
 
-/// The `ReplayableEventHandler` trait is used to add the `replay` behavior on an `EventHandler`.
+/// The [`ReplayableEventHandler`] trait is used to add the `replay` behavior on an [`EventHandler`].
 ///
 /// Being replayable means that the operation performed by this EventHandler should be idempotent
 /// and should be intended to be "eventually consistent".
 /// In other words it means that they should not perform external API calls, generate random numbers
 /// or do anything that relies on external state and might change the outcome of this function.
 ///
-/// The most common use case for this is when rebuilding read models: `EventHandler`s that write on
+/// The most common use case for this is when rebuilding read models: [`EventHandler`]s that write on
 /// the database should be marked as replayable.
 ///
 /// Another use case could be if there's the need to implement a retry logic for this event handler.
@@ -124,25 +123,4 @@ where
     Self: EventHandler<A>,
     A: Aggregate,
 {
-}
-
-pub trait EventHandlerClone<A> {
-    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send>;
-}
-
-impl<T, A> EventHandlerClone<A> for T
-where
-    A: Aggregate,
-    T: 'static + EventHandler<A> + Clone + Send,
-{
-    fn clone_box(&self) -> Box<dyn EventHandler<A> + Send> {
-        Box::new(self.clone())
-    }
-}
-
-// We can now implement Clone manually by forwarding to clone_box.
-impl<A> Clone for Box<dyn EventHandler<A> + Send> {
-    fn clone(&self) -> Box<dyn EventHandler<A> + Send> {
-        self.clone_box()
-    }
 }

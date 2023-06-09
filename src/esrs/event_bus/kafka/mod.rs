@@ -15,6 +15,8 @@ use crate::{Aggregate, StoreEvent};
 mod config;
 mod error;
 
+/// The [`KafkaEventBus`] provides an implementation of the `EventBus` trait for publishing events
+/// using Apache Kafka as the underlying messaging system.
 pub struct KafkaEventBus<A> {
     producer: FutureProducer,
     topic: String,
@@ -53,7 +55,7 @@ impl<A> EventBus<A> for KafkaEventBus<A>
 where
     Self: Send,
     A: Aggregate + Send + Sync,
-    A::Event: Serialize,
+    A::Event: Serialize + Sync,
 {
     async fn publish(&self, store_event: &StoreEvent<A::Event>) {
         match publish(self, store_event).await {

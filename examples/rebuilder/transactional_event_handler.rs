@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use sqlx::PgConnection;
 
+use esrs::postgres::PgStoreError;
 use esrs::{StoreEvent, TransactionalEventHandler};
 
-use crate::common::{BasicAggregate, BasicError, BasicEvent, BasicView};
+use crate::common::{BasicAggregate, BasicEvent, BasicView};
 
 /// The `BasicTransactionalEventHandlerV1` and `BasicTransactionalEventHandlerV1` exists in this
 /// example just for the sake of showing how a single transactional event handler, in this case called
@@ -19,8 +20,8 @@ pub struct BasicTransactionalEventHandlerV2 {
 }
 
 #[async_trait]
-impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactionalEventHandlerV1 {
-    async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), BasicError> {
+impl TransactionalEventHandler<BasicAggregate, PgStoreError, PgConnection> for BasicTransactionalEventHandlerV1 {
+    async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
             .upsert(
@@ -33,8 +34,8 @@ impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactio
 }
 
 #[async_trait]
-impl TransactionalEventHandler<BasicAggregate, PgConnection> for BasicTransactionalEventHandlerV2 {
-    async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), BasicError> {
+impl TransactionalEventHandler<BasicAggregate, PgStoreError, PgConnection> for BasicTransactionalEventHandlerV2 {
+    async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
             .upsert(

@@ -1,14 +1,16 @@
-use std::{sync::Arc, vec};
+use std::sync::Arc;
 
-use arc_swap::ArcSwap;
 use sqlx::{PgConnection, Pool, Postgres};
+use tokio::sync::RwLock;
 
 use crate::esrs::event_bus::EventBus;
+use crate::esrs::postgres::event_store::InnerPgStore;
+use crate::esrs::postgres::PgStoreError;
 use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
 use crate::esrs::sql::statements::{Statements, StatementsHandler};
 use crate::{Aggregate, EventHandler, TransactionalEventHandler};
 
-use super::{InnerPgStore, PgStore};
+use super::PgStore;
 
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A>
@@ -18,7 +20,7 @@ where
     pool: Pool<Postgres>,
     statements: Statements,
     event_handlers: Vec<Box<dyn EventHandler<A> + Send>>,
-    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+    transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
     run_migrations: bool,
 }
@@ -54,7 +56,7 @@ where
     /// Set transactional event handlers list
     pub fn with_transactional_event_handlers(
         mut self,
-        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgConnection> + Send>>,
+        transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     ) -> Self {
         self.transactional_event_handlers = transactional_event_handlers;
         self
@@ -63,7 +65,7 @@ where
     /// Add a single transactional event handler
     pub fn add_transactional_event_handler(
         mut self,
-        transaction_event_handler: impl TransactionalEventHandler<A, PgConnection> + Send + 'static,
+        transaction_event_handler: impl TransactionalEventHandler<A, PgStoreError, PgConnection> + Send + 'static,
     ) -> Self {
         self.transactional_event_handlers
             .push(Box::new(transaction_event_handler));
@@ -89,10 +91,11 @@ where
         self
     }
 
-    /// This function runs all the needed [`Migrations`], atomically setting up the database.
-    /// Eventually returns an instance of PgStore.
+    /// This function runs all the needed [`Migrations`], atomically setting up the database if
+    /// `run_migrations` isn't explicitly set to false. [`Migrations`] should be run only at application
+    /// startup due to avoid performance issues.
     ///
-    /// This function should be used only once at your application startup.
+    /// Eventually returns an instance of PgStore.
     ///
     /// # Errors
     ///
@@ -106,7 +109,7 @@ where
             inner: Arc::new(InnerPgStore {
                 pool: self.pool,
                 statements: self.statements,
-                event_handlers: ArcSwap::from_pointee(self.event_handlers),
+                event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),

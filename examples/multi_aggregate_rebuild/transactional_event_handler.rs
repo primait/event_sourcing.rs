@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use sqlx::PgConnection;
 
+use esrs::postgres::PgStoreError;
 use esrs::{StoreEvent, TransactionalEventHandler};
 
-use crate::common::{AggregateA, AggregateB, CommonError, EventA, EventB, SharedView, UpsertSharedView};
+use crate::common::{AggregateA, AggregateB, EventA, EventB, SharedView, UpsertSharedView};
 
 #[derive(Clone)]
 pub struct SharedTransactionalEventHandler {
@@ -11,8 +12,8 @@ pub struct SharedTransactionalEventHandler {
 }
 
 #[async_trait]
-impl TransactionalEventHandler<AggregateA, PgConnection> for SharedTransactionalEventHandler {
-    async fn handle(&self, event: &StoreEvent<EventA>, executor: &mut PgConnection) -> Result<(), CommonError> {
+impl TransactionalEventHandler<AggregateA, PgStoreError, PgConnection> for SharedTransactionalEventHandler {
+    async fn handle(&self, event: &StoreEvent<EventA>, executor: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
             .upsert(
@@ -28,8 +29,8 @@ impl TransactionalEventHandler<AggregateA, PgConnection> for SharedTransactional
 }
 
 #[async_trait]
-impl TransactionalEventHandler<AggregateB, PgConnection> for SharedTransactionalEventHandler {
-    async fn handle(&self, event: &StoreEvent<EventB>, executor: &mut PgConnection) -> Result<(), CommonError> {
+impl TransactionalEventHandler<AggregateB, PgStoreError, PgConnection> for SharedTransactionalEventHandler {
+    async fn handle(&self, event: &StoreEvent<EventB>, executor: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
             .upsert(
