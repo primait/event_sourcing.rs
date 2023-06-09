@@ -46,12 +46,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             `Aggregate` error and an `EventStore` error.
 - [[#157]]: The functions in the `EventStore`, including those in the `PgStore`, now utilize the new error associated type 
             as their return type.
+- [[#161]]: Moved some traits and structs in other packages
+  - The `esrs::AggregateManager` struct (previously a trait) moved into `esrs::manager` module.
+  - The `esrs::postgres` module has been relocated and can now be found under `esrs::store::postgres`.
+  - The `esrs::EventStore`, `esrs::EventStoreLockGuard`, `esrs::StoreEvent` and `esrs::UnlockOnDrop` objects moved to `esrs::store` module.
+
 
 ### Removed
 
 - [[#153]]: `PgStore` getters functions `transactional_event_handlers`, `event_handlers` and `event_buses`.
 - [[#153]]: `PgStore` custom `persist` function.
 - [[#157]]: The `Clone`, `Send`, and `Sync` bounds on the associated types of `Aggregate` have been eliminated.
+- [[#161]]: The `error` module has been removed and is no longer available.
 
 ---
 ## [0.11.0] - 2023-04-03
@@ -283,6 +289,7 @@ Refer to: [#107], [#108] and [#109]
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 
+[#161]: https://github.com/primait/event_sourcing.rs/pull/161
 [#157]: https://github.com/primait/event_sourcing.rs/pull/157
 [#156]: https://github.com/primait/event_sourcing.rs/pull/156
 [#155]: https://github.com/primait/event_sourcing.rs/pull/155
