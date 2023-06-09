@@ -1,3 +1,19 @@
+//! This example showcases the process of constructing a view using a [`TransactionalEventHandler`].
+//! The [`TransactionalEventHandler`] ensures strong consistency by executing all operations within
+//! a transactional context. It guarantees that if a failure occurs during the execution of the
+//! transaction, the event will not be persisted in the store, and an error will be returned to the
+//! caller.
+//!
+//! By utilizing the `TransactionalEventHandler`, you can maintain a strong and reliable event
+//! handling mechanism. The example emphasizes the importance of data integrity, as any failure in
+//! the `TransactionalEventHandler` prevents the event from being stored, ensuring the consistency
+//! of the view and the event store.
+//!
+//! This demonstration serves as a practical illustration of how the `TransactionalEventHandler`
+//! helps enforce strong consistency in view construction. It highlights the reliability of the
+//! approach by ensuring that events are either fully processed and persisted or not persisted at
+//! all in the event of a failure, providing a clear and consistent state of the data.
+
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 

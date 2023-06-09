@@ -1,3 +1,6 @@
+//! The purpose of this example is to demonstrate the process of deleting an aggregate and its
+//! projections using the [`PgStore`].
+
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 

@@ -1,3 +1,10 @@
+//! This basic example showcases the usage of the saga pattern approach. It is worth noting that in
+//! this particular scenario, an aggregate is employing a saga over itself, creating a form of
+//! circular dependency.
+//!
+//! However, this circular dependency is effectively handled by encapsulating the [`PgStore`] within
+//! an [`Arc`], ensuring atomicity and preventing issues.
+
 use std::sync::Arc;
 
 use futures::lock::Mutex;
