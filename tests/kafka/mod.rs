@@ -5,9 +5,9 @@ use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::ClientConfig;
 use uuid::Uuid;
 
-use esrs::event_bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
-use esrs::event_bus::EventBus;
-use esrs::StoreEvent;
+use esrs::bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
+use esrs::bus::EventBus;
+use esrs::store::StoreEvent;
 
 use crate::aggregate::{TestAggregate, TestEvent};
 

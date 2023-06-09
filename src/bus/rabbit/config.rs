@@ -3,7 +3,7 @@ use lapin::types::FieldTable;
 use lapin::{BasicProperties, ConnectionProperties, ExchangeKind};
 use typed_builder::TypedBuilder;
 
-use crate::event_bus::rabbit::error::RabbitEventBusError;
+use crate::bus::rabbit::error::RabbitEventBusError;
 
 #[derive(TypedBuilder)]
 pub struct RabbitEventBusConfig<'a> {
@@ -38,6 +38,6 @@ pub struct RabbitEventBusConfig<'a> {
     pub(crate) publish_properties: BasicProperties,
     /// A boxed anonymous function utilized to provide a form of error handling, commonly used for
     /// reporting purposes.
-    #[builder(default = Box::new(|_| ()))]
+    #[builder(default = Box::new(| _ | ()))]
     pub(crate) error_handler: Box<dyn Fn(RabbitEventBusError) + Send + Sync>,
 }

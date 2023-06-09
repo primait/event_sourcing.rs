@@ -1,7 +1,7 @@
 use rdkafka::ClientConfig;
 use typed_builder::TypedBuilder;
 
-use crate::event_bus::kafka::error::KafkaEventBusError;
+use crate::bus::kafka::error::KafkaEventBusError;
 
 #[derive(TypedBuilder)]
 pub struct KafkaEventBusConfig<'a> {
@@ -24,7 +24,7 @@ pub struct KafkaEventBusConfig<'a> {
     pub(crate) client_config: Option<ClientConfig>,
     /// A boxed anonymous function utilized to provide a form of error handling, commonly used for
     /// reporting purposes.
-    #[builder(default = Box::new(|_| ()))]
+    #[builder(default = Box::new(| _ | ()))]
     pub(crate) error_handler: Box<dyn Fn(KafkaEventBusError) + Send + Sync>,
 }
 

@@ -12,14 +12,15 @@ use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::esrs::event_bus::EventBus;
-use crate::esrs::event_store::{EventStoreLockGuard, UnlockOnDrop};
-use crate::esrs::sql::statements::{Statements, StatementsHandler};
+use crate::bus::EventBus;
 use crate::event::Event;
-use crate::postgres::PgStoreError;
-use crate::sql::PgEvent;
+use crate::handler::{EventHandler, TransactionalEventHandler};
+use crate::sql::event::DbEvent;
+use crate::sql::statements::{Statements, StatementsHandler};
+use crate::store::postgres::PgStoreError;
+use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
-use crate::{Aggregate, AggregateState, EventHandler, EventStore, StoreEvent, TransactionalEventHandler};
+use crate::{Aggregate, AggregateState};
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -117,7 +118,7 @@ where
         executor: impl Executor<'s, Database = Postgres> + 's,
     ) -> BoxStream<Result<StoreEvent<A::Event>, PgStoreError>> {
         Box::pin({
-            sqlx::query_as::<_, PgEvent>(self.inner.statements.select_all())
+            sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
                 .map(|res| Ok(res?.try_into()?))
         })
@@ -162,7 +163,7 @@ where
     }
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, Self::Error> {
-        Ok(sqlx::query_as::<_, PgEvent>(self.inner.statements.by_aggregate_id())
+        Ok(sqlx::query_as::<_, DbEvent>(self.inner.statements.by_aggregate_id())
             .bind(aggregate_id)
             .fetch_all(&self.inner.pool)
             .await?

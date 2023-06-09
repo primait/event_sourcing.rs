@@ -1,3 +1,5 @@
+//! Common structs shared between all the other examples
+
 use thiserror::Error;
 
 pub use a::*;

@@ -18,13 +18,13 @@ dependencies = ["check-ci"]
 
 [tasks.check-ci]
 script = [
-    "cargo check --workspace",
-    "cargo check --workspace --features=postgres",
-    "cargo check --workspace --features=kafka",
-    "cargo check --workspace --features=rabbit",
-    "cargo check --workspace --features=rebuilder",
-    "cargo check --workspace --features=upcasting",
-    "cargo check --workspace --all-features"
+    "cargo check",
+    "cargo check --features=postgres",
+    "cargo check --features=kafka",
+    "cargo check --features=rabbit",
+    "cargo check --features=rebuilder",
+    "cargo check --features=upcasting",
+    "cargo check --all-features"
 ]
 
 # Build
@@ -34,13 +34,13 @@ dependencies = ["build-ci"]
 
 [tasks.build-ci]
 script = [
-    "cargo build -j 2 --workspace",
-    "cargo build -j 2 --workspace --features=postgres",
-    "cargo build -j 2 --workspace --features=kafka",
-    "cargo build -j 2 --workspace --features=rabbit",
-    "cargo build -j 2 --workspace --features=rebuilder",
-    "cargo build -j 2 --workspace --features=upcasting",
-    "cargo build -j 2 --workspace --all-features"
+    "cargo build -j 2",
+    "cargo build -j 2 --features=postgres",
+    "cargo build -j 2 --features=kafka",
+    "cargo build -j 2 --features=rabbit",
+    "cargo build -j 2 --features=rebuilder",
+    "cargo build -j 2 --features=upcasting",
+    "cargo build -j 2 --all-features"
 ]
 
 # Format
@@ -57,14 +57,14 @@ dependencies = ["test-ci"]
 [tasks.test-ci]
 description = "Run tests during CI"
 script = [
-    "cargo test ${@} --workspace",
-    "cargo test ${@} --workspace --features=postgres",
-    "cargo test ${@} --workspace --features=rebuilder",
-    "cargo test ${@} --workspace --features=kafka",
-    "cargo test ${@} --workspace --features=rabbit",
-    "cargo test ${@} --workspace --features=rebuilder",
-    "cargo test ${@} --workspace --features=upcasting",
-    "cargo test ${@} --workspace --all-features"
+    "cargo test ${@}",
+    "cargo test ${@} --features=postgres",
+    "cargo test ${@} --features=rebuilder",
+    "cargo test ${@} --features=kafka",
+    "cargo test ${@} --features=rabbit",
+    "cargo test ${@} --features=rebuilder",
+    "cargo test ${@} --features=upcasting",
+    "cargo test ${@} --all-features"
 ]
 
 # Clippy
@@ -75,13 +75,13 @@ dependencies = ["clippy-ci", "clippy-examples"]
 [tasks.clippy-ci]
 description = "Run clippy linter during CI"
 script = [
-    "cargo clippy --workspace -- -D warnings",
-    "cargo clippy --workspace --features=postgres -- -D warnings",
-    "cargo clippy --workspace --features=kafka -- -D warnings",
-    "cargo clippy --workspace --features=rabbit -- -D warnings",
-    "cargo clippy --workspace --features=rebuilder -- -D warnings",
-    "cargo clippy --workspace --features=upcasting -- -D warnings",
-    "cargo clippy --workspace --all-features -- -D warnings"
+    "cargo clippy -- -D warnings",
+    "cargo clippy --features=postgres -- -D warnings",
+    "cargo clippy --features=kafka -- -D warnings",
+    "cargo clippy --features=rabbit -- -D warnings",
+    "cargo clippy --features=rebuilder -- -D warnings",
+    "cargo clippy --features=upcasting -- -D warnings",
+    "cargo clippy --all-features -- -D warnings"
 ]
 
 [tasks.clippy-examples]

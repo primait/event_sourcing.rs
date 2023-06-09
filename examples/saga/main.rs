@@ -1,3 +1,10 @@
+//! This basic example showcases the usage of the saga pattern approach. It is worth noting that in
+//! this particular scenario, an aggregate is employing a saga over itself, creating a form of
+//! circular dependency.
+//!
+//! However, this circular dependency is effectively handled by encapsulating the [`PgStore`] within
+//! an [`Arc`], ensuring atomicity and preventing issues.
+
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -5,8 +12,9 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateState, EventStore};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::EventStore;
+use esrs::AggregateState;
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
 use crate::common::new_pool;

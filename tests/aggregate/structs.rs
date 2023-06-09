@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+
+use serde::{Deserialize, Serialize};
 
 pub enum TestCommand {
     Single,

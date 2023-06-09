@@ -1,9 +1,13 @@
+//! The purpose of this example is to demonstrate the process of deleting an aggregate and its
+//! projections using the [`PgStore`].
+
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::{AggregateState, EventStore, StoreEvent};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::{EventStore, StoreEvent};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEvent, BasicEventHandler, BasicView};
 

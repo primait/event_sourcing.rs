@@ -44,12 +44,13 @@ impl MigrationsHandler<Postgres> for Migrations {
 mod tests {
     use sqlx::{Pool, Postgres};
 
-    use crate::esrs::sql::migrations::{Migrations, MigrationsHandler};
+    use crate::sql::migrations::{Migrations, MigrationsHandler};
     use crate::Aggregate;
 
     #[sqlx::test]
     async fn can_read_postgres_migrations(pool: Pool<Postgres>) {
         let result = Migrations::run::<TestAggregate>(&pool).await;
+        dbg!(&result);
         assert!(result.is_ok());
     }
 

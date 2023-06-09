@@ -5,12 +5,12 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::event::Event;
+use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
-use crate::StoreEvent;
 
 /// Event representation on the event store
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
-pub struct PgEvent {
+pub struct DbEvent {
     pub id: Uuid,
     pub aggregate_id: Uuid,
     pub payload: Value,
@@ -19,7 +19,7 @@ pub struct PgEvent {
     pub version: Option<i32>,
 }
 
-impl<E: Event> TryInto<StoreEvent<E>> for PgEvent {
+impl<E: Event> TryInto<StoreEvent<E>> for DbEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {

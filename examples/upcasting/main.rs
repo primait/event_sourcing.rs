@@ -5,8 +5,8 @@ use sqlx::{Pool, Postgres};
 use thiserror::Error;
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::EventStore;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::EventStore;
 
 use crate::util::new_pool;
 
@@ -98,12 +98,6 @@ async fn main() {
 pub enum Error {
     #[error("[Err {0}] {1}")]
     Domain(i32, String),
-
-    #[error(transparent)]
-    Json(#[from] esrs::error::JsonError),
-
-    #[error(transparent)]
-    Sql(#[from] esrs::error::SqlxError),
 }
 
 // The commands received by the application, which will produce the events
@@ -121,10 +115,7 @@ async fn insert_event(
     version: Option<i64>,
     pool: &Pool<Postgres>,
 ) {
-    let query: String = format!(
-        include_str!("../../src/esrs/sql/postgres/statements/insert.sql"),
-        table_name
-    );
+    let query: String = format!(include_str!("../../src/sql/postgres/statements/insert.sql"), table_name);
 
     let _ = sqlx::query(query.as_str())
         .bind(event_id)

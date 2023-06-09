@@ -1,3 +1,33 @@
+//! In this example, we demonstrate various operations that can be performed on the event store.
+//! These operations include:
+//!
+//! - Inserting an event into the store:
+//!   This operation allows you to add a new event to the event store, which will be associated with
+//!   a particular aggregate.
+//!
+//! - Inserting an event into the store with a given event ID:
+//!   Similar to the previous operation, this allows you to insert an event into the store, but with
+//!   a specific event ID specified by you.
+//!
+//! - Finding an event by event ID:
+//!   This operation enables you to retrieve a specific event from the event store by providing its
+//!   unique event ID.
+//!
+//! - Getting all events by aggregate ID:
+//!   With this operation, you can retrieve all events associated with a particular aggregate ID
+//!   from the event store.
+//!
+//! - Updating an event (payload) by event ID:
+//!   This operation allows you to update the payload or data associated with a specific event by
+//!   specifying its event ID.
+//!
+//! - Deleting an event by event ID:
+//!   This operation allows you to remove a specific event from the event store based on its event ID.
+//!
+//! - Deleting all aggregate events by aggregate ID:
+//!   This operation enables you to delete all events associated with a particular aggregate ID from
+//!   the event store.
+
 use std::convert::TryInto;
 
 use chrono::Utc;
@@ -5,9 +35,10 @@ use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
-use esrs::sql::PgEvent;
-use esrs::{AggregateState, EventStore, StoreEvent};
+use esrs::sql::event::DbEvent;
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::{EventStore, StoreEvent};
+use esrs::AggregateState;
 
 use crate::common::{new_pool, BasicAggregate, BasicEvent};
 
@@ -38,7 +69,7 @@ async fn main() {
     };
 
     let query: String = format!(
-        include_str!("../../src/esrs/sql/postgres/statements/insert.sql"),
+        include_str!("../../src/sql/postgres/statements/insert.sql"),
         store.table_name()
     );
 
@@ -107,7 +138,7 @@ async fn main() {
 async fn get_event_by_event_id(id: Uuid, table_name: &str, pool: &Pool<Postgres>) -> Option<StoreEvent<BasicEvent>> {
     let query: String = format!("SELECT * FROM {} WHERE id = $1", table_name);
 
-    sqlx::query_as::<_, PgEvent>(query.as_str())
+    sqlx::query_as::<_, DbEvent>(query.as_str())
         .bind(id)
         .fetch_optional(pool)
         .await

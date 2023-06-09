@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::{EventHandler, StoreEvent};
+use esrs::handler::EventHandler;
+use esrs::store::StoreEvent;
 
 use crate::common::{BasicAggregate, BasicEvent, BasicView};
 
