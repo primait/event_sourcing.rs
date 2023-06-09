@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS {0}_aggregate_id ON {0}(aggregate_id)

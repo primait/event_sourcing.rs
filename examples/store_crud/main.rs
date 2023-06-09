@@ -69,7 +69,7 @@ async fn main() {
     };
 
     let query: String = format!(
-        include_str!("../../src/esrs/sql/postgres/statements/insert.sql"),
+        include_str!("../../src/sql/postgres/statements/insert.sql"),
         store.table_name()
     );
 

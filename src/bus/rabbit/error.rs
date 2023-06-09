@@ -5,21 +5,12 @@
 ///             or an error encountered during the event publishing process.
 /// - `PublishNack`: Indicates an error encountered during the publishing process, indicating the
 ///                  server responding with a `Nack`.
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum RabbitEventBusError {
-    Json(serde_json::Error),
-    Rabbit(lapin::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Rabbit(#[from] lapin::Error),
+    #[error("Received nack on publish")]
     PublishNack,
-}
-
-impl From<serde_json::Error> for RabbitEventBusError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::Json(value)
-    }
-}
-
-impl From<lapin::Error> for RabbitEventBusError {
-    fn from(value: lapin::Error) -> Self {
-        Self::Rabbit(value)
-    }
 }
