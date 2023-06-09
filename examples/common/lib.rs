@@ -1,7 +1,5 @@
 //! Common structs shared between all the other examples
 
-use thiserror::Error;
-
 pub use a::*;
 pub use b::*;
 #[cfg(feature = "postgres")]
@@ -21,10 +19,4 @@ mod shared;
 
 mod util;
 
-#[derive(Debug, Error)]
-pub enum CommonError {
-    #[error(transparent)]
-    Sql(#[from] sqlx::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
-}
+pub enum CommonError {}

@@ -54,7 +54,6 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[derive(thiserror::Error, Debug)]
     pub enum Error {}
 
     pub struct TestAggregate;

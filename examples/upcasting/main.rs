@@ -94,9 +94,7 @@ async fn main() {
 }
 
 // A simple error enum for event processing errors
-#[derive(Debug, Error)]
 pub enum Error {
-    #[error("[Err {0}] {1}")]
     Domain(i32, String),
 }
 
