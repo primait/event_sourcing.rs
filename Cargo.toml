@@ -16,12 +16,14 @@ all-features = true
 
 [features]
 sql = ["sqlx"]
-postgres = ["sql", "sqlx/postgres", "typed-builder"]
+postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
 
 [dependencies]
+tokio = { version = "1.6", optional = true }
+
 # Serialization/Deserialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -32,8 +34,6 @@ chrono = { version = "0.4", features = ["serde"] }
 # Build async trait
 async-trait = "0.1.50"
 
-# Atomic Arc
-arc-swap = "1.6"
 # Self-referential structs (for PgStoreLockGuard)
 ouroboros = "0.15"
 
@@ -50,9 +50,10 @@ typed-builder = { version = "0.14.0", optional = true }
 futures = "0.3"
 tracing = "0.1"
 
+thiserror = "1.0"
+
 [dev-dependencies]
 tokio = { version = "1.6", features = ["full"] }
-thiserror = "1.0"
 rand = "0.8"
 
 [[example]]

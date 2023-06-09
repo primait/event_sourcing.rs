@@ -15,6 +15,8 @@ use crate::{Aggregate, StoreEvent};
 mod config;
 mod error;
 
+/// The [`RabbitEventBus`] provides an implementation of the `EventBus` trait for publishing events
+/// using RabbitMQ as the underlying messaging system.
 pub struct RabbitEventBus<A> {
     channel: Channel,
     exchange: String,
@@ -38,7 +40,7 @@ where
                 config.exchange,
                 config.exchange_kind,
                 config.exchange_options,
-                config.arguments,
+                config.exchange_arguments,
             )
             .await?;
 
@@ -59,7 +61,7 @@ impl<A> EventBus<A> for RabbitEventBus<A>
 where
     Self: Send,
     A: Aggregate + Send + Sync,
-    A::Event: Serialize,
+    A::Event: Serialize + Sync,
 {
     async fn publish(&self, store_event: &StoreEvent<A::Event>) {
         if let Err(error) = publish(self, store_event).await {

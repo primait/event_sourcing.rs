@@ -9,10 +9,13 @@ use crate::Aggregate;
 mod pg_rebuilder;
 
 #[async_trait]
-pub trait Rebuilder<A, E>
+pub trait Rebuilder<A>
 where
     A: Aggregate,
 {
-    async fn by_aggregate_id(&self, executor: E) -> Result<(), A::Error>;
-    async fn all_at_once(&self, executor: E) -> Result<(), A::Error>;
+    type Executor;
+    type Error: std::error::Error;
+
+    async fn by_aggregate_id(&self, executor: Self::Executor) -> Result<(), Self::Error>;
+    async fn all_at_once(&self, executor: Self::Executor) -> Result<(), Self::Error>;
 }

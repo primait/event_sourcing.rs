@@ -81,7 +81,7 @@ async fn setup(aggregate_id: Uuid, view: BasicView, transactional_view: BasicVie
         .await
         .unwrap();
 
-    let manager: AggregateManager<BasicAggregate> = AggregateManager::new(pg_store);
+    let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(pg_store);
     manager
         .handle_command(
             AggregateState::with_id(aggregate_id),

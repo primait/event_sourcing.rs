@@ -2,11 +2,11 @@ use futures::StreamExt;
 use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use esrs::postgres::{PgStore, PgStoreBuilder};
+use esrs::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::{AggregateManager, AggregateState, ReplayableEventHandler, StoreEvent, TransactionalEventHandler};
 
 use crate::common::{
-    new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, EventA, EventB, SharedEventHandler, SharedView,
+    new_pool, AggregateA, AggregateB, CommandA, CommandB, EventA, EventB, SharedEventHandler, SharedView,
 };
 use crate::transactional_event_handler::SharedTransactionalEventHandler;
 
@@ -49,17 +49,20 @@ async fn rebuild_multi_aggregate(
     let event_handlers_a: Vec<Box<dyn ReplayableEventHandler<AggregateA>>> = vec![event_handler.clone()];
     let event_handlers_b: Vec<Box<dyn ReplayableEventHandler<AggregateB>>> = vec![event_handler.clone()];
 
-    let transactional_event_handlers_a: Vec<Box<dyn TransactionalEventHandler<AggregateA, PgConnection>>> =
-        vec![transactional_event_handler.clone()];
-    let transactional_event_handlers_b: Vec<Box<dyn TransactionalEventHandler<AggregateB, PgConnection>>> =
-        vec![transactional_event_handler.clone()];
+    let transactional_event_handlers_a: Vec<
+        Box<dyn TransactionalEventHandler<AggregateA, PgStoreError, PgConnection>>,
+    > = vec![transactional_event_handler.clone()];
+
+    let transactional_event_handlers_b: Vec<
+        Box<dyn TransactionalEventHandler<AggregateB, PgStoreError, PgConnection>>,
+    > = vec![transactional_event_handler.clone()];
 
     let mut events_a = store_a.stream_events(&pool);
     let mut events_b = store_b.stream_events(&pool);
 
     // Fetch first element of both the tables
-    let mut event_a_opt: Option<Result<StoreEvent<EventA>, CommonError>> = events_a.next().await;
-    let mut event_b_opt: Option<Result<StoreEvent<EventB>, CommonError>> = events_b.next().await;
+    let mut event_a_opt: Option<Result<StoreEvent<EventA>, PgStoreError>> = events_a.next().await;
+    let mut event_b_opt: Option<Result<StoreEvent<EventB>, PgStoreError>> = events_b.next().await;
 
     // At this point it's possible to open a transaction
     let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
@@ -152,7 +155,7 @@ async fn setup(shared_id: Uuid, pool: Pool<Postgres>, view: SharedView, transact
         .await
         .unwrap();
 
-    let manager: AggregateManager<AggregateA> = AggregateManager::new(pg_store_a);
+    let manager: AggregateManager<PgStore<AggregateA>> = AggregateManager::new(pg_store_a);
     manager
         .handle_command(AggregateState::default(), CommandA { v: 10, shared_id })
         .await
@@ -170,7 +173,7 @@ async fn setup(shared_id: Uuid, pool: Pool<Postgres>, view: SharedView, transact
         .await
         .unwrap();
 
-    let manager: AggregateManager<AggregateB> = AggregateManager::new(pg_store_b);
+    let manager: AggregateManager<PgStore<AggregateB>> = AggregateManager::new(pg_store_b);
     manager
         .handle_command(AggregateState::default(), CommandB { v: 7, shared_id })
         .await
