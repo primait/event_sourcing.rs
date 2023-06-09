@@ -1,3 +1,10 @@
+//! This example contains the code that showcases the following steps:
+//!
+//! - Configuring the event bus with the necessary settings for the Kafka and RabbitMQ event bus implementations.
+//! - Setting up event handlers and an aggregate manager to handle commands and publish events to the event bus.
+//! - Handling a sample command using the aggregate manager, which triggers the publication of an event to the event bus.
+//! - Observing the output to see the events being published to the respective event bus implementations.
+
 use std::time::Duration;
 
 use lapin::ExchangeKind;
