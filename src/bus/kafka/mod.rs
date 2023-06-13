@@ -71,12 +71,15 @@ where
     A: Aggregate + Send + Sync,
     A::Event: Serialize,
 {
+    let key: String = store_event.aggregate_id.to_string();
     let bytes: Vec<u8> = serde_json::to_vec(store_event)?;
 
     let _ = event_bus
         .producer
         .send(
-            FutureRecord::<String, Vec<u8>>::to(event_bus.topic.as_str()).payload(&bytes),
+            FutureRecord::<String, Vec<u8>>::to(event_bus.topic.as_str())
+                .key(&key)
+                .payload(&bytes),
             event_bus.request_timeout,
         )
         .await?;
