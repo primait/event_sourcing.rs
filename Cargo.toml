@@ -38,7 +38,7 @@ async-trait = "0.1.50"
 ouroboros = "0.17"
 
 # Sql library for async impl
-sqlx = { version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true }
+sqlx = { version = "0.7.0", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true }
 # Kafka library
 rdkafka = { version = "0.33.*", features = ["ssl-vendored"], optional = true }
 # Rabbit library
