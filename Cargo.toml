@@ -82,6 +82,11 @@ path = "examples/multi_aggregate_rebuild/main.rs"
 required-features = ["postgres"]
 
 [[example]]
+name = "readme"
+path = "examples/readme/main.rs"
+required-features = ["postgres"]
+
+[[example]]
 name = "rebuilder"
 path = "examples/rebuilder/main.rs"
 required-features = ["rebuilder", "postgres"]

@@ -346,3 +346,8 @@ discretion of the library user. The concept behind this "consumer" is to consume
 them to each `EventHandler` responsible for carrying out specific tasks.
 
 As the implementation closely resembles the "sync way" approach, we avoid to write it again.
+
+### Follow up
+
+You can find a comprehensive example, incorporating all the presented contents from the [Usage](#usage) section, 
+in the [readme example](./examples/readme/main.rs).
