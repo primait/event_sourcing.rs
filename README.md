@@ -183,7 +183,7 @@ impl Aggregate for Book {
 
 #### Adding a persistence layer
 
-At the time being the only existing persistence layer is the `PgStore`. Its role is to write all the events in a dedicated
+Currently, the only existing persistence layer is the `PgStore`. Its role is to write all the events in a dedicated
 table in `postgres`. The table name is built using `Aggregate::NAME` constant value concatenated with `_events`.
 
 !Important: each `PgStore` is designed to be globally unique per Aggregate. If you require constructing it dynamically 
@@ -244,7 +244,9 @@ An `EventHandler`, by definition, operates on an eventually consistent basis and
 of the application. It is also commonly utilized to execute commands on other aggregates, including the aggregate to 
 which it belongs.
 
-`EventHandler`s are infallible.
+`EventHandler`s are infallible. An infallible function is one that is guaranteed never to fail or produce errors under 
+any circumstances. In other words, it is a function that will always produce a valid result without any possibility of 
+raising exceptions, throwing errors, or returning incorrect data. The duty of error handling is up to library user.
 
 ```rust
 pub struct BookEventHandler;
