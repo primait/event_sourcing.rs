@@ -55,7 +55,7 @@ on recording a sequence of events that have led to that state.
 
 #### Aggregate
 
-To start implementing of CQRS/Event sourcing in your codebase, first you need to create an `Aggregate`.
+To start implementing CQRS/Event sourcing in your codebase, first you need to create an `Aggregate`.
 
 In the context of event sourcing, an aggregate is a fundamental concept that represents a cluster of domain objects 
 and their state changes. It is one of the key building blocks used to model and manage data in an event-sourced system.
@@ -353,3 +353,4 @@ As the implementation closely resembles the "sync way" approach, we avoid to wri
 
 You can find a comprehensive example, incorporating all the presented contents from the [Usage](#usage) section, 
 in the [readme example](./examples/readme/main.rs).
+
