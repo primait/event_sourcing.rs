@@ -44,8 +44,8 @@ cargo make clippy
 
 ## Usage
 
-In this section is presented the integration of this library into your application, enabling you to kickstart 
-CQRS/Event sourcing implementation.
+This section presents the integration of the library into your application, enabling you to kickstart a CQRS/Event 
+sourcing implementation.
 
 ### Event sourcing
 
@@ -55,12 +55,12 @@ on recording a sequence of events that have led to that state.
 
 #### Aggregate
 
-To initiate the implementation of CQRS/Event sourcing in your codebase, the initial building block to create is an `Aggregate`.
+To start implementing of CQRS/Event sourcing in your codebase, first you need to create an `Aggregate`.
 
-> In the context of event sourcing, an aggregate is a fundamental concept that represents a cluster of domain objects 
+In the context of event sourcing, an aggregate is a fundamental concept that represents a cluster of domain objects 
 and their state changes. It is one of the key building blocks used to model and manage data in an event-sourced system.
 
-> An aggregate, therefore, is responsible for processing incoming commands and generating corresponding events that 
+An aggregate, therefore, is responsible for processing incoming commands and generating corresponding events that 
 reflect the changes to its state. It encapsulates domain logic and rules related to specific operations on the data it 
 manages. Aggregates provide a clear boundary for consistency and concurrency control within the event-sourced system.
 
@@ -189,7 +189,7 @@ table in `postgres`. The table name is built using `Aggregate::NAME` constant va
 !Important: each `PgStore` is designed to be globally unique per Aggregate. If you require constructing it dynamically 
 at runtime, remember to invoke `without_running_migrations` while building the store to avoid executing migrations.
 
-Note: In order to use a `PgStore` it's needed a fully implemented `Aggregate`.
+Note: In order to use a `PgStore` a fully implemented `Aggregate` is needed.
 
 ```rust
 use sqlx::{Pool, Postgres};
