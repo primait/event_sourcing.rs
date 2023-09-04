@@ -13,4 +13,6 @@ pub enum RabbitEventBusError {
     Rabbit(#[from] lapin::Error),
     #[error("Received nack on publish")]
     PublishNack,
+    #[error(transparent)]
+    ConnectionPool(#[from] bb8::RunError<lapin::Error>),
 }
