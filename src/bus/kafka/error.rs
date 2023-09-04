@@ -9,8 +9,6 @@ pub enum KafkaEventBusError {
     Json(#[from] serde_json::Error),
     #[error(transparent)]
     Kafka(#[from] rdkafka::error::KafkaError),
-    #[error(transparent)]
-    ConnectionPool(#[from] bb8::RunError<rdkafka::error::KafkaError>),
 }
 
 impl From<(rdkafka::error::KafkaError, rdkafka::message::OwnedMessage)> for KafkaEventBusError {

@@ -2,8 +2,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use bb8::ManageConnection;
-use rdkafka::producer::{BaseProducer, FutureProducer, FutureRecord};
+use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::ClientConfig;
 use serde::Serialize;
 use uuid::Bytes;
@@ -17,48 +16,6 @@ use crate::Aggregate;
 
 mod config;
 mod error;
-
-pub struct KafkaConnectionManager {
-    connection_pool: bb8::Pool<BaseProducer>,
-}
-
-#[async_trait]
-impl ManageConnection for KafkaConnectionManager {
-    type Connection = FutureProducer;
-    type Error = rdkafka::error::KafkaError;
-
-    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        let connection = match self.connection_pool.get().await {
-            Ok(connection) => connection,
-            Err(e) => match e {
-                bb8::RunError::User(e) => return Err(e),
-                bb8::RunError::TimedOut => return Err(lapin::Error::InvalidChannelState(lapin::ChannelState::Closed)),
-            },
-        };
-        let channel = connection.create_channel().await?;
-        channel
-            .exchange_declare(
-                &self.exchange,
-                self.exchange_kind.to_owned(),
-                self.exchange_options,
-                self.exchange_arguments.to_owned(),
-            )
-            .await?;
-        Ok(channel)
-    }
-
-    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        conn.
-        if !conn.status().connected() {
-            return Err(lapin::Error::InvalidChannelState(conn.status().state()));
-        }
-        Ok(())
-    }
-
-    fn has_broken(&self, conn: &mut Self::Connection) -> bool {
-        !conn.status().connected()
-    }
-}
 
 /// The [`KafkaEventBus`] provides an implementation of the `EventBus` trait for publishing events
 /// using Apache Kafka as the underlying messaging system.
