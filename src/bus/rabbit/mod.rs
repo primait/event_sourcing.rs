@@ -34,7 +34,7 @@ impl ManageConnection for RabbitConnectionManager {
     }
 
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        if !conn.status().connected() {
+        if self.has_broken(conn) {
             return Err(lapin::Error::InvalidConnectionState(conn.status().state()));
         }
         Ok(())
@@ -79,7 +79,7 @@ impl ManageConnection for RabbitChannelManager {
     }
 
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        if !conn.status().connected() {
+        if self.has_broken(conn) {
             return Err(lapin::Error::InvalidChannelState(conn.status().state()));
         }
         Ok(())
