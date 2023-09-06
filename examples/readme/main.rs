@@ -85,9 +85,17 @@ pub enum BookCommand {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub enum BookEvent {
     Bought { num_of_copies: i32 },
     Returned { num_of_copies: i32 },
+}
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for BookEvent {
+    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
+        serde_json::from_value(value)
+    }
 }
 
 #[derive(Debug, Error)]
