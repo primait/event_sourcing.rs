@@ -84,22 +84,6 @@ script = [
     "cargo clippy --all-features -- -D warnings"
 ]
 
-[tasks.clippy-examples]
-description = "Run clippy over all examples"
-script = [
-    "cargo clippy --example aggregate_deletion --features=postgres -- -D warnings",
-    "cargo clippy --example event_bus --features=postgres,rabbit,kafka",
-    "cargo clippy --example eventual_view --features=postgres -- -D warnings",
-    "cargo clippy --example locking_strategies --features=postgres -- -D warnings",
-    "cargo clippy --example multi_aggregate_rebuild --features=postgres -- -D warnings",
-    "cargo clippy --example rebuilder --features=rebuilder,postgres -- -D warnings",
-    "cargo clippy --example saga --features=postgres -- -D warnings",
-    "cargo clippy --example shared_view --features=postgres -- -D warnings",
-    "cargo clippy --example store_crud --features=postgres -- -D warnings",
-    "cargo clippy --example transactional_view --features=postgres -- -D warnings",
-    "cargo clippy --example upcasting --features=postgres,upcasting -- -D warnings",
-]
-
 # Run example
 [tasks.examples]
 description = "Run all configured examples"
@@ -109,6 +93,7 @@ script = [
     "cargo run --example eventual_view --features=postgres",
     "cargo run --example locking_strategies --features=postgres",
     "cargo run --example multi_aggregate_rebuild --features=postgres",
+    "cargo run --example readme --features=postgres",
     "cargo run --example rebuilder --features=rebuilder,postgres",
     "cargo run --example saga --features=postgres",
     "cargo run --example shared_view --features=postgres",
@@ -117,6 +102,22 @@ script = [
     "cargo run --example upcasting --features=postgres,upcasting",
 ]
 
+[tasks.clippy-examples]
+description = "Run clippy over all examples"
+script = [
+    "cargo clippy --example aggregate_deletion --features=postgres -- -D warnings",
+    "cargo clippy --example event_bus --features=postgres,rabbit,kafka",
+    "cargo clippy --example eventual_view --features=postgres -- -D warnings",
+    "cargo clippy --example locking_strategies --features=postgres -- -D warnings",
+    "cargo clippy --example multi_aggregate_rebuild --features=postgres -- -D warnings",
+    "cargo clippy --example readme --features=postgres -- -D warnings",
+    "cargo clippy --example rebuilder --features=rebuilder,postgres -- -D warnings",
+    "cargo clippy --example saga --features=postgres -- -D warnings",
+    "cargo clippy --example shared_view --features=postgres -- -D warnings",
+    "cargo clippy --example store_crud --features=postgres -- -D warnings",
+    "cargo clippy --example transactional_view --features=postgres -- -D warnings",
+    "cargo clippy --example upcasting --features=postgres,upcasting -- -D warnings",
+]
 
 # Docs
 [tasks.docsrs]

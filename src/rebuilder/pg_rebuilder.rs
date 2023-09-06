@@ -130,7 +130,7 @@ where
         let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
         let events: Vec<StoreEvent<A::Event>> = store
-            .stream_events(&mut transaction)
+            .stream_events(&mut *transaction)
             .collect::<Vec<Result<StoreEvent<A::Event>, Self::Error>>>()
             .await
             .into_iter()

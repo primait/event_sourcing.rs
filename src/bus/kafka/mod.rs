@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::ClientConfig;
 use serde::Serialize;
+use uuid::Bytes;
 
 pub use config::KafkaEventBusConfig;
 pub use error::KafkaEventBusError;
@@ -72,11 +73,14 @@ where
     A::Event: Serialize,
 {
     let bytes: Vec<u8> = serde_json::to_vec(store_event)?;
+    let key_bytes: &Bytes = store_event.aggregate_id.as_bytes();
 
     let _ = event_bus
         .producer
         .send(
-            FutureRecord::<String, Vec<u8>>::to(event_bus.topic.as_str()).payload(&bytes),
+            FutureRecord::<[u8], Vec<u8>>::to(event_bus.topic.as_str())
+                .key(key_bytes)
+                .payload(&bytes),
             event_bus.request_timeout,
         )
         .await?;
