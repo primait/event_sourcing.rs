@@ -82,10 +82,6 @@ impl TryFrom<Event20230405> for Event {
 
 // First version of event. Impl is trivial
 impl Upcaster for Event20230405 {
-    fn upcast(value: Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
-        serde_json::from_value::<Self>(value)
-    }
-
     fn current_version() -> Option<i32> {
         Some(1)
     }

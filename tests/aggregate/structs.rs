@@ -13,11 +13,7 @@ pub struct TestEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for TestEvent {
-    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(value)
-    }
-}
+impl esrs::event::Upcaster for TestEvent {}
 
 pub enum TestError {}
 

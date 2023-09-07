@@ -40,11 +40,7 @@ pub struct BasicEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for BasicEvent {
-    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(value)
-    }
-}
+impl esrs::event::Upcaster for BasicEvent {}
 
 #[allow(dead_code)]
 pub enum BasicError {
