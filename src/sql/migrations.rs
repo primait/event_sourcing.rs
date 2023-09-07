@@ -62,9 +62,6 @@ mod tests {
     pub struct TestEvent;
 
     #[cfg(feature = "upcasting")]
-    impl crate::event::Event for TestEvent {}
-
-    #[cfg(feature = "upcasting")]
     impl crate::event::Upcaster for TestEvent {
         fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error> {
             serde_json::from_value(value)

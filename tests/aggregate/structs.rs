@@ -8,7 +8,6 @@ pub enum TestCommand {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct TestEvent {
     pub add: i32,
 }

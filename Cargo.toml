@@ -14,11 +14,6 @@ version = "0.12.0"
 [package.metadata.docs.rs]
 all-features = true
 
-[workspace]
-members = [
-    "esrs-macros",
-]
-
 [features]
 default = []
 sql = ["sqlx"]
@@ -40,9 +35,6 @@ uuid = { version = "1.1", features = ["serde", "v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 # Build async trait
 async-trait = "0.1.50"
-
-# esrs macros
-esrs-macros = { version = "0.1.0", path = "esrs-macros" }
 
 # Self-referential structs (for PgStoreLockGuard)
 ouroboros = "0.18"

@@ -30,7 +30,6 @@ pub enum SagaCommand {
 }
 
 #[derive(Serialize, Deserialize, PartialEq)]
-#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub enum SagaEvent {
     MutationRequested,
     MutationRegistered,

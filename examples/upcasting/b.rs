@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use esrs::event::Upcaster;
-use esrs::{Aggregate, Event};
+use esrs::Aggregate;
 
 use crate::{Command, Error};
 
 // The actual EventB. This gets serialized as:
 // {"event_type": "incremented", "u": 0}
-#[derive(Event, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(tag = "event_type", rename_all = "snake_case")]
 pub enum Event {
     Incremented(IncPayload),

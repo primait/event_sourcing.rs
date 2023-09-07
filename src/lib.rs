@@ -9,8 +9,6 @@
 //! while using `postgres` event store, everytime a state load is required a database query is
 //! performed over the event store table.
 
-pub use esrs_macros::Event;
-
 pub use aggregate::Aggregate;
 pub use state::AggregateState;
 

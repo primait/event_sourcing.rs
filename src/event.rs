@@ -11,6 +11,9 @@ impl<T> Event for T where T: Serialize + DeserializeOwned {}
 pub trait Event: Serialize + DeserializeOwned + Upcaster {}
 
 #[cfg(feature = "upcasting")]
+impl<T> Event for T where T: Serialize + DeserializeOwned + Upcaster {}
+
+#[cfg(feature = "upcasting")]
 pub trait Upcaster
 where
     Self: Sized,

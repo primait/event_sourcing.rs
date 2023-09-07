@@ -35,7 +35,6 @@ pub struct BasicCommand {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
-#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct BasicEvent {
     pub content: String,
 }

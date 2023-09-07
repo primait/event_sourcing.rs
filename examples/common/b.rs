@@ -32,7 +32,6 @@ pub struct CommandB {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[cfg_attr(feature = "upcasting", derive(esrs::Event))]
 pub struct EventB {
     pub v: i32,
     pub shared_id: Uuid,
