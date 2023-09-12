@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.13.0] - 2023-09-12
+
+### Added
+
+- [[#147]]: Event upcasting, available under `upcasting` feature flag, disabled by default.
+- [[#164]]: Kafka messages are now published using the record key, set as the event `aggregate_id`.
+- [[#175]]: Connection manager for RabbitMQ event bus to handle connection outages and fail-overs.
+
+---
 ## [0.12.0] - 2023-06-09
 
 ### Added 
@@ -276,7 +285,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/primait/event_sourcing.rs/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/primait/event_sourcing.rs/compare/0.10.2...0.11.0
 [0.10.2]: https://github.com/primait/event_sourcing.rs/compare/0.10.1...0.10.2
@@ -289,6 +299,8 @@ Refer to: [#107], [#108] and [#109]
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 
+[#175]: https://github.com/primait/event_sourcing.rs/pull/175
+[#164]: https://github.com/primait/event_sourcing.rs/pull/164
 [#161]: https://github.com/primait/event_sourcing.rs/pull/161
 [#157]: https://github.com/primait/event_sourcing.rs/pull/157
 [#156]: https://github.com/primait/event_sourcing.rs/pull/156
@@ -299,6 +311,7 @@ Refer to: [#107], [#108] and [#109]
 [#150]: https://github.com/primait/event_sourcing.rs/pull/150
 [#149]: https://github.com/primait/event_sourcing.rs/pull/149
 [#148]: https://github.com/primait/event_sourcing.rs/pull/148
+[#147]: https://github.com/primait/event_sourcing.rs/pull/147
 [#144]: https://github.com/primait/event_sourcing.rs/pull/144
 [#141]: https://github.com/primait/event_sourcing.rs/pull/141
 [#136]: https://github.com/primait/event_sourcing.rs/pull/136
