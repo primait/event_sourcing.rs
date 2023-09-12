@@ -35,7 +35,7 @@ use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-use esrs::sql::event::Event;
+use esrs::sql::event::DbEvent;
 use esrs::store::postgres::{PgStore, PgStoreBuilder};
 use esrs::store::{EventStore, StoreEvent};
 use esrs::AggregateState;
@@ -79,6 +79,8 @@ async fn main() {
         .bind(Json(&original_payload_2))
         .bind(Utc::now())
         .bind(aggregate_state.next_sequence_number())
+        // Version
+        .bind(Option::<i64>::None)
         .execute(&pool)
         .await
         .unwrap();
@@ -136,7 +138,7 @@ async fn main() {
 async fn get_event_by_event_id(id: Uuid, table_name: &str, pool: &Pool<Postgres>) -> Option<StoreEvent<BasicEvent>> {
     let query: String = format!("SELECT * FROM {} WHERE id = $1", table_name);
 
-    sqlx::query_as::<_, Event>(query.as_str())
+    sqlx::query_as::<_, DbEvent>(query.as_str())
         .bind(id)
         .fetch_optional(pool)
         .await

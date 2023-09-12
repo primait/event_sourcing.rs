@@ -90,6 +90,9 @@ pub enum BookEvent {
     Returned { num_of_copies: i32 },
 }
 
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for BookEvent {}
+
 #[derive(Debug, Error)]
 pub enum BookError {
     #[error("Not enough copies")]

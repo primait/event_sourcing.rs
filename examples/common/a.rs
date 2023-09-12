@@ -36,3 +36,6 @@ pub struct EventA {
     pub v: i32,
     pub shared_id: Uuid,
 }
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for EventA {}

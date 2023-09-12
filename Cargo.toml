@@ -15,11 +15,13 @@ version = "0.12.0"
 all-features = true
 
 [features]
+default = []
 sql = ["sqlx"]
 postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
+upcasting = []
 
 [dependencies]
 tokio = { version = "1.6", optional = true }
@@ -111,3 +113,8 @@ required-features = ["postgres"]
 name = "transactional_view"
 path = "examples/transactional_view/main.rs"
 required-features = ["postgres"]
+
+[[example]]
+name = "upcasting"
+path = "examples/upcasting/main.rs"
+required-features = ["postgres", "upcasting"]

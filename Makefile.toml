@@ -23,6 +23,7 @@ script = [
     "cargo check --features=kafka",
     "cargo check --features=rabbit",
     "cargo check --features=rebuilder",
+    "cargo check --features=upcasting",
     "cargo check --all-features"
 ]
 
@@ -38,6 +39,7 @@ script = [
     "cargo build -j 2 --features=kafka",
     "cargo build -j 2 --features=rabbit",
     "cargo build -j 2 --features=rebuilder",
+    "cargo build -j 2 --features=upcasting",
     "cargo build -j 2 --all-features"
 ]
 
@@ -61,6 +63,7 @@ script = [
     "cargo test ${@} --features=kafka",
     "cargo test ${@} --features=rabbit",
     "cargo test ${@} --features=rebuilder",
+    "cargo test ${@} --features=upcasting",
     "cargo test ${@} --all-features"
 ]
 
@@ -77,6 +80,7 @@ script = [
     "cargo clippy --features=kafka -- -D warnings",
     "cargo clippy --features=rabbit -- -D warnings",
     "cargo clippy --features=rebuilder -- -D warnings",
+    "cargo clippy --features=upcasting -- -D warnings",
     "cargo clippy --all-features -- -D warnings"
 ]
 
@@ -95,6 +99,7 @@ script = [
     "cargo run --example shared_view --features=postgres",
     "cargo run --example store_crud --features=postgres",
     "cargo run --example transactional_view --features=postgres",
+    "cargo run --example upcasting --features=postgres,upcasting",
 ]
 
 [tasks.clippy-examples]
@@ -111,6 +116,7 @@ script = [
     "cargo clippy --example shared_view --features=postgres -- -D warnings",
     "cargo clippy --example store_crud --features=postgres -- -D warnings",
     "cargo clippy --example transactional_view --features=postgres -- -D warnings",
+    "cargo clippy --example upcasting --features=postgres,upcasting -- -D warnings",
 ]
 
 # Docs

@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use esrs::Aggregate;
 pub use event_handler::*;
@@ -40,15 +39,11 @@ pub struct BasicEvent {
     pub content: String,
 }
 
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for BasicEvent {}
+
 #[allow(dead_code)]
-#[derive(Debug, Error)]
 pub enum BasicError {
-    #[error(transparent)]
-    Sql(#[from] sqlx::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
-    #[error("Empty content")]
     EmptyContent,
-    #[error("Custom error {0}")]
     Custom(String),
 }

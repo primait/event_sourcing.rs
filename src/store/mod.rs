@@ -11,7 +11,7 @@ use crate::types::SequenceNumber;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 
-/// Marker trait for every EventStoreLockGuard.
+/// Marker trait for every [`EventStoreLockGuard`].
 ///
 /// Implementors should unlock concurrent access to the guarded resource, when dropped.
 pub trait UnlockOnDrop: Send + Sync + 'static {}
@@ -22,7 +22,7 @@ pub trait UnlockOnDrop: Send + Sync + 'static {}
 pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
 
 impl EventStoreLockGuard {
-    /// Creates a new instance from any UnlockOnDrop.
+    /// Creates a new instance from any [`UnlockOnDrop`].
     #[must_use]
     pub fn new(lock: impl UnlockOnDrop) -> Self {
         Self(Box::new(lock))
@@ -130,6 +130,8 @@ pub struct StoreEvent<Event> {
     pub occurred_on: DateTime<Utc>,
     /// The sequence number of the event, within its specific aggregate instance.
     pub sequence_number: SequenceNumber,
+    /// The version of the event.
+    pub version: Option<i32>,
 }
 
 impl<Event> StoreEvent<Event> {

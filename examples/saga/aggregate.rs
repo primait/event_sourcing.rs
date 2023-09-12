@@ -34,3 +34,6 @@ pub enum SagaEvent {
     MutationRequested,
     MutationRegistered,
 }
+
+#[cfg(feature = "upcasting")]
+impl esrs::event::Upcaster for SagaEvent {}

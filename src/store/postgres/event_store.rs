@@ -13,8 +13,9 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::bus::EventBus;
+use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
-use crate::sql::event;
+use crate::sql::event::DbEvent;
 use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::PgStoreError;
 use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
@@ -49,7 +50,7 @@ where
 impl<A> PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Event: Event + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -82,12 +83,21 @@ where
     ) -> Result<StoreEvent<A::Event>, PgStoreError> {
         let id: Uuid = Uuid::new_v4();
 
+        #[cfg(feature = "upcasting")]
+        let version: Option<i32> = {
+            use crate::event::Upcaster;
+            A::Event::current_version()
+        };
+        #[cfg(not(feature = "upcasting"))]
+        let version: Option<i32> = None;
+
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
             .bind(Json(&event))
             .bind(occurred_on)
             .bind(sequence_number)
+            .bind(version)
             .execute(executor)
             .await?;
 
@@ -97,6 +107,7 @@ where
             payload: event,
             occurred_on,
             sequence_number,
+            version,
         })
     }
 
@@ -107,7 +118,7 @@ where
         executor: impl Executor<'s, Database = Postgres> + 's,
     ) -> BoxStream<Result<StoreEvent<A::Event>, PgStoreError>> {
         Box::pin({
-            sqlx::query_as::<_, event::Event>(self.inner.statements.select_all())
+            sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
                 .map(|res| Ok(res?.try_into()?))
         })
@@ -133,7 +144,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
-    A::Event: serde::Serialize + serde::de::DeserializeOwned + Send + Sync,
+    A::Event: Event + Send + Sync,
     A::State: Send,
 {
     type Aggregate = A;
@@ -152,15 +163,13 @@ where
     }
 
     async fn by_aggregate_id(&self, aggregate_id: Uuid) -> Result<Vec<StoreEvent<A::Event>>, Self::Error> {
-        Ok(
-            sqlx::query_as::<_, event::Event>(self.inner.statements.by_aggregate_id())
-                .bind(aggregate_id)
-                .fetch_all(&self.inner.pool)
-                .await?
-                .into_iter()
-                .map(|event| Ok(event.try_into()?))
-                .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?,
-        )
+        Ok(sqlx::query_as::<_, DbEvent>(self.inner.statements.by_aggregate_id())
+            .bind(aggregate_id)
+            .fetch_all(&self.inner.pool)
+            .await?
+            .into_iter()
+            .map(|event| Ok(event.try_into()?))
+            .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
 
     #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]

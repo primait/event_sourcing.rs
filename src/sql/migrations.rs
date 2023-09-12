@@ -29,6 +29,7 @@ impl MigrationsHandler<Postgres> for Migrations {
             statement!("postgres/migrations/01_create_table.sql", A),
             statement!("postgres/migrations/02_create_index.sql", A),
             statement!("postgres/migrations/03_create_unique_constraint.sql", A),
+            statement!("postgres/migrations/04_add_version.sql", A),
         ];
 
         for migration in migrations {
@@ -53,16 +54,21 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[derive(thiserror::Error, Debug)]
     pub enum Error {}
 
     pub struct TestAggregate;
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct TestEvent;
+
+    #[cfg(feature = "upcasting")]
+    impl crate::event::Upcaster for TestEvent {}
 
     impl Aggregate for TestAggregate {
         const NAME: &'static str = "test";
         type State = ();
         type Command = ();
-        type Event = ();
+        type Event = TestEvent;
         type Error = Error;
 
         fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
