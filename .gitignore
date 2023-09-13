@@ -1,3 +1,4 @@
+# Temporary hack to fix the CI until we migrate to github actions from drone.
 .cargo
 **/target
 examples/**/Cargo.lock
