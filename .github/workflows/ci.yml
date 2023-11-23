@@ -32,10 +32,15 @@ jobs:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
       - uses: davidB/rust-cargo-make@10579dcff82285736fad5291533b52d3c93d6b3b
-      - name: Compose up
-        run: docker compose up -d
+      - name: Add hosts entries
+        run: |
+          echo "
+          127.0.0.1 postgres
+          127.0.0.1 kafka
+          127.0.0.1 rabbit
+          " | sudo tee /etc/hosts
       - name: Run tests
-        run: cargo make --profile gha test
+        run: cargo make test
 
   alls-green:
     # I hate github actions.
