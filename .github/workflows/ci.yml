@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: primait/shared-github-actions/actions/install-rust@install-rust-v1
+      - uses: Swatinem/rust-cache@v2
+      - uses: davidB/rust-cargo-make@v1
       - name: Build
         run: cargo build --all-features
       - name: cargo fmt
@@ -29,7 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: primait/shared-github-actions/actions/install-rust@install-rust-v1
+      - uses: Swatinem/rust-cache@v2
+      - uses: davidB/rust-cargo-make@v1
       - name: Run tests
         run: cargo make test
 
