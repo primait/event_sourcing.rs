@@ -17,8 +17,8 @@ pub trait Aggregate {
     /// of their type, and their events!
     const NAME: &'static str;
 
-    /// Internal aggregate state. This will be wrapped in [`AggregateState`] and could be used to validate
-    /// commands.
+    /// Internal aggregate state. This will be wrapped in [`crate::state::AggregateState`] and could
+    /// be used to validate commands.
     type State: Default;
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
