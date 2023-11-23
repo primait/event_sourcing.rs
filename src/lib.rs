@@ -3,7 +3,7 @@
 //! Under the hood, without `postgres` feature enabled, this crate just expose some traits that can
 //! be used in order to implement your version of the CQRS/event sourcing pattern. The main actors
 //! are the [`Aggregate`] (with its manager), [`AggregateState`], [`store::EventStore`] and the
-//! [`event::StoreEvent`].
+//! [`store::StoreEvent`].
 //!
 //! The approach is to have a way, at runtime, to reload the state from an event store.
 //! This means that everytime an aggregate state is needed the state should be loaded So, for example
