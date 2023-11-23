@@ -8,6 +8,11 @@ DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
 RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
 KAFKA_BROKERS_URL = "kafka:9092"
 
+[env.gha]
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+KAFKA_BROKERS_URL = "kafka:9092"
+
 [config]
 default_to_workspace = false
 
