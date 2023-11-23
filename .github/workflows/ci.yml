@@ -34,6 +34,13 @@ jobs:
       - uses: davidB/rust-cargo-make@10579dcff82285736fad5291533b52d3c93d6b3b
       - name: Run tests
         run: cargo make test
+    services:
+      postgres:
+        image: public.ecr.aws/bitnami/postgresql:16.1.0
+        env:
+          POSTGRESQL_DATABASE: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
 
   alls-green:
     # I hate github actions.
