@@ -6,10 +6,21 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: build
+        run: cargo build
+
   lint:
     # Avoid duplicate jobs on PR from a branch on the same repo
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
@@ -24,14 +35,20 @@ jobs:
         run: cargo doc --document-private-items --all-features --no-deps
     env:
       RUSTDOCFLAGS: -Dwarnings
+
   test:
     # Avoid duplicate jobs on PR from a branch on the same repo
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - uses: davidB/rust-cargo-make@10579dcff82285736fad5291533b52d3c93d6b3b
+      - name: install cargo-make
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make
       - name: Add hosts entries
         run: |
           echo "
@@ -41,6 +58,13 @@ jobs:
           " | sudo tee /etc/hosts
       - name: Run tests
         run: cargo make test
+    services:
+      postgres:
+        image: public.ecr.aws/bitnami/postgresql:16.1.0
+        env:
+          POSTGRESQL_DATABASE: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
 
   alls-green:
     # I hate github actions.
