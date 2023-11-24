@@ -1,0 +1,24 @@
+name: CD
+
+on:
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install cargo-release
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-release@0.24
+      - name: login
+        run: cargo login "$CARGO_AUTH_KEY"
+        env:
+          CARGO_AUTH_KEY: ${{ secrets.CARGO_AUTH_KEY }}
+      - name: publish
+        run: cargo release publish --no-confirm --allow-branch "*" --all-features --execute
