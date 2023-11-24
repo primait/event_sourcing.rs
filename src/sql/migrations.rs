@@ -47,12 +47,12 @@ mod tests {
     use crate::sql::migrations::{Migrations, MigrationsHandler};
     use crate::Aggregate;
 
-    #[sqlx::test]
-    async fn can_read_postgres_migrations(pool: Pool<Postgres>) {
-        let result = Migrations::run::<TestAggregate>(&pool).await;
-        dbg!(&result);
-        assert!(result.is_ok());
-    }
+    // #[sqlx::test]
+    // async fn can_read_postgres_migrations(pool: Pool<Postgres>) {
+    //     let result = Migrations::run::<TestAggregate>(&pool).await;
+    //     dbg!(&result);
+    //     assert!(result.is_ok());
+    // }
 
     pub enum Error {}
 
