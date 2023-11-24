@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build --all-features
+        run: cargo make build
 
   lint:
     # Avoid duplicate jobs on PR from a branch on the same repo
@@ -58,7 +58,9 @@ jobs:
         run: cargo make test
     services:
       postgres:
-        image: public.ecr.aws/bitnami/postgresql:16.1.0
+        image: public.ecr.aws/bitnami/postgresql:11
+        ports:
+          - 5432:5432
         env:
           POSTGRESQL_DATABASE: postgres
           POSTGRES_PASSWORD: postgres
