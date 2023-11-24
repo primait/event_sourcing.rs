@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
+      - name: install cargo-make
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make
       - name: Build
         run: cargo make build
 
@@ -24,7 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - uses: davidB/rust-cargo-make@10579dcff82285736fad5291533b52d3c93d6b3b
+      - name: install cargo-make
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-make
       - name: cargo fmt
         run: cargo fmt --all -- --check
       - name: Clippy
@@ -58,7 +65,7 @@ jobs:
         run: cargo make test
     services:
       postgres:
-        image: public.ecr.aws/bitnami/postgresql:11
+        image: public.ecr.aws/bitnami/postgresql:16
         ports:
           - 5432:5432
         env:
