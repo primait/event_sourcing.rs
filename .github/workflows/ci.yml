@@ -72,6 +72,39 @@ jobs:
           POSTGRESQL_DATABASE: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
+      rabbitmq:
+        image: public.ecr.aws/bitnami/rabbitmq:3.12
+        ports:
+          - 5672:5672
+        env:
+          RABBITMQ_VHOST: rabbit
+          RABBITMQ_PASSWORD: rabbit
+          RABBITMQ_USERNAME: rabbit
+      kafka:
+        image: public.ecr.aws/prima/kafka:7.3.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://127.0.0.1:9092
+          KAFKA_BROKER_ID: 1
+          KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_JMX_HOSTNAME: kafka
+          KAFKA_JMX_PORT: 9101
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      zookeeper:
+        image: public.ecr.aws/prima/zookeeper:7.3.0
+        ports:
+          - 2181:2181
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
 
   alls-green:
     # I hate github actions.
