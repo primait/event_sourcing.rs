@@ -3,6 +3,7 @@ use futures::TryStreamExt;
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, QueueBindOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
 use lapin::{Connection, ConnectionProperties, Consumer, ExchangeKind};
+use rand::prelude::IteratorRandom;
 use uuid::Uuid;
 
 use esrs::bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
@@ -16,13 +17,13 @@ use crate::aggregate::{TestAggregate, TestEvent};
 async fn rabbit_event_bus_test() {
     let rabbit_url: String = std::env::var("RABBIT_URL").unwrap();
 
-    let exchange: &str = format!("{}_test_exchange", random_letters());
-    let queue: &str = format!("{}_test_queue", random_letters());
-    let routing_key: &str = format!("{}__test_routing_key", random_letters());
+    let exchange: String = format!("{}_test_exchange", random_letters());
+    let queue: String = format!("{}_test_queue", random_letters());
+    let routing_key: String = format!("{}__test_routing_key", random_letters());
 
     let config: RabbitEventBusConfig = RabbitEventBusConfig::builder()
         .url(rabbit_url.as_str())
-        .exchange(exchange)
+        .exchange(exchange.as_str())
         .exchange_kind(ExchangeKind::Fanout)
         .publish_routing_key(Some(routing_key.to_string()))
         .error_handler(Box::new(|error| panic!("{:?}", error)))
@@ -33,7 +34,13 @@ async fn rabbit_event_bus_test() {
         Err(error) => panic!("{:?}", error),
     };
 
-    let mut consumer: Consumer = consumer(rabbit_url.as_str(), exchange, queue, routing_key).await;
+    let mut consumer: Consumer = consumer(
+        rabbit_url.as_str(),
+        exchange.as_str(),
+        queue.as_str(),
+        routing_key.as_str(),
+    )
+    .await;
 
     let event_id: Uuid = Uuid::new_v4();
     let store_event: StoreEvent<TestEvent> = StoreEvent {
@@ -92,4 +99,13 @@ async fn consumer(url: &str, exchange: &str, queue: &str, routing_key: &str) -> 
         )
         .await
         .unwrap()
+}
+
+#[allow(dead_code)]
+pub fn random_letters() -> String {
+    let mut rng = rand::thread_rng();
+    let chars: String = (0..6)
+        .map(|_| (b'a'..=b'z').choose(&mut rng).unwrap() as char)
+        .collect();
+    chars
 }
