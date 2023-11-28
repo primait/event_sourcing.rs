@@ -12,6 +12,7 @@ use esrs::store::StoreEvent;
 use crate::aggregate::{TestAggregate, TestEvent};
 
 #[tokio::test]
+#[ntest::timeout(10000)]
 async fn rabbit_event_bus_test() {
     let rabbit_url: String = std::env::var("RABBIT_URL").unwrap();
 
@@ -27,12 +28,18 @@ async fn rabbit_event_bus_test() {
         .error_handler(Box::new(|error| panic!("{:?}", error)))
         .build();
 
+    println!("1");
+
     let bus: RabbitEventBus<TestAggregate> = match RabbitEventBus::new(config).await {
         Ok(bus) => bus,
         Err(error) => panic!("{:?}", error),
     };
 
+    println!("2");
+
     let mut consumer: Consumer = consumer(rabbit_url.as_str(), exchange, queue, routing_key).await;
+
+    println!("3");
 
     let event_id: Uuid = Uuid::new_v4();
     let store_event: StoreEvent<TestEvent> = StoreEvent {
@@ -44,7 +51,11 @@ async fn rabbit_event_bus_test() {
         version: None,
     };
 
+    println!("4");
+
     bus.publish(&store_event).await;
+
+    println!("5");
 
     match consumer.try_next().await {
         Ok(delivery_opt) => {
@@ -57,6 +68,8 @@ async fn rabbit_event_bus_test() {
             panic!("try next returned error");
         }
     }
+
+    println!("6");
 }
 
 async fn consumer(url: &str, exchange: &str, queue: &str, routing_key: &str) -> Consumer {
