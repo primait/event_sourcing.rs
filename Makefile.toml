@@ -41,16 +41,8 @@ args = ["fmt", "--all", "--", "--check"]
 # Tests
 [tasks.tests]
 description = "Run tests"
-script = [
-    "cargo test ${@}",
-    "cargo test ${@} --all-features",
-    "cargo test ${@} --features=postgres",
-    "cargo test ${@} --features=rebuilder",
-    "cargo test ${@} --features=kafka",
-    "cargo test ${@} --features=rabbit",
-    "cargo test ${@} --features=rebuilder",
-    "cargo test ${@} --features=upcasting"
-]
+command = "cargo"
+args = ["test", "${@}", "--all-features"]
 
 # Clippy
 [tasks.lint]
