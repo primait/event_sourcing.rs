@@ -1,6 +1,6 @@
 [env]
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
-RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit:5672/rabbit"
 KAFKA_BROKERS_URL = "kafka:9092"
 
 [config]
