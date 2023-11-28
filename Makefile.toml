@@ -33,13 +33,13 @@ script = [
 ]
 
 # Format
-[tasks.format-check]
+[tasks.fmt-check]
 description = "Runs the cargo rustfmt plugin to check everything is well formatted"
 command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 # Tests
-[tasks.test]
+[tasks.tests]
 description = "Run tests"
 script = [
     "cargo test ${@}",
@@ -53,8 +53,9 @@ script = [
 ]
 
 # Clippy
-[tasks.clippy]
+[tasks.lint]
 description = "Run clippy linter"
+dependencies = ["fmt-check"]
 script = [
     "cargo clippy -- -D warnings",
     "cargo clippy --features=postgres -- -D warnings",
