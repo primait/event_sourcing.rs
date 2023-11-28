@@ -43,13 +43,13 @@ args = ["fmt", "--all", "--", "--check"]
 description = "Run tests"
 script = [
     "cargo test ${@}",
+    "cargo test ${@} --all-features",
     "cargo test ${@} --features=postgres",
     "cargo test ${@} --features=rebuilder",
     "cargo test ${@} --features=kafka",
     "cargo test ${@} --features=rabbit",
     "cargo test ${@} --features=rebuilder",
-    "cargo test ${@} --features=upcasting",
-    "cargo test ${@} --all-features"
+    "cargo test ${@} --features=upcasting"
 ]
 
 # Clippy

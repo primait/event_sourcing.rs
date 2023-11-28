@@ -19,7 +19,7 @@ async fn rabbit_event_bus_test() {
 
     let exchange: String = format!("{}_test_exchange", random_letters());
     let queue: String = format!("{}_test_queue", random_letters());
-    let routing_key: String = format!("{}__test_routing_key", random_letters());
+    let routing_key: String = format!("{}_test_routing_key", random_letters());
 
     let config: RabbitEventBusConfig = RabbitEventBusConfig::builder()
         .url(rabbit_url.as_str())
