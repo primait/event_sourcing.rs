@@ -45,7 +45,7 @@ jobs:
           127.0.0.1 rabbit
           " | sudo tee /etc/hosts
       - name: Run tests
-        run: cargo make tests
+        run: cargo make test
     services:
       postgres:
         image: public.ecr.aws/bitnami/postgresql:16

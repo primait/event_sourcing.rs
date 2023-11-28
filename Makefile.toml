@@ -39,14 +39,14 @@ command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 # Tests
-[tasks.tests]
+[tasks.test]
 description = "Run tests"
 command = "cargo"
 args = ["test", "${@}", "--all-features"]
 
 # Clippy
 [tasks.lint]
-description = "Run clippy linter"
+description = "Run clippy linter and check format"
 dependencies = ["fmt-check"]
 script = [
     "cargo clippy -- -D warnings",
