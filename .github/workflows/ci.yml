@@ -17,12 +17,14 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-make
-      - name: cargo fmt
-        run: cargo fmt --all -- --check
+      - name: cargo check format
+        run: cargo make format-check
       - name: Clippy
         run: cargo make clippy
+      - name: Clippy over examples
+        run: cargo make clippy-examples
       - name: Build docs
-        run: cargo doc --document-private-items --all-features --no-deps
+        run: cargo make docs
     env:
       RUSTDOCFLAGS: -Dwarnings
 
