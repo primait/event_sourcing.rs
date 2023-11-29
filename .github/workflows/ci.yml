@@ -13,10 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: install cargo-make
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make
+      - uses: taiki-e/install-action@cargo-make
       - run: cargo make fmt-check
       - run: cargo make clippy
       - run: cargo make clippy-examples
@@ -29,10 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: install cargo-make
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-make
+      - uses: taiki-e/install-action@cargo-make
       - name: Add hosts entries
         run: |
           echo "
