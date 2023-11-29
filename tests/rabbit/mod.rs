@@ -68,9 +68,7 @@ async fn rabbit_event_bus_test() {
 }
 
 async fn consumer(url: &str, exchange: &str, queue: &str, routing_key: &str) -> Consumer {
-    let conn = Connection::connect(&url, ConnectionProperties::default())
-        .await
-        .unwrap();
+    let conn = Connection::connect(url, ConnectionProperties::default()).await.unwrap();
 
     let channel = conn.create_channel().await.unwrap();
 
