@@ -17,12 +17,10 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-make
-      - name: Linting
-        run: cargo make lint
-      - name: Clippy over examples
-        run: cargo make clippy-examples
-      - name: Build docs
-        run: cargo make docs
+      - run: cargo make fmt-check
+      - run: cargo make clippy
+      - run: cargo make clippy-examples
+      - run: cargo make docs
     env:
       RUSTDOCFLAGS: -Dwarnings
 
@@ -44,8 +42,7 @@ jobs:
           127.0.0.1 kafka
           127.0.0.1 rabbit
           " | sudo tee /etc/hosts
-      - name: Run tests
-        run: cargo make test
+      - run: cargo make test
     services:
       postgres:
         image: public.ecr.aws/bitnami/postgresql:16
