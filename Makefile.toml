@@ -103,3 +103,8 @@ description = "Build docs as they are rendered on docs.rs"
 command = "cargo"
 args = ["doc", "--document-private-items", "--all-features", "--no-deps"]
 env = { "RUSTDOCFLAGS" = "-Dwarnings" }
+
+[tasks.release]
+description = "Task to release the package to crates.io"
+command = "cargo"
+args = ["release", "publish", "--no-confirm", "--allow-branch \"*\"", "--all-features", "--execute"]
