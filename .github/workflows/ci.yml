@@ -21,8 +21,6 @@ jobs:
       - run: cargo make clippy
       - run: cargo make clippy-examples
       - run: cargo make docs
-    env:
-      RUSTDOCFLAGS: -Dwarnings
 
   test:
     # Avoid duplicate jobs on PR from a branch on the same repo

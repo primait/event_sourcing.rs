@@ -102,3 +102,4 @@ script = [
 description = "Build docs as they are rendered on docs.rs"
 command = "cargo"
 args = ["doc", "--document-private-items", "--all-features", "--no-deps"]
+env = { "RUSTDOCFLAGS" = "-Dwarnings" }
