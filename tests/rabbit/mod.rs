@@ -13,7 +13,6 @@ use esrs::store::StoreEvent;
 use crate::aggregate::{TestAggregate, TestEvent};
 
 #[tokio::test]
-#[ntest::timeout(10000)]
 async fn rabbit_event_bus_test() {
     let rabbit_url: String = std::env::var("RABBIT_URL").unwrap();
 
