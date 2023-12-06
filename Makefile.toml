@@ -1,11 +1,6 @@
 [env]
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
-RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
-KAFKA_BROKERS_URL = "kafka:9092"
-
-[env.drone]
-DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
-RABBIT_URL = "amqp://rabbit:rabbit@rabbit/rabbit"
+RABBIT_URL = "amqp://rabbit:rabbit@rabbit:5672/rabbit"
 KAFKA_BROKERS_URL = "kafka:9092"
 
 [config]
@@ -14,9 +9,6 @@ default_to_workspace = false
 # Check
 [tasks.check]
 description = "Run checks for each feature"
-dependencies = ["check-ci"]
-
-[tasks.check-ci]
 script = [
     "cargo check",
     "cargo check --features=postgres",
@@ -30,9 +22,6 @@ script = [
 # Build
 [tasks.build]
 description = "Build the binaries for each feature"
-dependencies = ["build-ci"]
-
-[tasks.build-ci]
 script = [
     "cargo build -j 2",
     "cargo build -j 2 --features=postgres",
@@ -44,36 +33,25 @@ script = [
 ]
 
 # Format
-[tasks.format-ci]
-description = "Runs the cargo rustfmt plugin during CI"
+[tasks.fmt-check]
+description = "Runs the cargo rustfmt plugin to check everything is well formatted"
 command = "cargo"
 args = ["fmt", "--all", "--", "--check"]
 
 # Tests
 [tasks.test]
 description = "Run tests"
-dependencies = ["test-ci"]
-
-[tasks.test-ci]
-description = "Run tests during CI"
-script = [
-    "cargo test ${@}",
-    "cargo test ${@} --features=postgres",
-    "cargo test ${@} --features=rebuilder",
-    "cargo test ${@} --features=kafka",
-    "cargo test ${@} --features=rabbit",
-    "cargo test ${@} --features=rebuilder",
-    "cargo test ${@} --features=upcasting",
-    "cargo test ${@} --all-features"
-]
+command = "cargo"
+args = ["test", "${@}", "--all-features"]
 
 # Clippy
 [tasks.clippy]
 description = "Run clippy linter"
-dependencies = ["clippy-ci", "clippy-examples"]
+dependencies = ["clippy-scripts"]
 
-[tasks.clippy-ci]
-description = "Run clippy linter during CI"
+[tasks.clippy-scripts]
+description = "Run clippy linter"
+dependencies = ["fmt-check"]
 script = [
     "cargo clippy -- -D warnings",
     "cargo clippy --features=postgres -- -D warnings",
@@ -81,7 +59,7 @@ script = [
     "cargo clippy --features=rabbit -- -D warnings",
     "cargo clippy --features=rebuilder -- -D warnings",
     "cargo clippy --features=upcasting -- -D warnings",
-    "cargo clippy --all-features -- -D warnings"
+    "cargo clippy --all-targets --all-features -- -D warnings"
 ]
 
 # Run example
@@ -120,34 +98,13 @@ script = [
 ]
 
 # Docs
-[tasks.docsrs]
+[tasks.docs]
 description = "Build docs as they are rendered on docs.rs"
 command = "cargo"
-args = ["doc", "--all-features"]
+args = ["doc", "--document-private-items", "--all-features", "--no-deps"]
+env = { "RUSTDOCFLAGS" = "-Dwarnings" }
 
-[tasks.cargo-prune]
-description = "Run cargo prune"
+[tasks.release]
+description = "Task to release the package to crates.io"
 command = "cargo"
-args = ["prune"]
-
-[tasks.print-stats]
-description = "Print cache size"
-command = "du"
-args = ["-sh", "target", ".cargo"]
-
-[tasks.cache-cleanup]
-description = "Clean CI cache"
-dependencies = ["cargo-prune", "delete-artifacts", "print-stats"]
-
-[tasks.delete-artifacts]
-description = "Remove non cachable artifacts"
-script = [
-    '''
-    #!/bin/bash
-    set -e
-    set -x
-    find ./target/debug -type f -maxdepth 1 -delete || true
-    rm -rf ./target/{debug,release}/deps/{*prima-tracing*}
-    rm -rf ./target/{debug,release}/.fingerprint/*prima-tracing*
-    ''',
-]
+args = ["release", "publish", "--no-confirm", "--allow-branch \"*\"", "--all-features", "--execute"]

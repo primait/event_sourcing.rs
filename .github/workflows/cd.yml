@@ -1,0 +1,29 @@
+name: CD
+
+on:
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@cargo-release
+      - uses: taiki-e/install-action@cargo-make
+      - name: Get version
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Check version
+        if: ${{ github.event.release.tag_name != env.VERSION }}
+        run: |
+          echo "Github ref tag [${{ github.event.release.tag_name }}] is different from Cargo.toml version [${{ env.VERSION }}]"
+          exit 1
+      - run: cargo login "$CARGO_AUTH_KEY"
+        env:
+          CARGO_AUTH_KEY: ${{ secrets.CARGO_AUTH_KEY }}
+      - run: cargo make release

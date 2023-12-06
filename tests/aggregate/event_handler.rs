@@ -14,6 +14,6 @@ pub struct TestEventHandler {
 impl EventHandler<TestAggregate> for TestEventHandler {
     async fn handle(&self, event: &StoreEvent<TestEvent>) {
         let mut guard = self.total.lock().unwrap();
-        *guard = *guard + event.payload.add;
+        *guard += event.payload.add;
     }
 }

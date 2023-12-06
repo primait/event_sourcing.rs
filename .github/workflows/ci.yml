@@ -1,0 +1,88 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    # Avoid duplicate jobs on PR from a branch on the same repo
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-make
+      - run: cargo make fmt-check
+      - run: cargo make clippy
+      - run: cargo make clippy-examples
+      - run: cargo make docs
+
+  test:
+    # Avoid duplicate jobs on PR from a branch on the same repo
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-make
+      - name: Add hosts entries
+        run: |
+          echo "
+          127.0.0.1 postgres
+          127.0.0.1 kafka
+          127.0.0.1 rabbit
+          " | sudo tee /etc/hosts
+      - run: cargo make test
+    services:
+      postgres:
+        image: public.ecr.aws/bitnami/postgresql:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRESQL_DATABASE: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+      rabbitmq:
+        image: public.ecr.aws/bitnami/rabbitmq:3.12
+        ports:
+          - 5672:5672
+        env:
+          RABBITMQ_VHOST: rabbit
+          RABBITMQ_PASSWORD: rabbit
+          RABBITMQ_USERNAME: rabbit
+      kafka:
+        image: public.ecr.aws/prima/kafka:7.3.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://127.0.0.1:9092
+          KAFKA_BROKER_ID: 1
+          KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_JMX_HOSTNAME: kafka
+          KAFKA_JMX_PORT: 9101
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      zookeeper:
+        image: public.ecr.aws/prima/zookeeper:7.3.0
+        ports:
+          - 2181:2181
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+
+  alls-green:
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name)
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - test
+    steps:
+      - run: ${{ !contains(needs.*.result, 'failure') }}

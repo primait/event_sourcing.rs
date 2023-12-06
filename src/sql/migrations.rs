@@ -75,8 +75,6 @@ mod tests {
             Ok(vec![])
         }
 
-        fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {
-            ()
-        }
+        fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {}
     }
 }

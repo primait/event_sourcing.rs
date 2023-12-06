@@ -143,7 +143,7 @@ where
             publish_options: config.publish_options,
             publish_properties: config.publish_properties,
             error_handler: config.error_handler,
-            _phantom: PhantomData::default(),
+            _phantom: PhantomData,
         })
     }
 }
