@@ -50,8 +50,8 @@ jobs:
           - 5672:5672
         env:
           RABBITMQ_VHOST: rabbit
-          RABBITMQ_PASSWORD: rabbit
-          RABBITMQ_USERNAME: rabbit
+          RABBITMQ_DEFAULT_PASS: rabbit
+          RABBITMQ_DEFAULT_USER: rabbit
       kafka:
         image: public.ecr.aws/prima/kafka:7.3.0
         ports:
