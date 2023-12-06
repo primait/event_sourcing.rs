@@ -45,7 +45,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
       rabbitmq:
-        image: public.ecr.aws/bitnami/rabbitmq:3.12
+        image: rabbitmq:3.11.26-management
         ports:
           - 5672:5672
         env:
