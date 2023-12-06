@@ -49,7 +49,7 @@ jobs:
         ports:
           - 5672:5672
         env:
-          RABBITMQ_VHOST: rabbit
+          RABBITMQ_DEFAULT_VHOST: rabbit
           RABBITMQ_DEFAULT_PASS: rabbit
           RABBITMQ_DEFAULT_USER: rabbit
       kafka:
