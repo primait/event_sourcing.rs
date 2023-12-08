@@ -22,8 +22,8 @@ pub enum Consistency {
 impl AsRef<str> for Consistency {
     fn as_ref(&self) -> &str {
         match self {
-            Consistency::Strong => "strong",
-            Consistency::Eventual => "eventual",
+            Self::Strong => "strong",
+            Self::Eventual => "eventual",
         }
     }
 }

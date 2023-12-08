@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, Pool, Postgres};
@@ -227,8 +227,7 @@ fn policy_test(pool: Pool<Postgres>) {
             .await
             .unwrap();
 
-    let guard: MutexGuard<Uuid> = last_id.lock().unwrap();
-    assert_eq!(*guard, event_internal_id);
+    assert_eq!(*last_id.lock().unwrap(), event_internal_id);
 }
 
 async fn create_test_projection_table(pool: &Pool<Postgres>) {
@@ -261,13 +260,13 @@ impl std::error::Error for TestError {}
 
 impl From<sqlx::Error> for TestError {
     fn from(_: sqlx::Error) -> Self {
-        TestError
+        Self
     }
 }
 
 impl From<serde_json::Error> for TestError {
     fn from(_: serde_json::Error) -> Self {
-        TestError
+        Self
     }
 }
 
@@ -344,8 +343,7 @@ struct TestPolicy {
 #[async_trait::async_trait]
 impl Policy<TestAggregate> for TestPolicy {
     async fn handle_event(&self, event: &StoreEvent<TestEvent>) -> Result<(), TestError> {
-        let mut guard = self.last_id.lock().unwrap();
-        *guard = event.payload.id;
+        *self.last_id.lock().unwrap() = event.payload.id;
         Ok(())
     }
 }

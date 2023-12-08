@@ -291,7 +291,7 @@ where
                         error = ?error,
                     }, "projector failed to project event");
 
-                    if let Consistency::Strong = projector.consistency() {
+                    if matches!(projector.consistency(), Consistency::Strong) {
                         return Err(error);
                     }
                 }

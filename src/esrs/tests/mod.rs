@@ -140,12 +140,12 @@ impl std::error::Error for TestError {}
 
 impl From<sqlx::Error> for TestError {
     fn from(_: sqlx::Error) -> Self {
-        TestError
+        Self
     }
 }
 
 impl From<serde_json::Error> for TestError {
     fn from(_: serde_json::Error) -> Self {
-        TestError
+        Self
     }
 }
