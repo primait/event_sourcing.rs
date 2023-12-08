@@ -14,7 +14,12 @@ tokio = { version = "1.6", features = ["full"] }
 
 esrs = { version = "*", path = "../../", features = ["postgres"] }
 # Sql library for async impl
-sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = { version = "0.7.3", features = [
+  "runtime-tokio-native-tls",
+  "uuid",
+  "json",
+  "chrono",
+] }
 
 async-trait = "0.1.50"
 serde = { version = "1.0", features = ["derive"] }

@@ -21,7 +21,7 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
     // Get all events from the event_store
     let events: Vec<StoreEvent<EventA>> = aggregate
         .event_store
-        .stream_events(&mut transaction)
+        .stream_events(&mut *transaction)
         .collect::<Vec<Result<StoreEvent<EventA>, CounterError>>>()
         .await
         .into_iter()
@@ -30,7 +30,7 @@ pub async fn rebuild_single_projection_all_at_once(pool: Pool<Postgres>) {
 
     // From within the transaction truncate the projection table you are going to rebuild
     sqlx::query("TRUNCATE TABLE counters")
-        .execute(&mut transaction)
+        .execute(&mut *transaction)
         .await
         .expect("Failed to drop table");
 

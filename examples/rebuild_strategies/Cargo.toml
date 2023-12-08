@@ -19,7 +19,12 @@ futures-util = "0.3"
 esrs = { version = "*", path = "../../", features = ["postgres"] }
 simple_projection = { version = "*", path = "../simple_projection/" }
 # Sql library for async impl
-sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"] }
+sqlx = { version = "0.7.3", features = [
+  "runtime-tokio-native-tls",
+  "uuid",
+  "json",
+  "chrono",
+] }
 
 async-trait = "0.1.50"
 chrono = { version = "0.4", features = ["serde"] }
