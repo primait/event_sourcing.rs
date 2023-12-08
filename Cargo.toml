@@ -53,7 +53,7 @@ arc-swap = "1.5"
 ouroboros = "0.18.0"
 
 # Sql library for async impl
-sqlx = { version = "0.6.1", features = [
+sqlx = { version = "0.7.3", features = [
   "runtime-tokio-native-tls",
   "uuid",
   "json",
