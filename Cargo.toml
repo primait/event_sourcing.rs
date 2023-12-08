@@ -1,6 +1,11 @@
 [package]
 authors = ["Simone Cottini <cottini.simone@gmail.com>"]
-categories = ["rust-patterns", "web-programming", "asynchronous", "data-structures"]
+categories = [
+  "rust-patterns",
+  "web-programming",
+  "asynchronous",
+  "data-structures",
+]
 description = "A Prima.it-opinionated library to achieve cqrs/es"
 edition = "2018"
 keywords = ["architecture", "ddd", "event-sourcing", "cqrs", "es"]
@@ -16,15 +21,15 @@ all-features = true
 
 [workspace]
 members = [
-    "examples/aggregate_merging",
-    "examples/customize_persistence_flow",
-    "examples/delete_aggregate",
-    "examples/dyn_event_store_in_aggregate",
-    "examples/rebuild_strategies",
-    "examples/simple_projection",
-    "examples/simple_saga",
-    "examples/simple_side_effect",
-    "examples/locking_strategies",
+  "examples/aggregate_merging",
+  "examples/customize_persistence_flow",
+  "examples/delete_aggregate",
+  "examples/dyn_event_store_in_aggregate",
+  "examples/rebuild_strategies",
+  "examples/simple_projection",
+  "examples/simple_saga",
+  "examples/simple_side_effect",
+  "examples/locking_strategies",
 ]
 
 [features]
@@ -37,7 +42,7 @@ serde_json = "1.0"
 # Uuid generation
 uuid = { version = "1.1", features = ["serde", "v4"] }
 # Time esrs-core
-chrono = {version = "0.4", features = ["serde"]}
+chrono = { version = "0.4", features = ["serde"] }
 # Build async trait
 async-trait = "0.1.50"
 
@@ -45,13 +50,18 @@ async-trait = "0.1.50"
 arc-swap = "1.5"
 
 # Self-referential structs (for PgStoreLockGuard)
-ouroboros = "0.15"
+ouroboros = "0.18.0"
 
 # Sql library for async impl
-sqlx = {version = "0.6.1", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true}
+sqlx = { version = "0.6.1", features = [
+  "runtime-tokio-native-tls",
+  "uuid",
+  "json",
+  "chrono",
+], optional = true }
 # To stream over sqlx results
 futures = "0.3"
 tracing = "0.1"
 
 [dev-dependencies]
-tokio = {version = "1.6", features = ["full"]}
+tokio = { version = "1.6", features = ["full"] }

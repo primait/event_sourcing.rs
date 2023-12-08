@@ -69,7 +69,15 @@ args = ["clippy", "--workspace", "--", "-D", "warnings"]
 
 [tasks.clippy-ci-postgres]
 command = "cargo"
-args = ["clippy", "--workspace", "--features", "postgres", "--", "-D", "warnings"]
+args = [
+  "clippy",
+  "--workspace",
+  "--features",
+  "postgres",
+  "--",
+  "-D",
+  "warnings",
+]
 
 # Run example
 [tasks.example]
@@ -98,14 +106,12 @@ description = "Clean CI cache"
 dependencies = ["cargo-prune", "delete-artifacts", "print-stats"]
 
 [tasks.delete-artifacts]
-description = "Remove non cachable artifacts"
-script = [
-    '''
+description = "Remove non cacheable artifacts"
+script = ['''
     #!/bin/bash
     set -e
     set -x
     find ./target/debug -type f -maxdepth 1 -delete || true
     rm -rf ./target/{debug,release}/deps/{*prima-tracing*}
     rm -rf ./target/{debug,release}/.fingerprint/*prima-tracing*
-    ''',
-]
+    ''']
