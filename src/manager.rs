@@ -102,6 +102,11 @@ where
             .await
             .map_err(AggregateManagerError::EventStore)
     }
+
+    /// Returns the internal event store
+    pub fn event_store(&self) -> &E {
+        &self.event_store
+    }
 }
 
 /// The Aggregate Manager may return errors of two types: `Aggregate` errors and `EventStore` errors.
