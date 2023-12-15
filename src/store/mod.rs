@@ -32,7 +32,7 @@ impl EventStoreLockGuard {
 /// An EventStore is responsible for persisting events that an aggregate emits into a database, and loading the events
 /// that represent an aggregate's history from the database.
 #[async_trait]
-pub trait EventStore {
+pub trait EventStore: Sync {
     type Aggregate: crate::Aggregate;
     type Error: std::error::Error;
 
@@ -78,7 +78,7 @@ where
     A::Event: Send + Sync,
     A::State: Send,
     E: std::error::Error,
-    T: Deref<Target = dyn EventStore<Aggregate = A, Error = E> + Sync> + Sync,
+    T: Deref<Target = dyn EventStore<Aggregate = A, Error = E>> + Sync,
     for<'a> A::Event: 'a,
 {
     type Aggregate = A;
