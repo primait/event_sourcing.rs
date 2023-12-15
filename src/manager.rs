@@ -1,5 +1,3 @@
-use std::fmt::{Debug, Formatter};
-
 use uuid::Uuid;
 
 use crate::store::{EventStore, StoreEvent};
@@ -31,19 +29,18 @@ where
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     ///
     /// The store transactional persists the events - recording it in the aggregate instance's history.
-    pub async fn handle_command(
+    pub async fn handle_command<Er>(
         &self,
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
-    ) -> Result<(), AggregateManagerError<E>> {
+    ) -> Result<(), Er>
+    where
+        Er: From<E::Error> + From<<E::Aggregate as Aggregate>::Error> + std::error::Error,
+    {
         let events: Vec<<E::Aggregate as Aggregate>::Event> =
-            <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command)
-                .map_err(AggregateManagerError::Aggregate)?;
+            <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command)?;
 
-        self.event_store
-            .persist(&mut aggregate_state, events)
-            .await
-            .map_err(AggregateManagerError::EventStore)?;
+        self.event_store.persist(&mut aggregate_state, events).await?;
 
         Ok(())
     }
@@ -53,14 +50,13 @@ where
     pub async fn load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, AggregateManagerError<E>> {
+    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, E::Error> {
         let aggregate_id: Uuid = aggregate_id.into();
 
         let store_events: Vec<StoreEvent<<E::Aggregate as Aggregate>::Event>> = self
             .event_store
             .by_aggregate_id(aggregate_id)
-            .await
-            .map_err(AggregateManagerError::EventStore)?
+            .await?
             .into_iter()
             .collect();
 
@@ -80,13 +76,9 @@ where
     pub async fn lock_and_load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, AggregateManagerError<E>> {
+    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, E::Error> {
         let id = aggregate_id.into();
-        let guard = self
-            .event_store
-            .lock(id)
-            .await
-            .map_err(AggregateManagerError::EventStore)?;
+        let guard = self.event_store.lock(id).await?;
 
         Ok(self.load(id).await?.map(|mut state| {
             state.set_lock(guard);
@@ -96,43 +88,12 @@ where
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
     /// and transactional read side projections, or fail.
-    pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), AggregateManagerError<E>> {
-        self.event_store
-            .delete(aggregate_id.into())
-            .await
-            .map_err(AggregateManagerError::EventStore)
+    pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), E::Error> {
+        self.event_store.delete(aggregate_id.into()).await
     }
 
     /// Returns the internal event store
     pub fn event_store(&self) -> &E {
         &self.event_store
-    }
-}
-
-/// The Aggregate Manager may return errors of two types: `Aggregate` errors and `EventStore` errors.
-/// An `Aggregate` error is returned when a validation error occurs while handling a specific command
-/// within the underlying [`Aggregate`].
-/// On the other hand, an `EventStore` error can be generated during event insertion into the store,
-/// due to serialization issues, or as a result of a [`crate::handler::TransactionalEventHandler`] error.  
-pub enum AggregateManagerError<E>
-where
-    E: EventStore,
-{
-    Aggregate(<<E as EventStore>::Aggregate as Aggregate>::Error),
-    EventStore(<E as EventStore>::Error),
-}
-
-impl<E> Debug for AggregateManagerError<E>
-where
-    E: EventStore,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AggregateManagerError::Aggregate(_) => {
-                let typename = std::any::type_name::<<<E as EventStore>::Aggregate as Aggregate>::Error>();
-                write!(f, "{}", typename)
-            }
-            AggregateManagerError::EventStore(err) => write!(f, "{:?}", err),
-        }
     }
 }

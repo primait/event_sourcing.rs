@@ -17,5 +17,5 @@ pub enum PgStoreError {
     Json(#[from] serde_json::Error),
     /// Error while running a TransactionalEventHandler inside of the event store.
     #[error(transparent)]
-    Custom(Box<dyn std::error::Error + Send>),
+    Custom(Box<dyn std::error::Error + Send + Sync>),
 }

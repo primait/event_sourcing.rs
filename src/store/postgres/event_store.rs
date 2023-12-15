@@ -50,7 +50,7 @@ where
 impl<A> PgStore<A>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
+    A::Event: Event,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -144,8 +144,7 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
-    A::State: Send,
+    A::Event: Event,
 {
     type Aggregate = A;
     type Error = PgStoreError;

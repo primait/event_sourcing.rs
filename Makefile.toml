@@ -9,6 +9,10 @@ default_to_workspace = false
 # Check
 [tasks.check]
 description = "Run checks for each feature"
+dependencies = ["check-scripts"]
+
+[tasks.check-scripts]
+description = "Run checks for each feature"
 script = [
     "cargo check",
     "cargo check --features=postgres",
