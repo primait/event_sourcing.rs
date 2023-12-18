@@ -9,6 +9,7 @@ use esrs::store::postgres::PgStore;
 use esrs::store::StoreEvent;
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
+use crate::SagaError;
 
 #[derive(Clone)]
 pub struct SagaEventHandler {
@@ -26,7 +27,10 @@ impl EventHandler<SagaAggregate> for SagaEventHandler {
                 Ok(Some(state)) => {
                     let mut guard = self.side_effect_mutex.lock().await;
                     *guard = true;
-                    if let Err(err) = manager.handle_command(state, SagaCommand::RegisterMutation).await {
+                    if let Err(err) = manager
+                        .handle_command::<SagaError>(state, SagaCommand::RegisterMutation)
+                        .await
+                    {
                         eprintln!("Error while handling register mutation command: {:?}", err)
                     }
                 }

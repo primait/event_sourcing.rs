@@ -32,9 +32,19 @@ async fn main() {
         .expect("Failed to create PgStore");
 
     let manager: AggregateManager<_> = AggregateManager::new(store);
-    let _ = manager
+    let _: Result<(), Error> = manager
         .handle_command(Default::default(), BookCommand::Buy { num_of_copies: 1 })
         .await;
+}
+
+//////////////////////////////
+// Global error
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Aggregate(#[from] BookError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
 }
 
 //////////////////////////////

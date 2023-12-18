@@ -18,16 +18,24 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::EventStore;
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView, BasicViewRow};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicView, BasicViewRow};
 use crate::transactional_event_handler::BasicTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]
 mod common;
 mod transactional_event_handler;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Aggregate(#[from] BasicError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -51,7 +59,7 @@ async fn main() {
 
     let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(store.clone());
 
-    let result = manager.handle_command(state, command).await;
+    let result: Result<(), Error> = manager.handle_command(state, command).await;
 
     assert!(result.is_err());
     // No events have been stored. Transactional event handler rollbacked the value
@@ -65,9 +73,9 @@ async fn main() {
     let state: AggregateState<()> = AggregateState::new();
     let id: Uuid = *state.id();
 
-    manager.handle_command(state, command).await.unwrap();
+    let result: Result<(), Error> = manager.handle_command(state, command).await;
+    assert!(result.is_ok());
 
     let view: BasicViewRow = view.by_id(id, &pool).await.unwrap().unwrap();
-
     assert_eq!(view.content, content);
 }

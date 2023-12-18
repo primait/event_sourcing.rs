@@ -43,7 +43,10 @@ pub struct BasicEvent {
 impl esrs::event::Upcaster for BasicEvent {}
 
 #[allow(dead_code)]
+#[derive(Debug, thiserror::Error)]
 pub enum BasicError {
+    #[error("Empty content")]
     EmptyContent,
+    #[error("Custom error: {}", .0)]
     Custom(String),
 }

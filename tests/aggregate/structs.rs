@@ -1,5 +1,3 @@
-use std::fmt::{Display, Formatter};
-
 use serde::{Deserialize, Serialize};
 
 pub enum TestCommand {
@@ -15,10 +13,5 @@ pub struct TestEvent {
 #[cfg(feature = "upcasting")]
 impl esrs::event::Upcaster for TestEvent {}
 
+#[derive(Debug, thiserror::Error)]
 pub enum TestError {}
-
-impl Display for TestError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "test error")
-    }
-}

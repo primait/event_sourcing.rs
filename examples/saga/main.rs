@@ -12,18 +12,26 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::EventStore;
 use esrs::AggregateState;
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
-use crate::common::new_pool;
+use crate::common::{new_pool, CommonError};
 use crate::event_handler::SagaEventHandler;
 
 mod aggregate;
 #[path = "../common/lib.rs"]
 mod common;
 mod event_handler;
+
+#[derive(Debug, thiserror::Error)]
+pub enum SagaError {
+    #[error(transparent)]
+    Aggregate(#[from] CommonError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -45,10 +53,8 @@ async fn main() {
     let state: AggregateState<()> = AggregateState::default();
     let id: Uuid = *state.id();
 
-    manager
-        .handle_command(state, SagaCommand::RequestMutation)
-        .await
-        .unwrap();
+    let result: Result<(), SagaError> = manager.handle_command(state, SagaCommand::RequestMutation).await;
+    assert!(result.is_ok());
 
     let events = store.by_aggregate_id(id).await.unwrap();
 

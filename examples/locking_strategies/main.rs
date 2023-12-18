@@ -40,12 +40,12 @@ use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use esrs::manager::{AggregateManager, AggregateManagerError};
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::manager::AggregateManager;
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::EventStore;
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEvent};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicEvent};
 
 #[path = "../common/lib.rs"]
 mod common;
@@ -54,10 +54,7 @@ type Agg = AggregateManager<PgStore<BasicAggregate>>;
 
 /// Increment the value behind this `aggregate_id` as soon as atomical access can be obtained.
 /// The lock can be obtained even if there are current optimistic accesses! Avoid mixing the two strategies when writing.
-pub async fn increment_atomically(
-    manager: Agg,
-    aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
+pub async fn increment_atomically(manager: Agg, aggregate_id: Uuid) -> Result<(), LockExampleError> {
     let aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     manager
         .handle_command(
@@ -66,16 +63,12 @@ pub async fn increment_atomically(
                 content: "whatever".to_string(),
             },
         )
-        .await?;
-    Ok(())
+        .await
 }
 
 /// Increment the value behind this `aggregate_id` with an optimistic locking strategy.
 /// Optimistic access ignores any current active lock! Avoid mixing the two strategies when writing.
-pub async fn increment_optimistically(
-    manager: Agg,
-    aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
+pub async fn increment_optimistically(manager: Agg, aggregate_id: Uuid) -> Result<(), LockExampleError> {
     // Every optimistic access can take place concurrently...
     let aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...and events are persisted in non-deterministic order.
@@ -87,17 +80,13 @@ pub async fn increment_optimistically(
                 content: "whatever".to_string(),
             },
         )
-        .await?;
-    Ok(())
+        .await
 }
 
 /// Load the aggregate state for read-only purposes, preventing others (that use locking) from modifying it.
 /// Avoid using atomic reads if writes are optimistic, as the state would be modified anyway!
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
-pub async fn with_atomic_read(
-    manager: Agg,
-    aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
+pub async fn with_atomic_read(manager: Agg, aggregate_id: Uuid) -> Result<(), LockExampleError> {
     let mut aggregate_state = manager.lock_and_load(aggregate_id).await?.unwrap_or_default();
     // No one else (employing locking!) can read or modify the state just loaded here,
     // ensuring this really is the *latest* aggregate state.
@@ -111,10 +100,7 @@ pub async fn with_atomic_read(
 /// Load the aggregate state for read-only purposes, optimistically assuming nothing is modifying it.
 /// If writes are atomic, it is perfectly fine to use a mixture of atomic and optimistic reads.
 /// Otherwise, optimistic reads are allowed: beware there are no guarantees the state loaded is actually the latest.
-pub async fn with_optimistic_read(
-    manager: Agg,
-    aggregate_id: Uuid,
-) -> Result<(), AggregateManagerError<PgStore<BasicAggregate>>> {
+pub async fn with_optimistic_read(manager: Agg, aggregate_id: Uuid) -> Result<(), LockExampleError> {
     // Read the state now, ignoring any explicit locking...
     let mut aggregate_state = manager.load(aggregate_id).await?.unwrap_or_default();
     // ...but nothing prevents something else from updating the data in the store in the meanwhile,
@@ -124,6 +110,14 @@ pub async fn with_optimistic_read(
         aggregate_state.next_sequence_number()
     );
     Ok(())
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum LockExampleError {
+    #[error(transparent)]
+    Aggregate(#[from] BasicError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
 }
 
 /// Locking showcase

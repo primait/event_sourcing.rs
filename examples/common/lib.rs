@@ -19,4 +19,5 @@ mod shared;
 
 mod util;
 
+#[derive(Debug, thiserror::Error)]
 pub enum CommonError {}
