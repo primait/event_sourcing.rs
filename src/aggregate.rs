@@ -19,18 +19,18 @@ pub trait Aggregate {
 
     /// Internal aggregate state. This will be wrapped in [`crate::state::AggregateState`] and could
     /// be used to validate commands.
-    type State: Default + Send;
+    type State: Default;
 
     /// A command is an action that the caller can execute over an aggregate in order to let it emit
     /// an event.
-    type Command: Send;
+    type Command;
 
     /// An event represents a fact that took place in the domain. They are the source of truth;
     /// your current state is derived from the events.
-    type Event: Send + Sync;
+    type Event;
 
     /// This associated type is used to get domain errors while handling a command.
-    type Error: std::error::Error + Send + Sync;
+    type Error: std::error::Error;
 
     /// Handles, validate a command and emits events.
     ///

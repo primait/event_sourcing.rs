@@ -91,9 +91,4 @@ where
     pub async fn delete(&self, aggregate_id: impl Into<Uuid> + Send) -> Result<(), E::Error> {
         self.event_store.delete(aggregate_id.into()).await
     }
-
-    /// Returns the internal event store
-    pub fn event_store(&self) -> &E {
-        &self.event_store
-    }
 }
