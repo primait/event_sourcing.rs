@@ -5,22 +5,22 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
-use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use sqlx::pool::PoolConnection;
 use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey};
 use sqlx::types::Json;
+use sqlx::{Executor, PgConnection, Pool, Postgres, Transaction};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use crate::{Aggregate, AggregateState};
 use crate::bus::EventBus;
 use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
 use crate::sql::event::DbEvent;
 use crate::sql::statements::{Statements, StatementsHandler};
-use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::store::postgres::PgStoreError;
+use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
+use crate::{Aggregate, AggregateState};
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
