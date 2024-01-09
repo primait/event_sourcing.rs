@@ -2,16 +2,16 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 #[cfg(not(feature = "upcasting"))]
-pub trait Event: Serialize + DeserializeOwned + Send + Sync {}
+pub trait Event: Serialize + DeserializeOwned {}
 
 #[cfg(not(feature = "upcasting"))]
-impl<T> Event for T where T: Serialize + DeserializeOwned + Send + Sync {}
+impl<T> Event for T where T: Serialize + DeserializeOwned {}
 
 #[cfg(feature = "upcasting")]
-pub trait Event: Serialize + DeserializeOwned + Upcaster + Send + Sync {}
+pub trait Event: Serialize + DeserializeOwned + Upcaster {}
 
 #[cfg(feature = "upcasting")]
-impl<T> Event for T where T: Serialize + DeserializeOwned + Upcaster + Send + Sync {}
+impl<T> Event for T where T: Serialize + DeserializeOwned + Upcaster {}
 
 #[cfg(feature = "upcasting")]
 pub trait Upcaster
