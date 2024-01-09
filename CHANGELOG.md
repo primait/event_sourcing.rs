@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.14.0] - 2024-01-09
+
+### Added
+
+- [[#185]]: `AggregateManager::handle_command` is generic in Error.
+
+### Fixed
+
+- [[#185]]: `PgStore` is now always `Clone`able.
+
+---
 ## [0.13.0] - 2023-09-12
 
 ### Added
@@ -285,7 +296,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/primait/event_sourcing.rs/compare/0.13.0...0.14.0
 [0.13.0]: https://github.com/primait/event_sourcing.rs/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/primait/event_sourcing.rs/compare/0.10.2...0.11.0
@@ -299,6 +311,7 @@ Refer to: [#107], [#108] and [#109]
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 
+[#185]: https://github.com/primait/event_sourcing.rs/pull/185
 [#175]: https://github.com/primait/event_sourcing.rs/pull/175
 [#164]: https://github.com/primait/event_sourcing.rs/pull/164
 [#161]: https://github.com/primait/event_sourcing.rs/pull/161

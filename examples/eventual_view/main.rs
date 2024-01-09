@@ -6,13 +6,21 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicEventHandler, BasicView};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicEventHandler, BasicView};
 
 #[path = "../common/lib.rs"]
 mod common;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Aggregate(#[from] BasicError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -38,7 +46,7 @@ async fn main() {
     };
 
     AggregateManager::new(store)
-        .handle_command(state, command)
+        .handle_command::<Error>(state, command)
         .await
         .unwrap();
 

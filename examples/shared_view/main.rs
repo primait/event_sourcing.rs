@@ -4,13 +4,23 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, AggregateA, AggregateB, CommandA, CommandB, SharedEventHandler, SharedView};
+use crate::common::{
+    new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, SharedEventHandler, SharedView,
+};
 
 #[path = "../common/lib.rs"]
 mod common;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Aggregate(#[from] CommonError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -40,14 +50,14 @@ async fn main() {
     let state_a: AggregateState<i32> = AggregateState::new();
     let aggregate_id_a: Uuid = *state_a.id();
     AggregateManager::new(store_a)
-        .handle_command(state_a, CommandA { v: 5, shared_id })
+        .handle_command::<Error>(state_a, CommandA { v: 5, shared_id })
         .await
         .unwrap();
 
     let state_b: AggregateState<i32> = AggregateState::new();
     let aggregate_id_b: Uuid = *state_b.id();
     AggregateManager::new(store_b)
-        .handle_command(state_b, CommandB { v: 7, shared_id })
+        .handle_command::<Error>(state_b, CommandB { v: 7, shared_id })
         .await
         .unwrap();
 

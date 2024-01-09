@@ -17,10 +17,10 @@ use uuid::Uuid;
 use esrs::bus::kafka::{KafkaEventBus, KafkaEventBusConfig};
 use esrs::bus::rabbit::{RabbitEventBus, RabbitEventBusConfig};
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, random_letters, BasicAggregate, BasicCommand, BasicEventHandler, BasicView};
+use crate::common::{new_pool, random_letters, BasicAggregate, BasicCommand, BasicError, BasicEventHandler, BasicView};
 use crate::kafka::KafkaEventBusConsumer;
 use crate::rabbit::RabbitEventBusConsumer;
 
@@ -28,6 +28,14 @@ use crate::rabbit::RabbitEventBusConsumer;
 mod common;
 mod kafka;
 mod rabbit;
+
+#[derive(Debug, thiserror::Error)]
+pub enum EventBusError {
+    #[error(transparent)]
+    Aggregate(#[from] BasicError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -107,7 +115,7 @@ async fn main() {
     let command = BasicCommand {
         content: content.to_string(),
     };
-    manager.handle_command(aggregate_state, command).await.unwrap();
+    let _: Result<(), EventBusError> = manager.handle_command(aggregate_state, command).await;
 
     let (rabbit_timeout_result, kafka_timeout_result) = tokio::join!(rabbit_join_handle, kafka_join_handle);
 

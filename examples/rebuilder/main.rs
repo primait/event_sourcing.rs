@@ -37,10 +37,10 @@ use uuid::Uuid;
 
 use esrs::manager::AggregateManager;
 use esrs::rebuilder::{PgRebuilder, Rebuilder};
-use esrs::store::postgres::{PgStore, PgStoreBuilder};
+use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicView};
+use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicView};
 use crate::event_handler::{AnotherEventHandler, BasicEventHandlerV1, BasicEventHandlerV2};
 use crate::transactional_event_handler::{BasicTransactionalEventHandlerV1, BasicTransactionalEventHandlerV2};
 
@@ -48,6 +48,14 @@ use crate::transactional_event_handler::{BasicTransactionalEventHandlerV1, Basic
 mod common;
 mod event_handler;
 mod transactional_event_handler;
+
+#[derive(Debug, thiserror::Error)]
+pub enum RebuilderError {
+    #[error(transparent)]
+    Aggregate(#[from] BasicError),
+    #[error(transparent)]
+    Store(#[from] PgStoreError),
+}
 
 #[tokio::main]
 async fn main() {
@@ -86,7 +94,7 @@ async fn setup(aggregate_id: Uuid, view: BasicView, transactional_view: BasicVie
 
     let manager: AggregateManager<PgStore<BasicAggregate>> = AggregateManager::new(pg_store);
     manager
-        .handle_command(
+        .handle_command::<RebuilderError>(
             AggregateState::with_id(aggregate_id),
             BasicCommand {
                 content: "basic_command".to_string(),

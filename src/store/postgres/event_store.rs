@@ -27,7 +27,6 @@ use crate::{Aggregate, AggregateState};
 ///
 /// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
 /// reference.
-#[derive(Clone)]
 pub struct PgStore<A>
 where
     A: Aggregate,
@@ -50,7 +49,7 @@ where
 impl<A> PgStore<A>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
+    A::Event: Event + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -144,8 +143,8 @@ impl UnlockOnDrop for PgStoreLockGuard {}
 impl<A> EventStore for PgStore<A>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
     A::State: Send,
+    A::Event: Event + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;
@@ -299,5 +298,16 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
         f.debug_struct("PgStore")
             .field("statements", &self.inner.statements)
             .finish()
+    }
+}
+
+impl<A> Clone for PgStore<A>
+where
+    A: Aggregate,
+{
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
     }
 }
