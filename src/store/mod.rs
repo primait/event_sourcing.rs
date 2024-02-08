@@ -69,7 +69,7 @@ pub trait EventStore {
 }
 
 /// Blanket implementation making an [`EventStore`] every (smart) pointer to an [`EventStore`],
-/// e.g. &Store, Box<Store>, Arc<Store>.
+/// e.g. `&Store`, `Box<Store>`, `Arc<Store>`.
 /// This is particularly useful when there's the need in your codebase to have a generic [`EventStore`].
 #[async_trait]
 impl<A, E, T, S> EventStore for T
