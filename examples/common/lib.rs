@@ -1,23 +1,15 @@
 //! Common structs shared between all the other examples
 
-pub use a::*;
-pub use b::*;
+pub mod a;
+pub mod b;
 #[cfg(feature = "postgres")]
-pub use basic::*;
-#[cfg(feature = "postgres")]
-pub use shared::*;
-pub use util::*;
-
-mod a;
-mod b;
-#[cfg(feature = "postgres")]
-mod basic;
+pub mod basic;
 
 #[allow(dead_code)]
 #[cfg(feature = "postgres")]
-mod shared;
+pub mod shared;
 
-mod util;
+pub mod util;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommonError {}

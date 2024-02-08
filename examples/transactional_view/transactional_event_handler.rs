@@ -5,7 +5,8 @@ use esrs::handler::TransactionalEventHandler;
 use esrs::store::postgres::PgStoreError;
 use esrs::store::StoreEvent;
 
-use crate::common::{BasicAggregate, BasicEvent, BasicView};
+use crate::common::basic::view::BasicView;
+use crate::common::basic::{BasicAggregate, BasicEvent};
 
 pub struct BasicTransactionalEventHandler {
     pub view: BasicView,

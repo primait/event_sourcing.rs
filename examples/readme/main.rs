@@ -1,17 +1,15 @@
-use sqlx::{PgConnection, Pool, Postgres};
-
 use serde::{Deserialize, Serialize};
+use sqlx::{PgConnection, Pool, Postgres};
+use thiserror::Error;
 
+use esrs::bus::EventBus;
 use esrs::handler::{EventHandler, TransactionalEventHandler};
 use esrs::manager::AggregateManager;
 use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::StoreEvent;
 use esrs::Aggregate;
 
-use esrs::bus::EventBus;
-use thiserror::Error;
-
-use crate::common::new_pool;
+use crate::common::util::new_pool;
 
 #[path = "../common/lib.rs"]
 mod common;

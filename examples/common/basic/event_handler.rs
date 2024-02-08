@@ -5,7 +5,8 @@ use uuid::Uuid;
 use esrs::handler::EventHandler;
 use esrs::store::StoreEvent;
 
-use crate::common::{BasicAggregate, BasicEvent, BasicView};
+use crate::common::basic::view::BasicView;
+use crate::common::basic::{BasicAggregate, BasicEvent};
 
 #[derive(Clone)]
 pub struct BasicEventHandler {

@@ -5,7 +5,8 @@ use esrs::handler::TransactionalEventHandler;
 use esrs::store::postgres::PgStoreError;
 use esrs::store::StoreEvent;
 
-use crate::common::{BasicAggregate, BasicEvent, BasicView};
+use crate::common::basic::view::BasicView;
+use crate::common::basic::{BasicAggregate, BasicEvent};
 
 /// The `BasicTransactionalEventHandlerV1` and `BasicTransactionalEventHandlerV1` exists in this
 /// example just for the sake of showing how a single transactional event handler, in this case called

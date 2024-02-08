@@ -8,7 +8,7 @@ use esrs::handler::EventHandler;
 use esrs::store::StoreEvent;
 use esrs::Aggregate;
 
-use crate::common::random_letters;
+use crate::common::util::random_letters;
 
 pub struct RabbitEventBusConsumer<A> {
     consumer: Consumer,

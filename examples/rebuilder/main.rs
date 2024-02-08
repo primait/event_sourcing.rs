@@ -40,7 +40,9 @@ use esrs::rebuilder::{PgRebuilder, Rebuilder};
 use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicView};
+use crate::common::basic::view::BasicView;
+use crate::common::basic::{BasicAggregate, BasicCommand, BasicError};
+use crate::common::util::new_pool;
 use crate::event_handler::{AnotherEventHandler, BasicEventHandlerV1, BasicEventHandlerV2};
 use crate::transactional_event_handler::{BasicTransactionalEventHandlerV1, BasicTransactionalEventHandlerV2};
 

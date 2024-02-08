@@ -40,7 +40,8 @@ use esrs::store::postgres::{PgStore, PgStoreBuilder};
 use esrs::store::{EventStore, StoreEvent};
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicEvent};
+use crate::common::basic::{BasicAggregate, BasicEvent};
+use crate::common::util::new_pool;
 
 #[path = "../common/lib.rs"]
 mod common;

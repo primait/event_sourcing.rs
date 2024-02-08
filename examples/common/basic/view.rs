@@ -1,7 +1,7 @@
 use sqlx::{Executor, Pool, Postgres};
 use uuid::Uuid;
 
-use crate::common::random_letters;
+use crate::common::util::random_letters;
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct BasicViewRow {

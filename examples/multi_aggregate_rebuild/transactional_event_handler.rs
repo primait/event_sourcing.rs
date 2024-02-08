@@ -5,7 +5,9 @@ use esrs::handler::TransactionalEventHandler;
 use esrs::store::postgres::PgStoreError;
 use esrs::store::StoreEvent;
 
-use crate::common::{AggregateA, AggregateB, EventA, EventB, SharedView, UpsertSharedView};
+use crate::common::a::{AggregateA, EventA};
+use crate::common::b::{AggregateB, EventB};
+use crate::common::shared::view::{SharedView, UpsertSharedView};
 
 #[derive(Clone)]
 pub struct SharedTransactionalEventHandler {
