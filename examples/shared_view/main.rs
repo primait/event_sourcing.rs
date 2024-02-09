@@ -7,9 +7,12 @@ use esrs::manager::AggregateManager;
 use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::AggregateState;
 
-use crate::common::{
-    new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, SharedEventHandler, SharedView,
-};
+use crate::common::a::{AggregateA, CommandA};
+use crate::common::b::{AggregateB, CommandB};
+use crate::common::shared::event_handler::SharedEventHandler;
+use crate::common::shared::view::SharedView;
+use crate::common::util::new_pool;
+use crate::common::CommonError;
 
 #[path = "../common/lib.rs"]
 mod common;

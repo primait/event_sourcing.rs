@@ -21,9 +21,12 @@ use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::StoreEvent;
 use esrs::AggregateState;
 
-use crate::common::{
-    new_pool, AggregateA, AggregateB, CommandA, CommandB, CommonError, EventA, EventB, SharedEventHandler, SharedView,
-};
+use crate::common::a::{AggregateA, CommandA, EventA};
+use crate::common::b::{AggregateB, CommandB, EventB};
+use crate::common::shared::event_handler::SharedEventHandler;
+use crate::common::shared::view::SharedView;
+use crate::common::util::new_pool;
+use crate::common::CommonError;
 use crate::transactional_event_handler::SharedTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]

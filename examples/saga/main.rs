@@ -17,7 +17,8 @@ use esrs::store::EventStore;
 use esrs::AggregateState;
 
 use crate::aggregate::{SagaAggregate, SagaCommand, SagaEvent};
-use crate::common::{new_pool, CommonError};
+use crate::common::util::new_pool;
+use crate::common::CommonError;
 use crate::event_handler::SagaEventHandler;
 
 mod aggregate;

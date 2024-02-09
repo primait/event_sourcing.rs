@@ -22,7 +22,9 @@ use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::EventStore;
 use esrs::AggregateState;
 
-use crate::common::{new_pool, BasicAggregate, BasicCommand, BasicError, BasicView, BasicViewRow};
+use crate::common::basic::view::{BasicView, BasicViewRow};
+use crate::common::basic::{BasicAggregate, BasicCommand, BasicError};
+use crate::common::util::new_pool;
 use crate::transactional_event_handler::BasicTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]

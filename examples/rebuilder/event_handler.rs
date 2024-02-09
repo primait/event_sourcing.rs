@@ -4,11 +4,12 @@ use sqlx::{Pool, Postgres};
 use esrs::handler::{EventHandler, ReplayableEventHandler};
 use esrs::store::StoreEvent;
 
+use crate::common::basic::view::BasicView;
+use crate::common::basic::{BasicAggregate, BasicEvent};
+
 /// This is just an example. The need of v1 and v2 is due to having both the version of this event
 /// handler compiled in the code. In user codebase there will be only one `BasicEventHandler`
 /// got modified.
-use crate::common::{BasicAggregate, BasicEvent, BasicView};
-
 #[derive(Clone)]
 pub struct BasicEventHandlerV1 {
     pub pool: Pool<Postgres>,
