@@ -68,17 +68,18 @@ pub trait EventStore {
     async fn delete(&self, aggregate_id: Uuid) -> Result<(), Self::Error>;
 }
 
-/// Default generic implementation for every type implementing [`Deref`] where its `Target` is a
-/// `dyn` [`EventStore`]. This is particularly useful when there's the need in your codebase to have
-/// a generic [`EventStore`].
+/// Blanket implementation making an [`EventStore`] every (smart) pointer to an [`EventStore`],
+/// e.g. `&Store`, `Box<Store>`, `Arc<Store>`.
+/// This is particularly useful when there's the need in your codebase to have a generic [`EventStore`].
 #[async_trait]
-impl<A, E, T> EventStore for T
+impl<A, E, T, S> EventStore for T
 where
     A: crate::Aggregate,
     A::Event: Send + Sync,
     A::State: Send,
     E: std::error::Error,
-    T: Deref<Target = dyn EventStore<Aggregate = A, Error = E> + Sync> + Sync,
+    S: EventStore<Aggregate = A, Error = E> + ?Sized,
+    T: Deref<Target = S> + Sync,
     for<'a> A::Event: 'a,
 {
     type Aggregate = A;
