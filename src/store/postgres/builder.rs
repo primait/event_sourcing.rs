@@ -100,7 +100,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if there's an error running [`Migrations`].
-    pub async fn try_build(self) -> Result<PgStore<A>, sqlx::Error> {
+    pub async fn try_build<S>(self) -> Result<PgStore<A, S>, sqlx::Error> {
         if self.run_migrations {
             Migrations::run::<A>(&self.pool).await?;
         }
@@ -113,6 +113,7 @@ where
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),
+            _scribe: std::marker::PhantomData,
         })
     }
 }

@@ -4,7 +4,6 @@ use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{ReplayableEventHandler, TransactionalEventHandler};
 use crate::rebuilder::Rebuilder;
 use crate::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
@@ -64,7 +63,7 @@ where
 impl<A> Rebuilder<A> for PgRebuilder<A>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
+    A::Event: Send + Sync,
     A::State: Send,
 {
     type Executor = Pool<Postgres>;

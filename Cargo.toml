@@ -15,13 +15,12 @@ version = "0.14.0"
 all-features = true
 
 [features]
-default = []
+default = ["postgres"] # welp do not commit but I need for dev
 sql = ["sqlx"]
 postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
-upcasting = []
 
 [dependencies]
 tokio = { version = "1.6", optional = true }
@@ -97,6 +96,11 @@ required-features = ["rebuilder", "postgres"]
 [[example]]
 name = "saga"
 path = "examples/saga/main.rs"
+required-features = ["postgres"]
+
+[[example]]
+name = "scribe"
+path = "examples/scribe/main.rs"
 required-features = ["postgres"]
 
 [[example]]

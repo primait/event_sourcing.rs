@@ -28,8 +28,6 @@
 //!   This operation enables you to delete all events associated with a particular aggregate ID from
 //!   the event store.
 
-use std::convert::TryInto;
-
 use chrono::Utc;
 use sqlx::types::Json;
 use sqlx::{Pool, Postgres};
@@ -144,5 +142,5 @@ async fn get_event_by_event_id(id: Uuid, table_name: &str, pool: &Pool<Postgres>
         .fetch_optional(pool)
         .await
         .unwrap()
-        .map(|v| v.try_into().unwrap())
+        .map(|v| v.deserialize::<_, ()>().unwrap())
 }

@@ -1,10 +1,11 @@
-use std::convert::TryInto;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sqlx::pool::PoolConnection;
 use sqlx::postgres::{PgAdvisoryLock, PgAdvisoryLockGuard, PgAdvisoryLockKey};
 use sqlx::types::Json;
@@ -13,7 +14,6 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
 use crate::sql::event::DbEvent;
 use crate::sql::statements::{Statements, StatementsHandler};
@@ -22,16 +22,36 @@ use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState};
 
+pub trait Scribe<E> {
+    fn serialize(event: &E) -> serde_json::Result<serde_json::Value>;
+
+    fn deserialize(value: serde_json::Value) -> serde_json::Result<E>;
+}
+
+impl<E, T> Scribe<E> for T
+where
+    E: Serialize + DeserializeOwned,
+{
+    fn serialize(event: &E) -> serde_json::Result<serde_json::Value> {
+        serde_json::to_value(event)
+    }
+
+    fn deserialize(value: serde_json::Value) -> serde_json::Result<E> {
+        serde_json::from_value(value)
+    }
+}
+
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
 ///
 /// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
 /// reference.
-pub struct PgStore<A>
+pub struct PgStore<A, S = ()>
 where
     A: Aggregate,
 {
     pub(super) inner: Arc<InnerPgStore<A>>,
+    pub(super) _scribe: std::marker::PhantomData<S>,
 }
 
 pub(super) struct InnerPgStore<A>
@@ -46,10 +66,11 @@ where
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
-impl<A> PgStore<A>
+impl<A, S> PgStore<A, S>
 where
     A: Aggregate,
-    A::Event: Event + Sync,
+    A::Event: Sync,
+    S: Scribe<A::Event> + Sync + Send,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -82,18 +103,14 @@ where
     ) -> Result<StoreEvent<A::Event>, PgStoreError> {
         let id: Uuid = Uuid::new_v4();
 
-        #[cfg(feature = "upcasting")]
-        let version: Option<i32> = {
-            use crate::event::Upcaster;
-            A::Event::current_version()
-        };
-        #[cfg(not(feature = "upcasting"))]
         let version: Option<i32> = None;
+
+        let payload = S::serialize(&event)?;
 
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
-            .bind(Json(&event))
+            .bind(Json(payload))
             .bind(occurred_on)
             .bind(sequence_number)
             .bind(version)
@@ -119,7 +136,7 @@ where
         Box::pin({
             sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
-                .map(|res| Ok(res?.try_into()?))
+                .map(move |res| Ok(res?.deserialize::<A::Event, S>()?))
         })
     }
 }
@@ -140,11 +157,12 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<A> EventStore for PgStore<A>
+impl<A, S> EventStore for PgStore<A, S>
 where
     A: Aggregate,
     A::State: Send,
-    A::Event: Event + Send + Sync,
+    A::Event: Send + Sync,
+    S: Scribe<A::Event> + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;
@@ -167,7 +185,7 @@ where
             .fetch_all(&self.inner.pool)
             .await?
             .into_iter()
-            .map(|event| Ok(event.try_into()?))
+            .map(|event| Ok(event.deserialize::<A::Event, S>()?))
             .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
 
@@ -293,7 +311,10 @@ where
 
 /// Debug implementation for [`PgStore`]. It just shows the statements, that are the only thing
 /// that might be useful to debug.
-impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
+impl<A, S> std::fmt::Debug for PgStore<A, S>
+where
+    A: Aggregate,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PgStore")
             .field("statements", &self.inner.statements)
@@ -301,13 +322,14 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
     }
 }
 
-impl<A> Clone for PgStore<A>
+impl<A, S> Clone for PgStore<A, S>
 where
     A: Aggregate,
 {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
+            _scribe: std::marker::PhantomData,
         }
     }
 }

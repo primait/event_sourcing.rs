@@ -1,10 +1,7 @@
-use std::convert::TryInto;
-
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::event::Event;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
 
@@ -19,17 +16,15 @@ pub struct DbEvent {
     pub version: Option<i32>,
 }
 
-impl<E: Event> TryInto<StoreEvent<E>> for DbEvent {
-    type Error = serde_json::Error;
-
-    fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
+impl DbEvent {
+    pub fn deserialize<E, S>(self) -> serde_json::Result<StoreEvent<E>>
+    where
+        S: crate::store::postgres::Scribe<E>,
+    {
         Ok(StoreEvent {
             id: self.id,
             aggregate_id: self.aggregate_id,
-            #[cfg(feature = "upcasting")]
-            payload: E::upcast(self.payload, self.version)?,
-            #[cfg(not(feature = "upcasting"))]
-            payload: serde_json::from_value::<E>(self.payload)?,
+            payload: S::deserialize(self.payload)?,
             occurred_on: self.occurred_on,
             sequence_number: self.sequence_number,
             version: self.version,

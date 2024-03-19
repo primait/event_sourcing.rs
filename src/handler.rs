@@ -64,6 +64,7 @@ where
 pub trait TransactionalEventHandler<A, Er, Ex>: Sync
 where
     A: Aggregate,
+    Ex: Send,
 {
     /// Handle an event in a transactional fashion and perform a read side crate, update or delete.
     /// If an error is returned the transaction will be aborted and the handling of a command by an
