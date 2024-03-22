@@ -15,7 +15,7 @@ version = "0.14.0"
 all-features = true
 
 [features]
-default = []
+default = ["postgres"]
 sql = ["sqlx"]
 postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []

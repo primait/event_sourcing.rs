@@ -1,10 +1,8 @@
-use std::convert::TryInto;
-
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::event::Event;
+use crate::store::postgres::Scribe;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
 
@@ -19,20 +17,24 @@ pub struct DbEvent {
     pub version: Option<i32>,
 }
 
-impl<E: Event> TryInto<StoreEvent<E>> for DbEvent {
-    type Error = serde_json::Error;
-
-    fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {
-        Ok(StoreEvent {
-            id: self.id,
-            aggregate_id: self.aggregate_id,
-            #[cfg(feature = "upcasting")]
-            payload: E::upcast(self.payload, self.version)?,
-            #[cfg(not(feature = "upcasting"))]
-            payload: serde_json::from_value::<E>(self.payload)?,
-            occurred_on: self.occurred_on,
-            sequence_number: self.sequence_number,
-            version: self.version,
+impl DbEvent {
+    pub fn to_store_event<E, S>(self) -> Result<Option<StoreEvent<E>>, serde_json::Error>
+    where
+        S: Scribe<E>,
+    {
+        Ok(match S::deserialize(self.payload)? {
+            None => None,
+            Some(event) => Some(StoreEvent {
+                id: self.id,
+                aggregate_id: self.aggregate_id,
+                #[cfg(feature = "upcasting")]
+                payload: E::upcast(self.payload, self.version)?,
+                #[cfg(not(feature = "upcasting"))]
+                payload: event,
+                occurred_on: self.occurred_on,
+                sequence_number: self.sequence_number,
+                version: self.version,
+            }),
         })
     }
 }
