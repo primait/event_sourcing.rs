@@ -5,6 +5,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::event::Event;
+use crate::store::postgres::Converter;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
 
@@ -17,6 +18,30 @@ pub struct DbEvent {
     pub occurred_on: DateTime<Utc>,
     pub sequence_number: SequenceNumber,
     pub version: Option<i32>,
+}
+
+impl DbEvent {
+    pub fn try_into_store_event<E, Schema>(self) -> Result<Option<StoreEvent<E>>, serde_json::Error>
+    where
+        Schema: Converter<E>,
+    {
+        #[cfg(feature = "upcasting")]
+        let payload = Schema::upcast(self.payload, self.version)?.into();
+        #[cfg(not(feature = "upcasting"))]
+        let payload = serde_json::from_value::<Schema>(self.payload)?.into();
+
+        Ok(match payload {
+            None => None,
+            Some(payload) => Some(StoreEvent {
+                id: self.id,
+                aggregate_id: self.aggregate_id,
+                payload,
+                occurred_on: self.occurred_on,
+                sequence_number: self.sequence_number,
+                version: self.version,
+            }),
+        })
+    }
 }
 
 impl<E: Event> TryInto<StoreEvent<E>> for DbEvent {

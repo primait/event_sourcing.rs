@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -22,16 +22,31 @@ use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState};
 
+pub trait Converter<E>: From<E> + Into<Option<E>> + Event {}
+
+impl<T, E> Converter<E> for T where T: From<E> + Into<Option<E>> + Event {}
+
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
 ///
 /// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
 /// reference.
-pub struct PgStore<A>
+///
+/// To decouple persistence from the event types, it is possible to optionally, specify the
+/// Database event schema for this store as a serializable type.
+///
+/// When events are persisted, they will first be converted via the `From` trait into the `Schema`
+/// type, then serialized.
+///
+/// When events are read from the store, they will first be deserialized into the `Schema` and then
+/// they can be converted into and option of the domain aggregate event. In this way it is possible
+/// to deprecate events in core part of your application by returning `None` when converting.
+pub struct PgStore<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,
 {
     pub(super) inner: Arc<InnerPgStore<A>>,
+    pub(super) _schema: PhantomData<Schema>,
 }
 
 pub(super) struct InnerPgStore<A>
@@ -46,10 +61,11 @@ where
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
-impl<A> PgStore<A>
+impl<A, Schema> PgStore<A, Schema>
 where
     A: Aggregate,
-    A::Event: Event + Sync,
+    A::Event: Send + Sync,
+    Schema: Converter<A::Event> + Event + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -83,17 +99,15 @@ where
         let id: Uuid = Uuid::new_v4();
 
         #[cfg(feature = "upcasting")]
-        let version: Option<i32> = {
-            use crate::event::Upcaster;
-            A::Event::current_version()
-        };
+        let version: Option<i32> = Schema::current_version();
         #[cfg(not(feature = "upcasting"))]
         let version: Option<i32> = None;
+        let schema = Schema::from(event);
 
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
-            .bind(Json(&event))
+            .bind(Json(&schema))
             .bind(occurred_on)
             .bind(sequence_number)
             .bind(version)
@@ -103,7 +117,9 @@ where
         Ok(StoreEvent {
             id,
             aggregate_id,
-            payload: event,
+            payload: schema.into().expect(
+                "This should always be true for converters assert event == Converter::from(event).into().unwrap()",
+            ),
             occurred_on,
             sequence_number,
             version,
@@ -119,7 +135,9 @@ where
         Box::pin({
             sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
-                .map(|res| Ok(res?.try_into()?))
+                .map(|res| Ok(res?.try_into_store_event::<_, Schema>()?))
+                .map(Result::transpose)
+                .filter_map(std::future::ready)
         })
     }
 }
@@ -140,11 +158,12 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<A> EventStore for PgStore<A>
+impl<A, Schema> EventStore for PgStore<A, Schema>
 where
     A: Aggregate,
     A::State: Send,
-    A::Event: Event + Send + Sync,
+    A::Event: Send + Sync,
+    Schema: Converter<A::Event> + Event + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;
@@ -167,10 +186,13 @@ where
             .fetch_all(&self.inner.pool)
             .await?
             .into_iter()
-            .map(|event| Ok(event.try_into()?))
+            .map(|event| Ok(event.try_into_store_event::<_, Schema>()?))
+            .filter_map(Result::transpose)
             .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
 
+    // Note: https://github.com/rust-lang/rust-clippy/issues/12281
+    #[allow(clippy::blocks_in_conditions)]
     #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]
     async fn persist(
         &self,
@@ -301,13 +323,14 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
     }
 }
 
-impl<A> Clone for PgStore<A>
+impl<A, Schema> Clone for PgStore<A, Schema>
 where
     A: Aggregate,
 {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
+            _schema: PhantomData,
         }
     }
 }

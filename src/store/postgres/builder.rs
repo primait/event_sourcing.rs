@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use sqlx::{PgConnection, Pool, Postgres};
@@ -113,6 +114,7 @@ where
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),
+            _schema: PhantomData,
         })
     }
 }
