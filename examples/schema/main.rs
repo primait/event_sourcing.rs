@@ -125,61 +125,55 @@ enum Schema {
 #[cfg(feature = "upcasting")]
 impl esrs::event::Upcaster for Schema {}
 
-impl From<SchemaEvent> for Schema {
-    fn from(value: SchemaEvent) -> Self {
+impl esrs::store::postgres::Schema<SchemaEvent> for Schema {
+    fn write(value: SchemaEvent) -> Self {
         match value {
             SchemaEvent::EmptyEvent => Schema::EmptyEvent,
             SchemaEvent::EventB { count } => Schema::EventB { count },
             SchemaEvent::EventC { contents, count } => Schema::EventC { contents, count },
         }
     }
-}
 
-impl From<SchemaEventUpcasted> for Schema {
-    fn from(value: SchemaEventUpcasted) -> Self {
-        match value {
-            SchemaEventUpcasted::EmptyEvent => Schema::EmptyEvent,
-            SchemaEventUpcasted::EventB { count } => Schema::EventB { count },
-            SchemaEventUpcasted::EventA { contents, count } => Schema::EventC { contents, count },
+    fn read(self) -> Option<SchemaEvent> {
+        match self {
+            Self::EmptyEvent => Some(SchemaEvent::EmptyEvent),
+            Self::EventA { .. } => None,
+            Self::EventB { count } => Some(SchemaEvent::EventB { count }),
+            Self::EventC { contents, count } => Some(SchemaEvent::EventC { contents, count }),
         }
     }
 }
 
-impl From<SchemaEventOld> for Schema {
-    fn from(value: SchemaEventOld) -> Self {
+impl esrs::store::postgres::Schema<SchemaEventOld> for Schema {
+    fn write(value: SchemaEventOld) -> Self {
         match value {
             SchemaEventOld::EmptyEvent => Schema::EmptyEvent,
             SchemaEventOld::EventA { contents } => Schema::EventA { contents },
             SchemaEventOld::EventB { count } => Schema::EventB { count },
         }
     }
-}
 
-impl From<Schema> for Option<SchemaEventOld> {
-    fn from(val: Schema) -> Self {
-        match val {
-            Schema::EmptyEvent => Some(SchemaEventOld::EmptyEvent),
-            Schema::EventA { contents } => Some(SchemaEventOld::EventA { contents }),
-            Schema::EventB { count } => Some(SchemaEventOld::EventB { count }),
-            Schema::EventC { .. } => panic!("not supported"),
+    fn read(self) -> Option<SchemaEventOld> {
+        match self {
+            Self::EmptyEvent => Some(SchemaEventOld::EmptyEvent),
+            Self::EventA { contents } => Some(SchemaEventOld::EventA { contents }),
+            Self::EventB { count } => Some(SchemaEventOld::EventB { count }),
+            Self::EventC { .. } => panic!("not supported"),
         }
     }
 }
 
-impl From<Schema> for Option<SchemaEvent> {
-    fn from(val: Schema) -> Self {
-        match val {
-            Schema::EmptyEvent => Some(SchemaEvent::EmptyEvent),
-            Schema::EventA { .. } => None,
-            Schema::EventB { count } => Some(SchemaEvent::EventB { count }),
-            Schema::EventC { contents, count } => Some(SchemaEvent::EventC { contents, count }),
+impl esrs::store::postgres::Schema<SchemaEventUpcasted> for Schema {
+    fn write(value: SchemaEventUpcasted) -> Self {
+        match value {
+            SchemaEventUpcasted::EmptyEvent => Schema::EmptyEvent,
+            SchemaEventUpcasted::EventB { count } => Schema::EventB { count },
+            SchemaEventUpcasted::EventA { contents, count } => Schema::EventC { contents, count },
         }
     }
-}
 
-impl From<Schema> for Option<SchemaEventUpcasted> {
-    fn from(val: Schema) -> Self {
-        match val {
+    fn read(self) -> Option<SchemaEventUpcasted> {
+        match self {
             Schema::EmptyEvent => Some(SchemaEventUpcasted::EmptyEvent),
             Schema::EventA { contents } => Some(SchemaEventUpcasted::EventA { contents, count: 1 }),
             Schema::EventB { count } => Some(SchemaEventUpcasted::EventB { count }),

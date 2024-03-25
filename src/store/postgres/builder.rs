@@ -12,7 +12,7 @@ use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::{InnerPgStore, PgStoreError};
 use crate::Aggregate;
 
-use super::{Converter, PgStore};
+use super::{PgStore, Schema};
 
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A, Schema = <A as Aggregate>::Event>
@@ -46,7 +46,7 @@ where
     }
 }
 
-impl<A, Schema> PgStoreBuilder<A, Schema>
+impl<A, S> PgStoreBuilder<A, S>
 where
     A: Aggregate,
 {
@@ -103,7 +103,7 @@ where
     /// Set the schema of the underlying PgStore.
     pub fn with_schema<NewSchema>(self) -> PgStoreBuilder<A, NewSchema>
     where
-        NewSchema: Converter<A::Event> + Event + Send + Sync,
+        NewSchema: Schema<A::Event> + Event + Send + Sync,
     {
         PgStoreBuilder {
             pool: self.pool,
@@ -125,7 +125,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if there's an error running [`Migrations`].
-    pub async fn try_build(self) -> Result<PgStore<A, Schema>, sqlx::Error> {
+    pub async fn try_build(self) -> Result<PgStore<A, S>, sqlx::Error> {
         if self.run_migrations {
             Migrations::run::<A>(&self.pool).await?;
         }

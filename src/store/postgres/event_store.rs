@@ -22,9 +22,100 @@ use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState};
 
-pub trait Converter<E>: From<E> + Into<Option<E>> + Event {}
+/// To support decoupling between the Aggregate::Event type and the schema of the DB table
+/// in `PgStore` you can create a schema type that implements `Event` and `Schema`
+/// where `E = Aggregate::Event`.
+///
+/// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
+///
+/// The following must hold
+///
+/// ```rust
+/// # use serde::{Serialize, Deserialize};
+/// # use esrs::store::postgres::Schema as SchemaTrait;
+/// #
+/// # #[derive(Clone, Eq, PartialEq, Debug)]
+/// # struct Event {
+/// #   a: u32,
+/// # }
+/// #
+/// # #[derive(Serialize, Deserialize)]
+/// # struct Schema {
+/// #   a: u32,
+/// # }
+/// #
+/// # #[cfg(feature = "upcasting")]
+/// # impl esrs::event::Upcaster for Schema {}
+/// #
+/// # impl SchemaTrait<Event> for Schema {
+/// #   fn write(Event { a }: Event) -> Self {
+/// #     Self { a }
+/// #   }
+/// #
+/// #   fn read(self) -> Option<Event> {
+/// #     Some(Event { a: self.a })
+/// #   }
+/// # }
+/// #
+/// # let event = Event { a: 42 };
+/// assert_eq!(Some(event.clone()), Schema::write(event).read());
+/// ```
+pub trait Schema<E>: Event {
+    /// Converts the event into the schema type.
+    fn write(event: E) -> Self;
 
-impl<T, E> Converter<E> for T where T: From<E> + Into<Option<E>> + Event {}
+    /// Converts the schema into the event type.
+    ///
+    /// This returns an option to enable skipping deprecated event which are persisted in the DB.
+    ///
+    /// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
+    ///
+    /// The following must hold
+    ///
+    /// ```rust
+    /// # use serde::{Serialize, Deserialize};
+    /// # use esrs::store::postgres::Schema as SchemaTrait;
+    /// #
+    /// # #[derive(Clone, Eq, PartialEq, Debug)]
+    /// # struct Event {
+    /// #   a: u32,
+    /// # }
+    /// #
+    /// # #[derive(Serialize, Deserialize)]
+    /// # struct Schema {
+    /// #   a: u32,
+    /// # }
+    /// #
+    /// # #[cfg(feature = "upcasting")]
+    /// # impl esrs::event::Upcaster for Schema {}
+    /// #
+    /// # impl SchemaTrait<Event> for Schema {
+    /// #   fn write(Event { a }: Event) -> Self {
+    /// #     Self { a }
+    /// #   }
+    /// #
+    /// #   fn read(self) -> Option<Event> {
+    /// #     Some(Event { a: self.a })
+    /// #   }
+    /// # }
+    /// #
+    /// # let event = Event { a: 42 };
+    /// assert_eq!(Some(event.clone()), Schema::write(event).read());
+    /// ```
+    fn read(self) -> Option<E>;
+}
+
+impl<E> Schema<E> for E
+where
+    E: Event,
+{
+    fn write(event: E) -> Self {
+        event
+    }
+    fn read(self) -> Option<E> {
+        Some(self)
+    }
+}
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -33,14 +124,15 @@ impl<T, E> Converter<E> for T where T: From<E> + Into<Option<E>> + Event {}
 /// reference.
 ///
 /// To decouple persistence from the event types, it is possible to optionally, specify the
-/// Database event schema for this store as a serializable type.
+/// Database event schema for this store as a type that implements `Event` and
+/// `Schema<Aggregate::Event>`.
 ///
-/// When events are persisted, they will first be converted via the `From` trait into the `Schema`
-/// type, then serialized.
+/// When events are persisted, they will first be converted to the `Schema` type using
+/// `Schema::write` then serialized using the `Serialize` implementation on `Schema`.
 ///
-/// When events are read from the store, they will first be deserialized into the `Schema` and then
-/// they can be converted into and option of the domain aggregate event. In this way it is possible
-/// to deprecate events in core part of your application by returning `None` when converting.
+/// When events are read from the store, they will first be deserialized into the `Schema` type and
+/// then converted into an `Option<Aggregate::Event>` using `Schema::read`. In this way it is possible
+/// to remove deprecate events in core part of your application by returning `None` from `Schema::read`.
 pub struct PgStore<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,
@@ -61,11 +153,11 @@ where
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
-impl<A, Schema> PgStore<A, Schema>
+impl<A, S> PgStore<A, S>
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    Schema: Converter<A::Event> + Event + Send + Sync,
+    S: Schema<A::Event> + Event + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -99,10 +191,10 @@ where
         let id: Uuid = Uuid::new_v4();
 
         #[cfg(feature = "upcasting")]
-        let version: Option<i32> = Schema::current_version();
+        let version: Option<i32> = S::current_version();
         #[cfg(not(feature = "upcasting"))]
         let version: Option<i32> = None;
-        let schema = Schema::from(event);
+        let schema = S::write(event);
 
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
@@ -117,8 +209,9 @@ where
         Ok(StoreEvent {
             id,
             aggregate_id,
-            payload: schema.into().expect(
-                "This should always be true for converters assert event == Converter::from(event).into().unwrap()",
+            payload: schema.read().expect(
+                "For any type that implements Schema the following contract should be upheld:\
+                assert_eq!(Some(event.clone()), Schema::write(event).read())",
             ),
             occurred_on,
             sequence_number,
@@ -135,7 +228,7 @@ where
         Box::pin({
             sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
-                .map(|res| Ok(res?.try_into_store_event::<_, Schema>()?))
+                .map(|res| Ok(res?.try_into_store_event::<_, S>()?))
                 .map(Result::transpose)
                 .filter_map(std::future::ready)
         })
@@ -158,12 +251,12 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<A, Schema> EventStore for PgStore<A, Schema>
+impl<A, S> EventStore for PgStore<A, S>
 where
     A: Aggregate,
     A::State: Send,
     A::Event: Send + Sync,
-    Schema: Converter<A::Event> + Event + Send + Sync,
+    S: Schema<A::Event> + Event + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;
@@ -186,7 +279,7 @@ where
             .fetch_all(&self.inner.pool)
             .await?
             .into_iter()
-            .map(|event| Ok(event.try_into_store_event::<_, Schema>()?))
+            .map(|event| Ok(event.try_into_store_event::<_, S>()?))
             .filter_map(Result::transpose)
             .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
@@ -323,7 +416,7 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
     }
 }
 
-impl<A, Schema> Clone for PgStore<A, Schema>
+impl<A, S> Clone for PgStore<A, S>
 where
     A: Aggregate,
 {

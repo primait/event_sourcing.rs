@@ -5,7 +5,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::event::Event;
-use crate::store::postgres::Converter;
+use crate::store::postgres::Schema;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
 
@@ -21,14 +21,14 @@ pub struct DbEvent {
 }
 
 impl DbEvent {
-    pub fn try_into_store_event<E, Schema>(self) -> Result<Option<StoreEvent<E>>, serde_json::Error>
+    pub fn try_into_store_event<E, S>(self) -> Result<Option<StoreEvent<E>>, serde_json::Error>
     where
-        Schema: Converter<E>,
+        S: Schema<E>,
     {
         #[cfg(feature = "upcasting")]
-        let payload = Schema::upcast(self.payload, self.version)?.into();
+        let payload = S::upcast(self.payload, self.version)?.read();
         #[cfg(not(feature = "upcasting"))]
-        let payload = serde_json::from_value::<Schema>(self.payload)?.into();
+        let payload = serde_json::from_value::<S>(self.payload)?.read();
 
         Ok(match payload {
             None => None,
