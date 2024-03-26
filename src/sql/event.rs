@@ -26,9 +26,9 @@ impl DbEvent {
         S: Schema<E>,
     {
         #[cfg(feature = "upcasting")]
-        let payload = S::upcast(self.payload, self.version)?.read();
+        let payload = S::upcast(self.payload, self.version)?.to_event();
         #[cfg(not(feature = "upcasting"))]
-        let payload = serde_json::from_value::<S>(self.payload)?.read();
+        let payload = serde_json::from_value::<S>(self.payload)?.to_event();
 
         Ok(match payload {
             None => None,

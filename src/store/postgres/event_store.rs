@@ -48,21 +48,21 @@ use crate::{Aggregate, AggregateState};
 /// # impl esrs::event::Upcaster for Schema {}
 /// #
 /// # impl SchemaTrait<Event> for Schema {
-/// #   fn write(Event { a }: Event) -> Self {
+/// #   fn from_event(Event { a }: Event) -> Self {
 /// #     Self { a }
 /// #   }
 /// #
-/// #   fn read(self) -> Option<Event> {
+/// #   fn to_event(self) -> Option<Event> {
 /// #     Some(Event { a: self.a })
 /// #   }
 /// # }
 /// #
 /// # let event = Event { a: 42 };
-/// assert_eq!(Some(event.clone()), Schema::write(event).read());
+/// assert_eq!(Some(event.clone()), Schema::from_event(event).to_event());
 /// ```
 pub trait Schema<E>: Event {
     /// Converts the event into the schema type.
-    fn write(event: E) -> Self;
+    fn from_event(event: E) -> Self;
 
     /// Converts the schema into the event type.
     ///
@@ -90,29 +90,29 @@ pub trait Schema<E>: Event {
     /// # impl esrs::event::Upcaster for Schema {}
     /// #
     /// # impl SchemaTrait<Event> for Schema {
-    /// #   fn write(Event { a }: Event) -> Self {
+    /// #   fn from_event(Event { a }: Event) -> Self {
     /// #     Self { a }
     /// #   }
     /// #
-    /// #   fn read(self) -> Option<Event> {
+    /// #   fn to_event(self) -> Option<Event> {
     /// #     Some(Event { a: self.a })
     /// #   }
     /// # }
     /// #
     /// # let event = Event { a: 42 };
-    /// assert_eq!(Some(event.clone()), Schema::write(event).read());
+    /// assert_eq!(Some(event.clone()), Schema::from_event(event).to_event());
     /// ```
-    fn read(self) -> Option<E>;
+    fn to_event(self) -> Option<E>;
 }
 
 impl<E> Schema<E> for E
 where
     E: Event,
 {
-    fn write(event: E) -> Self {
+    fn from_event(event: E) -> Self {
         event
     }
-    fn read(self) -> Option<E> {
+    fn to_event(self) -> Option<E> {
         Some(self)
     }
 }
@@ -194,7 +194,7 @@ where
         let version: Option<i32> = S::current_version();
         #[cfg(not(feature = "upcasting"))]
         let version: Option<i32> = None;
-        let schema = S::write(event);
+        let schema = S::from_event(event);
 
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
@@ -209,9 +209,9 @@ where
         Ok(StoreEvent {
             id,
             aggregate_id,
-            payload: schema.read().expect(
+            payload: schema.to_event().expect(
                 "For any type that implements Schema the following contract should be upheld:\
-                assert_eq!(Some(event.clone()), Schema::write(event).read())",
+                assert_eq!(Some(event.clone()), Schema::from_event(event).to_event())",
             ),
             occurred_on,
             sequence_number,

@@ -15,169 +15,154 @@
 //!
 //! The final part is an alternative way for the system to evolve using the `Schema` mechanism as a
 //! way to upcast from one shape of and event to another.
-use std::marker::PhantomData;
 
 use esrs::manager::AggregateManager;
 use esrs::store::postgres::{PgStore, PgStoreBuilder};
 use esrs::store::EventStore;
-use esrs::{Aggregate, AggregateState};
+use esrs::AggregateState;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+mod aggregate;
 #[path = "../common/lib.rs"]
 mod common;
 
 use crate::common::util::new_pool;
-use crate::common::CommonError;
-
-struct SchemaAggregate<EventType>(PhantomData<EventType>);
-
-impl<EventType> Aggregate for SchemaAggregate<EventType>
-where
-    EventType: Default,
-{
-    const NAME: &'static str = "schema";
-    type State = SchemaState<EventType>;
-    type Command = SchemaCommand;
-    type Event = EventType;
-    type Error = CommonError;
-
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
-        match command {}
-    }
-
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
-        let mut events = state.events;
-        events.push(payload);
-
-        Self::State { events }
-    }
-}
-
-#[derive(Default)]
-struct SchemaState<EventType> {
-    events: Vec<EventType>,
-}
-
-enum SchemaCommand {}
-
-#[derive(Default)]
-enum SchemaEventUpcasted {
-    #[default]
-    EmptyEvent,
-    EventA {
-        contents: String,
-        count: u64,
-    },
-    EventB {
-        count: u64,
-    },
-}
-
-#[derive(Default)]
-enum SchemaEvent {
-    #[default]
-    EmptyEvent,
-    EventB {
-        count: u64,
-    },
-    EventC {
-        contents: String,
-        count: u64,
-    },
-}
-
-#[derive(Default, Deserialize, Serialize)]
-enum SchemaEventNoSchema {
-    #[default]
-    EmptyEvent,
-    EventA {
-        contents: String,
-    },
-    EventB {
-        count: u64,
-    },
-}
-
-#[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for SchemaEventNoSchema {}
-
-#[derive(Default)]
-enum SchemaEventOld {
-    #[default]
-    EmptyEvent,
-    EventA {
-        contents: String,
-    },
-    EventB {
-        count: u64,
-    },
-}
+use aggregate::SchemaAggregate;
 
 #[derive(Deserialize, Serialize)]
 enum Schema {
-    EmptyEvent,
-    EventA { contents: String },
-    EventB { count: u64 },
-    EventC { contents: String, count: u64 },
+    A,
+    B { contents: String },
+    C { count: u64 },
+    D { contents: String, count: u64 },
 }
 
 #[cfg(feature = "upcasting")]
 impl esrs::event::Upcaster for Schema {}
 
-impl esrs::store::postgres::Schema<SchemaEvent> for Schema {
-    fn write(value: SchemaEvent) -> Self {
-        match value {
-            SchemaEvent::EmptyEvent => Schema::EmptyEvent,
-            SchemaEvent::EventB { count } => Schema::EventB { count },
-            SchemaEvent::EventC { contents, count } => Schema::EventC { contents, count },
-        }
+mod before_schema {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Default, Deserialize, Serialize)]
+    pub enum Event {
+        #[default]
+        A,
+        B {
+            contents: String,
+        },
+        C {
+            count: u64,
+        },
     }
 
-    fn read(self) -> Option<SchemaEvent> {
-        match self {
-            Self::EmptyEvent => Some(SchemaEvent::EmptyEvent),
-            Self::EventA { .. } => None,
-            Self::EventB { count } => Some(SchemaEvent::EventB { count }),
-            Self::EventC { contents, count } => Some(SchemaEvent::EventC { contents, count }),
+    #[cfg(feature = "upcasting")]
+    impl esrs::event::Upcaster for Event {}
+}
+
+mod after_schema {
+    use super::Schema;
+
+    #[derive(Default)]
+    pub enum Event {
+        #[default]
+        A,
+        B {
+            contents: String,
+        },
+        C {
+            count: u64,
+        },
+    }
+
+    impl esrs::store::postgres::Schema<Event> for Schema {
+        fn from_event(value: Event) -> Self {
+            match value {
+                Event::A => Schema::A,
+                Event::B { contents } => Schema::B { contents },
+                Event::C { count } => Schema::C { count },
+            }
+        }
+
+        fn to_event(self) -> Option<Event> {
+            match self {
+                Self::A => Some(Event::A),
+                Self::B { contents } => Some(Event::B { contents }),
+                Self::C { count } => Some(Event::C { count }),
+                Self::D { .. } => panic!("not supported"),
+            }
         }
     }
 }
 
-impl esrs::store::postgres::Schema<SchemaEventOld> for Schema {
-    fn write(value: SchemaEventOld) -> Self {
-        match value {
-            SchemaEventOld::EmptyEvent => Schema::EmptyEvent,
-            SchemaEventOld::EventA { contents } => Schema::EventA { contents },
-            SchemaEventOld::EventB { count } => Schema::EventB { count },
-        }
+mod with_deprecation {
+    use super::Schema;
+
+    #[derive(Default)]
+    pub enum Event {
+        #[default]
+        A,
+        C {
+            count: u64,
+        },
+        D {
+            contents: String,
+            count: u64,
+        },
     }
 
-    fn read(self) -> Option<SchemaEventOld> {
-        match self {
-            Self::EmptyEvent => Some(SchemaEventOld::EmptyEvent),
-            Self::EventA { contents } => Some(SchemaEventOld::EventA { contents }),
-            Self::EventB { count } => Some(SchemaEventOld::EventB { count }),
-            Self::EventC { .. } => panic!("not supported"),
+    impl esrs::store::postgres::Schema<Event> for Schema {
+        fn from_event(value: Event) -> Self {
+            match value {
+                Event::A => Schema::A,
+                Event::C { count } => Schema::C { count },
+                Event::D { contents, count } => Schema::D { contents, count },
+            }
+        }
+
+        fn to_event(self) -> Option<Event> {
+            match self {
+                Self::A => Some(Event::A),
+                Self::B { .. } => None,
+                Self::C { count } => Some(Event::C { count }),
+                Self::D { contents, count } => Some(Event::D { contents, count }),
+            }
         }
     }
 }
 
-impl esrs::store::postgres::Schema<SchemaEventUpcasted> for Schema {
-    fn write(value: SchemaEventUpcasted) -> Self {
-        match value {
-            SchemaEventUpcasted::EmptyEvent => Schema::EmptyEvent,
-            SchemaEventUpcasted::EventB { count } => Schema::EventB { count },
-            SchemaEventUpcasted::EventA { contents, count } => Schema::EventC { contents, count },
-        }
+mod upcasting {
+    use super::Schema;
+
+    #[derive(Default)]
+    pub enum Event {
+        #[default]
+        A,
+        B {
+            contents: String,
+            count: u64,
+        },
+        C {
+            count: u64,
+        },
     }
 
-    fn read(self) -> Option<SchemaEventUpcasted> {
-        match self {
-            Schema::EmptyEvent => Some(SchemaEventUpcasted::EmptyEvent),
-            Schema::EventA { contents } => Some(SchemaEventUpcasted::EventA { contents, count: 1 }),
-            Schema::EventB { count } => Some(SchemaEventUpcasted::EventB { count }),
-            Schema::EventC { contents, count } => Some(SchemaEventUpcasted::EventA { contents, count }),
+    impl esrs::store::postgres::Schema<Event> for Schema {
+        fn from_event(value: Event) -> Self {
+            match value {
+                Event::A => Schema::A,
+                Event::C { count } => Schema::C { count },
+                Event::B { contents, count } => Schema::D { contents, count },
+            }
+        }
+
+        fn to_event(self) -> Option<Event> {
+            match self {
+                Schema::A => Some(Event::A),
+                Schema::B { contents } => Some(Event::B { contents, count: 1 }),
+                Schema::C { count } => Some(Event::C { count }),
+                Schema::D { contents, count } => Some(Event::B { contents, count }),
+            }
         }
     }
 }
@@ -188,15 +173,15 @@ async fn main() {
     let aggregate_id: Uuid = Uuid::new_v4();
 
     // Before the schema
-    let schemaless_store: PgStore<SchemaAggregate<SchemaEventNoSchema>> =
+    let schemaless_store: PgStore<SchemaAggregate<before_schema::Event>> =
         PgStoreBuilder::new(pool.clone()).try_build().await.unwrap();
 
     let events = vec![
-        SchemaEventNoSchema::EmptyEvent,
-        SchemaEventNoSchema::EventA {
-            contents: "this is soon to be deprecated".to_owned(),
+        before_schema::Event::A,
+        before_schema::Event::B {
+            contents: "hello world".to_owned(),
         },
-        SchemaEventNoSchema::EventB { count: 42 },
+        before_schema::Event::C { count: 42 },
     ];
 
     let mut state = AggregateState::with_id(aggregate_id);
@@ -205,18 +190,18 @@ async fn main() {
     assert_eq!(events.len(), 3);
 
     // With schema before deprecation of EventA
-    let old_store: PgStore<SchemaAggregate<SchemaEventOld>, Schema> = PgStoreBuilder::new(pool.clone())
+    let old_store: PgStore<SchemaAggregate<after_schema::Event>, Schema> = PgStoreBuilder::new(pool.clone())
         .with_schema::<Schema>()
         .try_build()
         .await
         .unwrap();
 
     let events = vec![
-        SchemaEventOld::EmptyEvent,
-        SchemaEventOld::EventA {
-            contents: "this is soon to be deprecated".to_owned(),
+        after_schema::Event::A,
+        after_schema::Event::B {
+            contents: "goodbye world".to_owned(),
         },
-        SchemaEventOld::EventB { count: 42 },
+        after_schema::Event::C { count: 42 },
     ];
 
     let manager = AggregateManager::new(old_store.clone());
@@ -228,7 +213,7 @@ async fn main() {
     assert_eq!(events.len(), 6);
 
     // After deprecation of EventA and addition of EventC
-    let new_store: PgStore<SchemaAggregate<SchemaEvent>, Schema> = PgStoreBuilder::new(pool.clone())
+    let new_store: PgStore<SchemaAggregate<with_deprecation::Event>, Schema> = PgStoreBuilder::new(pool.clone())
         .with_schema::<Schema>()
         .try_build()
         .await
@@ -239,9 +224,9 @@ async fn main() {
     assert_eq!(events.len(), 4);
 
     let events = vec![
-        SchemaEvent::EmptyEvent,
-        SchemaEvent::EventB { count: 42 },
-        SchemaEvent::EventC {
+        with_deprecation::Event::A,
+        with_deprecation::Event::C { count: 42 },
+        with_deprecation::Event::D {
             contents: "this is the new events".to_owned(),
             count: 21,
         },
@@ -257,7 +242,7 @@ async fn main() {
     assert_eq!(events.len(), 7);
 
     // After upcasting of EventA
-    let upcasting_store: PgStore<SchemaAggregate<SchemaEventUpcasted>, Schema> = PgStoreBuilder::new(pool.clone())
+    let upcasting_store: PgStore<SchemaAggregate<upcasting::Event>, Schema> = PgStoreBuilder::new(pool.clone())
         .with_schema::<Schema>()
         .try_build()
         .await
@@ -269,6 +254,6 @@ async fn main() {
     assert_eq!(events.len(), 9);
 
     // The events have been upcasted
-    assert!(matches!(events[1], SchemaEventUpcasted::EventA { count: 1, .. }));
-    assert!(matches!(events[4], SchemaEventUpcasted::EventA { count: 1, .. }));
+    assert!(matches!(events[1], upcasting::Event::B { count: 1, .. }));
+    assert!(matches!(events[4], upcasting::Event::B { count: 1, .. }));
 }
