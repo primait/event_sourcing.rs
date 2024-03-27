@@ -29,15 +29,16 @@ use crate::{Aggregate, AggregateState};
 /// reference.
 ///
 /// To decouple persistence from the event types, it is possible to optionally, specify the
-/// Database event schema for this store as a type that implements `Event` and
-/// `Schema<Aggregate::Event>`.
+/// Database event schema for this store as a type that implements [`Persistable`] and
+/// [`Schema<Aggregate::Event>`].
 ///
-/// When events are persisted, they will first be converted to the `Schema` type using
-/// `Schema::write` then serialized using the `Serialize` implementation on `Schema`.
+/// When events are persisted, they will first be converted to the schema type using
+/// [`Schema::from_event`] then serialized using the [`serde::Serialize`] implementation on schema.
 ///
-/// When events are read from the store, they will first be deserialized into the `Schema` type and
-/// then converted into an `Option<Aggregate::Event>` using `Schema::read`. In this way it is possible
-/// to remove deprecate events in core part of your application by returning `None` from `Schema::read`.
+/// When events are read from the store, they will first be deserialized into the schema type and
+/// then converted into an [`Option<Aggregate::Event>`] using [`Schema::from_event`]. In this way
+/// it is possible to remove deprecate events in core part of your application by returning [`None`]
+/// from [`Schema::from_event`].
 pub struct PgStore<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,

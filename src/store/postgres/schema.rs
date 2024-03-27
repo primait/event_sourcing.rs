@@ -1,10 +1,10 @@
 use crate::sql::event::Persistable;
 
-/// To support decoupling between the `Aggregate::Event` type and the schema of the DB table
-/// in `PgStore` you can create a schema type that implements `Persistable` and `Schema`
+/// To support decoupling between the [`crate::Aggregate::Event`] type and the schema of the DB table
+/// in [`super::PgStore`] you can create a schema type that implements [`Persistable`] and [`Schema`]
 /// where `E = Aggregate::Event`.
 ///
-/// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
+/// Note: Although [`Schema::to_event`] returns an [`Option`] for any given event and implementation.
 ///
 /// The following must hold
 ///
@@ -46,7 +46,7 @@ pub trait Schema<E>: Persistable {
     ///
     /// This returns an option to enable skipping deprecated event which are persisted in the DB.
     ///
-    /// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
+    /// Note: Although this function returns an [`Option`] for any given event and implementation.
     ///
     /// The following must hold
     ///
