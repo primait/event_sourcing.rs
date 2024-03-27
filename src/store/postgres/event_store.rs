@@ -189,8 +189,8 @@ where
             .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
 
-    // Note: https://github.com/rust-lang/rust-clippy/issues/12281
-    #[allow(clippy::blocks_in_conditions)]
+    // Clippy introduced `blocks_in_conditions` lint. With certain version of rust and tracing this
+    // line throws an error see: https://github.com/rust-lang/rust-clippy/issues/12281
     #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]
     async fn persist(
         &self,
