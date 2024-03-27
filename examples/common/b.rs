@@ -38,4 +38,4 @@ pub struct EventB {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for EventB {}
+impl esrs::sql::event::Upcaster for EventB {}

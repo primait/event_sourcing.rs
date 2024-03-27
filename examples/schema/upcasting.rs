@@ -68,7 +68,7 @@ mod before_upcasting {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::event::Upcaster for Schema {}
+    impl esrs::sql::event::Upcaster for Schema {}
 
     impl esrs::store::postgres::Schema<Event> for Schema {
         fn from_event(value: Event) -> Self {
@@ -132,7 +132,7 @@ mod after_upcasting {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::event::Upcaster for Schema {}
+    impl esrs::sql::event::Upcaster for Schema {}
 
     impl esrs::store::postgres::Schema<Event> for Schema {
         fn from_event(value: Event) -> Self {

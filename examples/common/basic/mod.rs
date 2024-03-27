@@ -38,7 +38,7 @@ pub struct BasicEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for BasicEvent {}
+impl esrs::sql::event::Upcaster for BasicEvent {}
 
 #[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]

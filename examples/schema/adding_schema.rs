@@ -9,8 +9,8 @@
 //! state and how the previously persisted events are visible via the schema.
 //!
 //! Note that the introduction of the schema removes the need for `Aggregate::Event` to implement
-//! `Event` instead relies on the implementation of the `Schema` and the fact that `Schema`
-//! implements `Event`.
+//! `Persistable` instead relies on the implementation of `Schema` and the fact that `Schema`
+//! implements `Persistable`.
 
 use esrs::manager::AggregateManager;
 use serde::{Deserialize, Serialize};
@@ -66,7 +66,7 @@ mod before_schema {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::event::Upcaster for Event {}
+    impl esrs::sql::event::Upcaster for Event {}
 }
 
 mod after_schema {
@@ -129,7 +129,7 @@ mod after_schema {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::event::Upcaster for Schema {}
+    impl esrs::sql::event::Upcaster for Schema {}
 }
 
 pub(crate) async fn example(pool: PgPool) {

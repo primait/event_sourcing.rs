@@ -1,8 +1,10 @@
 pub use builder::*;
 pub use event_store::*;
+pub use schema::*;
 
 mod builder;
 mod event_store;
+mod schema;
 
 // Trait aliases are experimental. See issue #41517 <https://github.com/rust-lang/rust/issues/41517>
 // trait PgTransactionalEventHandler<A> = TransactionalEventHandler<A, PgStoreError, PgConnection> where A: Aggregate;

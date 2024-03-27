@@ -36,4 +36,4 @@ pub enum SagaEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for SagaEvent {}
+impl esrs::sql::event::Upcaster for SagaEvent {}

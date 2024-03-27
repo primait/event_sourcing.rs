@@ -4,10 +4,40 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::event::Event;
 use crate::store::postgres::Schema;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+
+#[cfg(feature = "upcasting")]
+pub trait Upcaster
+where
+    Self: Sized,
+{
+    fn upcast(value: serde_json::Value, _version: Option<i32>) -> Result<Self, serde_json::Error>
+    where
+        Self: DeserializeOwned,
+    {
+        serde_json::from_value(value)
+    }
+
+    fn current_version() -> Option<i32> {
+        None
+    }
+}
+
+#[cfg(not(feature = "upcasting"))]
+pub trait Persistable: Serialize + DeserializeOwned {}
+
+#[cfg(not(feature = "upcasting"))]
+impl<T> Persistable for T where T: Serialize + DeserializeOwned {}
+
+#[cfg(feature = "upcasting")]
+pub trait Persistable: Serialize + DeserializeOwned + Upcaster {}
+
+#[cfg(feature = "upcasting")]
+impl<T> Persistable for T where T: Serialize + DeserializeOwned + Upcaster {}
 
 /// Event representation on the event store
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]
@@ -44,7 +74,7 @@ impl DbEvent {
     }
 }
 
-impl<E: Event> TryInto<StoreEvent<E>> for DbEvent {
+impl<E: Persistable> TryInto<StoreEvent<E>> for DbEvent {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<StoreEvent<E>, Self::Error> {

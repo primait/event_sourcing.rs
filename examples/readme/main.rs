@@ -99,7 +99,7 @@ pub enum BookEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::event::Upcaster for BookEvent {}
+impl esrs::sql::event::Upcaster for BookEvent {}
 
 #[derive(Debug, Error)]
 pub enum BookError {

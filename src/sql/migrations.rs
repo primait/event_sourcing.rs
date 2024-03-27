@@ -63,7 +63,7 @@ mod tests {
     pub struct TestEvent;
 
     #[cfg(feature = "upcasting")]
-    impl crate::event::Upcaster for TestEvent {}
+    impl crate::sql::event::Upcaster for TestEvent {}
 
     impl Aggregate for TestAggregate {
         const NAME: &'static str = "test";

@@ -3,7 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use esrs::event::Upcaster;
+use esrs::sql::event::Upcaster;
 use esrs::Aggregate;
 
 use crate::{Command, Error};

@@ -13,109 +13,14 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
-use crate::sql::event::DbEvent;
+use crate::sql::event::{DbEvent, Persistable};
 use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::PgStoreError;
+use crate::store::postgres::Schema;
 use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState};
-
-/// To support decoupling between the Aggregate::Event type and the schema of the DB table
-/// in `PgStore` you can create a schema type that implements `Event` and `Schema`
-/// where `E = Aggregate::Event`.
-///
-/// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
-///
-/// The following must hold
-///
-/// ```rust
-/// # use serde::{Serialize, Deserialize};
-/// # use esrs::store::postgres::Schema as SchemaTrait;
-/// #
-/// # #[derive(Clone, Eq, PartialEq, Debug)]
-/// # struct Event {
-/// #   a: u32,
-/// # }
-/// #
-/// # #[derive(Serialize, Deserialize)]
-/// # struct Schema {
-/// #   a: u32,
-/// # }
-/// #
-/// # #[cfg(feature = "upcasting")]
-/// # impl esrs::event::Upcaster for Schema {}
-/// #
-/// # impl SchemaTrait<Event> for Schema {
-/// #   fn from_event(Event { a }: Event) -> Self {
-/// #     Self { a }
-/// #   }
-/// #
-/// #   fn to_event(self) -> Option<Event> {
-/// #     Some(Event { a: self.a })
-/// #   }
-/// # }
-/// #
-/// # let event = Event { a: 42 };
-/// assert_eq!(Some(event.clone()), Schema::from_event(event).to_event());
-/// ```
-pub trait Schema<E>: Event {
-    /// Converts the event into the schema type.
-    fn from_event(event: E) -> Self;
-
-    /// Converts the schema into the event type.
-    ///
-    /// This returns an option to enable skipping deprecated event which are persisted in the DB.
-    ///
-    /// Note: Although `Schema::read` returns an `Option` for any given event and implementation.
-    ///
-    /// The following must hold
-    ///
-    /// ```rust
-    /// # use serde::{Serialize, Deserialize};
-    /// # use esrs::store::postgres::Schema as SchemaTrait;
-    /// #
-    /// # #[derive(Clone, Eq, PartialEq, Debug)]
-    /// # struct Event {
-    /// #   a: u32,
-    /// # }
-    /// #
-    /// # #[derive(Serialize, Deserialize)]
-    /// # struct Schema {
-    /// #   a: u32,
-    /// # }
-    /// #
-    /// # #[cfg(feature = "upcasting")]
-    /// # impl esrs::event::Upcaster for Schema {}
-    /// #
-    /// # impl SchemaTrait<Event> for Schema {
-    /// #   fn from_event(Event { a }: Event) -> Self {
-    /// #     Self { a }
-    /// #   }
-    /// #
-    /// #   fn to_event(self) -> Option<Event> {
-    /// #     Some(Event { a: self.a })
-    /// #   }
-    /// # }
-    /// #
-    /// # let event = Event { a: 42 };
-    /// assert_eq!(Some(event.clone()), Schema::from_event(event).to_event());
-    /// ```
-    fn to_event(self) -> Option<E>;
-}
-
-impl<E> Schema<E> for E
-where
-    E: Event,
-{
-    fn from_event(event: E) -> Self {
-        event
-    }
-    fn to_event(self) -> Option<E> {
-        Some(self)
-    }
-}
 
 /// Default Postgres implementation for the [`EventStore`]. Use this struct in order to have a
 /// pre-made implementation of an [`EventStore`] persisting on Postgres.
@@ -157,7 +62,7 @@ impl<A, S> PgStore<A, S>
 where
     A: Aggregate,
     A::Event: Send + Sync,
-    S: Schema<A::Event> + Event + Send + Sync,
+    S: Schema<A::Event> + Persistable + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -256,7 +161,7 @@ where
     A: Aggregate,
     A::State: Send,
     A::Event: Send + Sync,
-    S: Schema<A::Event> + Event + Send + Sync,
+    S: Schema<A::Event> + Persistable + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;

@@ -5,8 +5,8 @@ use sqlx::{PgConnection, Pool, Postgres};
 use tokio::sync::RwLock;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
+use crate::sql::event::Persistable;
 use crate::sql::migrations::{Migrations, MigrationsHandler};
 use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::{InnerPgStore, PgStoreError};
@@ -103,7 +103,7 @@ where
     /// Set the schema of the underlying PgStore.
     pub fn with_schema<N>(self) -> PgStoreBuilder<A, N>
     where
-        N: Schema<A::Event> + Event + Send + Sync,
+        N: Schema<A::Event> + Persistable + Send + Sync,
     {
         PgStoreBuilder {
             pool: self.pool,
