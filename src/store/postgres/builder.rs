@@ -101,9 +101,9 @@ where
     }
 
     /// Set the schema of the underlying PgStore.
-    pub fn with_schema<NewSchema>(self) -> PgStoreBuilder<A, NewSchema>
+    pub fn with_schema<N>(self) -> PgStoreBuilder<A, N>
     where
-        NewSchema: Schema<A::Event> + Event + Send + Sync,
+        N: Schema<A::Event> + Event + Send + Sync,
     {
         PgStoreBuilder {
             pool: self.pool,
