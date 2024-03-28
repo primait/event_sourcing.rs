@@ -212,6 +212,14 @@ store.persist(&mut state, events).await?;
 To alleviate the burden of writing all of this code, you can leverage the `AggregateManager` helper. An `AggregateManager`
 could be considered as a synchronous `CommandBus`.
 
+##### Decoupling `Aggregate::Event` from the database using `Schema`
+
+To avoid strong coupling between the domain events represented by `Aggregate::Event` and the persistence layer. It is possible to introduce a `Schema` type on the `PgStore`.
+
+This type must implement `Schema` and `Persistable`. The mechanism enables the domain events to evolve more freely. For example, it is possible to deprecate an event variant making use of the schema (see [deprecating events example](examples/schema/deprecating_events.rs)). Additionally, this mechanism can be used as an alternative for upcasting (see [upcasting example](examples/schema/upcasting.rs)).
+
+For an example of how to introduce a schema to an existing application see [introducing schema example](examples/schema/adding_schema.rs).
+
 ```rust
 let manager: AggregateManager<_> = AggregateManager::new(store);
 manager.handle_command(Default::default(), BookCommand::Buy { num_of_copies: 1 }).await
