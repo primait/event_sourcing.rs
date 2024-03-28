@@ -67,7 +67,7 @@ mod before_deprecation {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::sql::event::Upcaster for Schema {}
+    impl esrs::event::Upcaster for Schema {}
 
     impl esrs::store::postgres::Schema<Event> for Schema {
         fn from_event(value: Event) -> Self {
@@ -135,7 +135,7 @@ mod after_deprecation {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::sql::event::Upcaster for Schema {}
+    impl esrs::event::Upcaster for Schema {}
 
     impl esrs::store::postgres::Schema<Event> for Schema {
         fn from_event(value: Event) -> Self {

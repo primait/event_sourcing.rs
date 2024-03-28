@@ -11,7 +11,7 @@ pub struct TestEvent {
 }
 
 #[cfg(feature = "upcasting")]
-impl esrs::sql::event::Upcaster for TestEvent {}
+impl esrs::event::Upcaster for TestEvent {}
 
 #[derive(Debug, thiserror::Error)]
 pub enum TestError {}

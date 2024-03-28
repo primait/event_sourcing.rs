@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use esrs::sql::event::Upcaster;
+use esrs::event::Upcaster;
 use esrs::Aggregate;
 
 use crate::{Command, Error};

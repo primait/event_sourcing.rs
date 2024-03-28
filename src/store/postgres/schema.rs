@@ -23,7 +23,7 @@ use crate::sql::event::Persistable;
 /// # }
 /// #
 /// # #[cfg(feature = "upcasting")]
-/// # impl esrs::sql::event::Upcaster for Schema {}
+/// # impl esrs::event::Upcaster for Schema {}
 /// #
 /// # impl SchemaTrait<Event> for Schema {
 /// #   fn from_event(Event { a }: Event) -> Self {
@@ -65,7 +65,7 @@ pub trait Schema<E>: Persistable {
     /// # }
     /// #
     /// # #[cfg(feature = "upcasting")]
-    /// # impl esrs::sql::event::Upcaster for Schema {}
+    /// # impl esrs::event::Upcaster for Schema {}
     /// #
     /// # impl SchemaTrait<Event> for Schema {
     /// #   fn from_event(Event { a }: Event) -> Self {

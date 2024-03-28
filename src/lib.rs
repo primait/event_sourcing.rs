@@ -17,6 +17,8 @@ mod aggregate;
 mod state;
 
 pub mod bus;
+#[cfg(feature = "upcasting")]
+pub mod event;
 pub mod handler;
 pub mod manager;
 pub mod store;

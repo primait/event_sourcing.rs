@@ -66,7 +66,7 @@ mod before_schema {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::sql::event::Upcaster for Event {}
+    impl esrs::event::Upcaster for Event {}
 }
 
 mod after_schema {
@@ -129,7 +129,7 @@ mod after_schema {
     }
 
     #[cfg(feature = "upcasting")]
-    impl esrs::sql::event::Upcaster for Schema {}
+    impl esrs::event::Upcaster for Schema {}
 }
 
 pub(crate) async fn example(pool: PgPool) {
