@@ -14,8 +14,9 @@ use uuid::Uuid;
 
 use crate::bus::EventBus;
 use crate::handler::{EventHandler, TransactionalEventHandler};
-use crate::sql::event::{DbEvent, Persistable};
+use crate::sql::event::DbEvent;
 use crate::sql::statements::{Statements, StatementsHandler};
+use crate::store::postgres::persistable::Persistable;
 use crate::store::postgres::PgStoreError;
 use crate::store::postgres::Schema;
 use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};

@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::bus::EventBus;
 use crate::handler::{ReplayableEventHandler, TransactionalEventHandler};
 use crate::rebuilder::Rebuilder;
-use crate::sql::event::Persistable;
+use crate::store::postgres::persistable::Persistable;
 use crate::store::postgres::{PgStore, PgStoreBuilder, PgStoreError, Schema};
 use crate::store::{EventStore, StoreEvent};
 use crate::Aggregate;

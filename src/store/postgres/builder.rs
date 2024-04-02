@@ -6,12 +6,12 @@ use tokio::sync::RwLock;
 
 use crate::bus::EventBus;
 use crate::handler::{EventHandler, TransactionalEventHandler};
-use crate::sql::event::Persistable;
 use crate::sql::migrations::{Migrations, MigrationsHandler};
 use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::{InnerPgStore, PgStoreError};
 use crate::Aggregate;
 
+use super::persistable::Persistable;
 use super::{PgStore, Schema};
 
 /// Struct used to build a brand new [`PgStore`].

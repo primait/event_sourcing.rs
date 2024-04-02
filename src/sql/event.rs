@@ -4,23 +4,10 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::store::postgres::persistable::Persistable;
 use crate::store::postgres::Schema;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-
-#[cfg(not(feature = "upcasting"))]
-pub trait Persistable: Serialize + DeserializeOwned {}
-
-#[cfg(not(feature = "upcasting"))]
-impl<T> Persistable for T where T: Serialize + DeserializeOwned {}
-
-#[cfg(feature = "upcasting")]
-pub trait Persistable: Serialize + DeserializeOwned + crate::event::Upcaster {}
-
-#[cfg(feature = "upcasting")]
-impl<T> Persistable for T where T: Serialize + DeserializeOwned + crate::event::Upcaster {}
 
 /// Event representation on the event store
 #[derive(sqlx::FromRow, serde::Serialize, serde::Deserialize, Debug)]

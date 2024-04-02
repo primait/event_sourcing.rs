@@ -4,6 +4,7 @@ pub use schema::*;
 
 mod builder;
 mod event_store;
+pub mod persistable;
 mod schema;
 
 // Trait aliases are experimental. See issue #41517 <https://github.com/rust-lang/rust/issues/41517>

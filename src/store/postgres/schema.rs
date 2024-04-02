@@ -1,4 +1,4 @@
-use crate::sql::event::Persistable;
+use super::persistable::Persistable;
 
 /// To support decoupling between the [`crate::Aggregate::Event`] type and the schema of the DB table
 /// in [`super::PgStore`] you can create a schema type that implements [`Persistable`] and [`Schema`]
