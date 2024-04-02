@@ -16,8 +16,7 @@ all-features = true
 
 [features]
 default = []
-sql = ["sqlx"]
-postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
+postgres = ["sqlx", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
