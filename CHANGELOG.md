@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.15.0] - 2024-04-03
+
+### Added
+
+- [[#191]]: Add new generic on `PgStore` and `Schema` trait to decouple persistence from `Aggregate::Event`.
+- [[#187]]: Make the `AggregateManager` `deref` blanket implementation work for smart pointers.
+
+### Changed
+
+- [[#191]]: Updated MSRV to `1.74.0`.
+- [[#191]]: Renamed `Event` trait to `Persistable` (this should not affect users of the library since users of the library benefit from a blanket implementation).
+
+### Removed
+
+- [[#191]]: Removed broken `sql` feature.
+
+---
 ## [0.14.0] - 2024-01-09
 
 ### Added

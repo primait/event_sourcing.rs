@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -13,11 +13,12 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{EventHandler, TransactionalEventHandler};
 use crate::sql::event::DbEvent;
 use crate::sql::statements::{Statements, StatementsHandler};
+use crate::store::postgres::persistable::Persistable;
 use crate::store::postgres::PgStoreError;
+use crate::store::postgres::Schema;
 use crate::store::{EventStore, EventStoreLockGuard, StoreEvent, UnlockOnDrop};
 use crate::types::SequenceNumber;
 use crate::{Aggregate, AggregateState};
@@ -27,11 +28,24 @@ use crate::{Aggregate, AggregateState};
 ///
 /// The store is protected by an [`Arc`] that allows it to be cloneable still having the same memory
 /// reference.
-pub struct PgStore<A>
+///
+/// To decouple persistence from the event types, it is possible to optionally, specify the
+/// Database event schema for this store as a type that implements [`Persistable`] and
+/// [`Schema<Aggregate::Event>`].
+///
+/// When events are persisted, they will first be converted to the schema type using
+/// [`Schema::from_event`] then serialized using the [`serde::Serialize`] implementation on schema.
+///
+/// When events are read from the store, they will first be deserialized into the schema type and
+/// then converted into an [`Option<Aggregate::Event>`] using [`Schema::from_event`]. In this way
+/// it is possible to remove deprecate events in core part of your application by returning [`None`]
+/// from [`Schema::from_event`].
+pub struct PgStore<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,
 {
     pub(super) inner: Arc<InnerPgStore<A>>,
+    pub(super) _schema: PhantomData<Schema>,
 }
 
 pub(super) struct InnerPgStore<A>
@@ -46,10 +60,11 @@ where
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
 }
 
-impl<A> PgStore<A>
+impl<A, S> PgStore<A, S>
 where
     A: Aggregate,
-    A::Event: Event + Sync,
+    A::Event: Send + Sync,
+    S: Schema<A::Event> + Persistable + Send + Sync,
 {
     /// Returns the name of the event store table
     pub fn table_name(&self) -> &str {
@@ -83,17 +98,15 @@ where
         let id: Uuid = Uuid::new_v4();
 
         #[cfg(feature = "upcasting")]
-        let version: Option<i32> = {
-            use crate::event::Upcaster;
-            A::Event::current_version()
-        };
+        let version: Option<i32> = S::current_version();
         #[cfg(not(feature = "upcasting"))]
         let version: Option<i32> = None;
+        let schema = S::from_event(event);
 
         let _ = sqlx::query(self.inner.statements.insert())
             .bind(id)
             .bind(aggregate_id)
-            .bind(Json(&event))
+            .bind(Json(&schema))
             .bind(occurred_on)
             .bind(sequence_number)
             .bind(version)
@@ -103,7 +116,10 @@ where
         Ok(StoreEvent {
             id,
             aggregate_id,
-            payload: event,
+            payload: schema.to_event().expect(
+                "For any type that implements Schema the following contract should be upheld:\
+                assert_eq!(Some(event.clone()), Schema::from_event(event).to_event())",
+            ),
             occurred_on,
             sequence_number,
             version,
@@ -119,7 +135,9 @@ where
         Box::pin({
             sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)
-                .map(|res| Ok(res?.try_into()?))
+                .map(|res| Ok(res?.try_into_store_event::<_, S>()?))
+                .map(Result::transpose)
+                .filter_map(std::future::ready)
         })
     }
 }
@@ -140,11 +158,12 @@ pub struct PgStoreLockGuard {
 impl UnlockOnDrop for PgStoreLockGuard {}
 
 #[async_trait]
-impl<A> EventStore for PgStore<A>
+impl<A, S> EventStore for PgStore<A, S>
 where
     A: Aggregate,
     A::State: Send,
-    A::Event: Event + Send + Sync,
+    A::Event: Send + Sync,
+    S: Schema<A::Event> + Persistable + Send + Sync,
 {
     type Aggregate = A;
     type Error = PgStoreError;
@@ -167,10 +186,13 @@ where
             .fetch_all(&self.inner.pool)
             .await?
             .into_iter()
-            .map(|event| Ok(event.try_into()?))
+            .map(|event| Ok(event.try_into_store_event::<_, S>()?))
+            .filter_map(Result::transpose)
             .collect::<Result<Vec<StoreEvent<A::Event>>, Self::Error>>()?)
     }
 
+    // Clippy introduced `blocks_in_conditions` lint. With certain version of rust and tracing this
+    // line throws an error see: https://github.com/rust-lang/rust-clippy/issues/12281
     #[tracing::instrument(skip_all, fields(aggregate_id = % aggregate_state.id()), err)]
     async fn persist(
         &self,
@@ -301,13 +323,14 @@ impl<T: Aggregate> std::fmt::Debug for PgStore<T> {
     }
 }
 
-impl<A> Clone for PgStore<A>
+impl<A, S> Clone for PgStore<A, S>
 where
     A: Aggregate,
 {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
+            _schema: PhantomData,
         }
     }
 }

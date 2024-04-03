@@ -17,6 +17,7 @@ mod aggregate;
 mod state;
 
 pub mod bus;
+#[cfg(feature = "upcasting")]
 pub mod event;
 pub mod handler;
 pub mod manager;
@@ -24,7 +25,7 @@ pub mod store;
 
 #[cfg(feature = "rebuilder")]
 pub mod rebuilder;
-#[cfg(feature = "sql")]
+#[cfg(feature = "postgres")]
 pub mod sql;
 
 pub mod types {

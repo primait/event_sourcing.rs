@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use sqlx::{PgConnection, Pool, Postgres};
@@ -10,10 +11,11 @@ use crate::sql::statements::{Statements, StatementsHandler};
 use crate::store::postgres::{InnerPgStore, PgStoreError};
 use crate::Aggregate;
 
-use super::PgStore;
+use super::persistable::Persistable;
+use super::{PgStore, Schema};
 
 /// Struct used to build a brand new [`PgStore`].
-pub struct PgStoreBuilder<A>
+pub struct PgStoreBuilder<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,
 {
@@ -23,14 +25,15 @@ where
     transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
     run_migrations: bool,
+    _schema: PhantomData<Schema>,
 }
 
-impl<A> PgStoreBuilder<A>
+impl<A> PgStoreBuilder<A, <A as Aggregate>::Event>
 where
     A: Aggregate,
 {
     /// Creates a new instance of a [`PgStoreBuilder`].
-    pub fn new(pool: Pool<Postgres>) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> PgStoreBuilder<A, <A as Aggregate>::Event> {
         PgStoreBuilder {
             pool,
             statements: Statements::new::<A>(),
@@ -38,9 +41,15 @@ where
             transactional_event_handlers: vec![],
             event_buses: vec![],
             run_migrations: true,
+            _schema: PhantomData,
         }
     }
+}
 
+impl<A, S> PgStoreBuilder<A, S>
+where
+    A: Aggregate,
+{
     /// Set event handlers list
     pub fn with_event_handlers(mut self, event_handlers: Vec<Box<dyn EventHandler<A> + Send>>) -> Self {
         self.event_handlers = event_handlers;
@@ -91,6 +100,22 @@ where
         self
     }
 
+    /// Set the schema of the underlying PgStore.
+    pub fn with_schema<N>(self) -> PgStoreBuilder<A, N>
+    where
+        N: Schema<A::Event> + Persistable + Send + Sync,
+    {
+        PgStoreBuilder {
+            pool: self.pool,
+            statements: self.statements,
+            run_migrations: self.run_migrations,
+            event_handlers: self.event_handlers,
+            transactional_event_handlers: self.transactional_event_handlers,
+            event_buses: self.event_buses,
+            _schema: PhantomData,
+        }
+    }
+
     /// This function runs all the needed [`Migrations`], atomically setting up the database if
     /// `run_migrations` isn't explicitly set to false. [`Migrations`] should be run only at application
     /// startup due to avoid performance issues.
@@ -100,7 +125,7 @@ where
     /// # Errors
     ///
     /// Will return an `Err` if there's an error running [`Migrations`].
-    pub async fn try_build(self) -> Result<PgStore<A>, sqlx::Error> {
+    pub async fn try_build(self) -> Result<PgStore<A, S>, sqlx::Error> {
         if self.run_migrations {
             Migrations::run::<A>(&self.pool).await?;
         }
@@ -113,6 +138,7 @@ where
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
             }),
+            _schema: self._schema,
         })
     }
 }

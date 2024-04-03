@@ -1,23 +1,26 @@
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
 use futures::StreamExt;
 use sqlx::{PgConnection, Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::bus::EventBus;
-use crate::event::Event;
 use crate::handler::{ReplayableEventHandler, TransactionalEventHandler};
 use crate::rebuilder::Rebuilder;
-use crate::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use crate::store::postgres::persistable::Persistable;
+use crate::store::postgres::{PgStore, PgStoreBuilder, PgStoreError, Schema};
 use crate::store::{EventStore, StoreEvent};
 use crate::Aggregate;
 
-pub struct PgRebuilder<A>
+pub struct PgRebuilder<A, Schema = <A as Aggregate>::Event>
 where
     A: Aggregate,
 {
     event_handlers: Vec<Box<dyn ReplayableEventHandler<A> + Send>>,
     transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
+    _schema: PhantomData<Schema>,
 }
 
 impl<A> PgRebuilder<A>
@@ -56,16 +59,18 @@ where
             event_handlers: vec![],
             transactional_event_handlers: vec![],
             event_buses: vec![],
+            _schema: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<A> Rebuilder<A> for PgRebuilder<A>
+impl<A, S> Rebuilder<A> for PgRebuilder<A, S>
 where
     A: Aggregate,
-    A::Event: Event + Send + Sync,
     A::State: Send,
+    A::Event: Send + Sync,
+    S: Schema<A::Event> + Persistable + Send + Sync,
 {
     type Executor = Pool<Postgres>;
     type Error = PgStoreError;
@@ -77,8 +82,9 @@ where
     /// events is processed by the mentioned handlers.
     /// Finally the events are passed to every configured [`EventBus`].
     async fn by_aggregate_id(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
-        let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
+        let store: PgStore<A, _> = PgStoreBuilder::new(pool.clone())
             .without_running_migrations()
+            .with_schema::<S>()
             .try_build()
             .await?;
 
@@ -122,7 +128,8 @@ where
     /// events are handled. After the transaction ends, for each [`crate::handler::EventHandler`]
     /// and [`EventBus`], the events are handled.
     async fn all_at_once(&self, pool: Pool<Postgres>) -> Result<(), Self::Error> {
-        let store: PgStore<A> = PgStoreBuilder::new(pool.clone())
+        let store: PgStore<A, _> = PgStoreBuilder::new(pool.clone())
+            .with_schema::<S>()
             .without_running_migrations()
             .try_build()
             .await?;

@@ -8,16 +8,15 @@ license = "MIT OR Apache-2.0"
 name = "esrs"
 readme = "README.md"
 repository = "https://github.com/primait/event_sourcing.rs"
-rust-version = "1.58.0"
-version = "0.14.0"
+rust-version = "1.74.0"
+version = "0.15.0"
 
 [package.metadata.docs.rs]
 all-features = true
 
 [features]
 default = []
-sql = ["sqlx"]
-postgres = ["sql", "sqlx/postgres", "typed-builder", "tokio"]
+postgres = ["sqlx", "sqlx/postgres", "typed-builder", "tokio"]
 rebuilder = []
 kafka = ["rdkafka", "typed-builder"]
 rabbit = ["lapin", "typed-builder"]
