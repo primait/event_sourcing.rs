@@ -1,3 +1,7 @@
+mod locked_load;
+
+pub use locked_load::LockedLoad;
+
 use uuid::Uuid;
 
 use crate::store::{EventStore, StoreEvent};
@@ -76,14 +80,18 @@ where
     pub async fn lock_and_load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
-    ) -> Result<Option<AggregateState<<E::Aggregate as Aggregate>::State>>, E::Error> {
+    ) -> Result<LockedLoad<<E::Aggregate as Aggregate>::State>, E::Error> {
         let id = aggregate_id.into();
         let guard = self.event_store.lock(id).await?;
+        let aggregate_state = self.load(id).await?;
 
-        Ok(self.load(id).await?.map(|mut state| {
-            state.set_lock(guard);
-            state
-        }))
+        Ok(match aggregate_state {
+            Some(mut aggregate_state) => {
+                aggregate_state.set_lock(guard);
+                LockedLoad::some(aggregate_state)
+            }
+            None => LockedLoad::none(id, guard),
+        })
     }
 
     /// `delete` should either complete the aggregate instance, along with all its associated events
