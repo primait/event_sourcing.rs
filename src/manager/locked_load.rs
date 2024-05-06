@@ -3,9 +3,9 @@ use uuid::Uuid;
 use crate::store::EventStoreLockGuard;
 use crate::AggregateState;
 
-/// The outcome of [`AggregateManager::lock_and_load`], akin to `Option<AggregateState<_>>`.
+/// The outcome of [`crate::manager::AggregateManager::lock_and_load`], akin to `Option<AggregateState<_>>`.
 ///
-/// it contains the loaded AggregateState if found,
+/// it contains the loaded [`AggregateState`] if found,
 /// and ensures that the lock is preserved in all cases.
 ///
 /// Releases the lock on drop, unless it gets transferred through its API.
