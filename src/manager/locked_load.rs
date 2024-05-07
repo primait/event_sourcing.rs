@@ -23,6 +23,15 @@ impl<T> LockedLoad<T> {
         Self(LockedLoadInner::None { id, lock })
     }
 
+    /// Checks if the AggregateState was found.
+    pub fn is_some(&self) -> bool {
+        let Self(inner) = self;
+        match inner {
+            LockedLoadInner::None { .. } => false,
+            LockedLoadInner::Some(_) => true,
+        }
+    }
+
     /// Extracts the contained AggregateState, or panics otherwise.
     pub fn unwrap(self) -> AggregateState<T> {
         let Self(inner) = self;

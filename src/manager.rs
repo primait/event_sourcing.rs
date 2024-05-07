@@ -75,8 +75,7 @@ where
     /// Acquires a lock on this aggregate instance, and only then loads it from the event store,
     /// by applying previously persisted events onto the aggregate state by order of their sequence number.
     ///
-    /// The lock is contained in the returned `AggregateState`, and released when this is dropped.
-    /// It can also be extracted with the `take_lock` method for more advanced uses.
+    /// The returned [`LockedLoad`] contains the outcome of the load and is responsible for correctly managing the lock.
     pub async fn lock_and_load(
         &self,
         aggregate_id: impl Into<Uuid> + Send,
