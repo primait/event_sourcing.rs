@@ -28,21 +28,23 @@ where
 
     /// Validates and handles the command onto the given state, and then passes the events to the store.
     ///
-    /// The store transactional persists the events - recording it in the aggregate instance's history.
-    pub async fn handle_command<Er>(
+    /// The store transactionally persists the events - recording them in the aggregate instance's history.
+    ///
+    /// Returns two layers of errors:
+    /// - `Err(_)` if the aggregate handled the command but the outcome failed to be recorded;
+    /// - `Ok(Err(_))` if the aggregate denied the command.
+    pub async fn handle_command(
         &self,
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
-    ) -> Result<(), Er>
-    where
-        Er: From<E::Error> + From<<E::Aggregate as Aggregate>::Error> + std::error::Error,
-    {
-        let events: Vec<<E::Aggregate as Aggregate>::Event> =
-            <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command)?;
-
-        self.event_store.persist(&mut aggregate_state, events).await?;
-
-        Ok(())
+    ) -> Result<Result<(), <E::Aggregate as Aggregate>::Error>, E::Error> {
+        match <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command) {
+            Err(domain_error) => Ok(Err(domain_error)),
+            Ok(events) => match self.event_store.persist(&mut aggregate_state, events).await {
+                Ok(_) => Ok(Ok(())),
+                Err(operational_error) => Err(operational_error),
+            },
+        }
     }
 
     /// Loads an aggregate instance from the event store, by applying previously persisted events onto

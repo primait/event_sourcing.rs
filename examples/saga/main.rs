@@ -54,8 +54,11 @@ async fn main() {
     let state: AggregateState<()> = AggregateState::default();
     let id: Uuid = *state.id();
 
-    let result: Result<(), SagaError> = manager.handle_command(state, SagaCommand::RequestMutation).await;
-    assert!(result.is_ok());
+    manager
+        .handle_command(state, SagaCommand::RequestMutation)
+        .await
+        .unwrap()
+        .unwrap();
 
     let events = store.by_aggregate_id(id).await.unwrap();
 

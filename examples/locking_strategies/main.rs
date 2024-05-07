@@ -64,7 +64,8 @@ pub async fn increment_atomically(manager: Agg, aggregate_id: Uuid) -> Result<()
                 content: "whatever".to_string(),
             },
         )
-        .await
+        .await??;
+    Ok(())
 }
 
 /// Increment the value behind this `aggregate_id` with an optimistic locking strategy.
@@ -81,7 +82,8 @@ pub async fn increment_optimistically(manager: Agg, aggregate_id: Uuid) -> Resul
                 content: "whatever".to_string(),
             },
         )
-        .await
+        .await??;
+    Ok(())
 }
 
 /// Load the aggregate state for read-only purposes, preventing others (that use locking) from modifying it.
