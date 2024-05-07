@@ -25,11 +25,7 @@ impl<T> LockedLoad<T> {
 
     /// Checks if the AggregateState was found.
     pub fn is_some(&self) -> bool {
-        let Self(inner) = self;
-        match inner {
-            LockedLoadInner::None { .. } => false,
-            LockedLoadInner::Some(_) => true,
-        }
+        matches!(self, Self(LockedLoadInner::Some(_)))
     }
 
     /// Extracts the contained AggregateState, or panics otherwise.
