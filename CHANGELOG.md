@@ -10,16 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ## [0.16.0] - 2024-05-08
 
+Note: this version contains hard breaking changes in the `AggregateManager` API - refer to [#192] and [#194].
+
 ### Added
 
 - [[#194]]: New `LockedLoad` type to correctly manage locked loads in `AggregateManager`.
 
 ### Changed
 
-- [[#192]]: `AggregateManager::handle_command` now returns a concrete `Result<Result<(), Aggregate::Error>, Store::Error>`.
+- [[#192]]: `AggregateManager::handle_command` now returns a concrete `Result<Result<(), Aggregate::Error>, Store::Error>` and is no longer generic in error.
 - [[#194]]: `AggregateManager::lock_and_load` now returns a `LockedLoad`.
 
-## Fixed
+### Fixed
 
 - [[#194]]: Previously, concurrent `lock_and_load`s would drop the lock if the aggregate was empty, leading to concurrent writes (caught by optimistic locking). This is now correctly handled via the `LockedLoad` result.
 
