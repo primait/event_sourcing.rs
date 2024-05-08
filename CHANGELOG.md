@@ -8,17 +8,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.16.0] - 2024-05-08
+
+### Added
+
+- [[#194]]: New `LockedLoad` type to correctly manage locked loads in `AggregateManager`.
+
+### Changed
+
+- [[#192]]: `AggregateManager::handle_command` now returns a concrete `Result<Result<(), Aggregate::Error>, Store::Error>`.
+- [[#194]]: `AggregateManager::lock_and_load` now returns a `LockedLoad`.
+
+## Fixed
+
+- [[#194]]: Previously, concurrent `lock_and_load`s would drop the lock if the aggregate was empty, leading to concurrent writes (caught by optimistic locking). This is now correctly handled via the `LockedLoad` result.
+
+---
 ## [0.15.0] - 2024-04-03
 
 ### Added
 
-- [[#191]]: Add new generic on `PgStore` and `Schema` trait to decouple persistence from `Aggregate::Event`.
 - [[#187]]: Make the `AggregateManager` `deref` blanket implementation work for smart pointers.
+- [[#191]]: Add new generic on `PgStore` and `Schema` trait to decouple persistence from `Aggregate::Event`.
 
 ### Changed
 
 - [[#191]]: Updated MSRV to `1.74.0`.
 - [[#191]]: Renamed `Event` trait to `Persistable` (this should not affect users of the library since users of the library benefit from a blanket implementation).
+
+### Fixed
+
+- [[#189]]: Fixed examples not compiling in Rust `1.75.0`.
 
 ### Removed
 
@@ -313,7 +333,9 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.14.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.16.0...HEAD
+[0.16.0]: https://github.com/primait/event_sourcing.rs/compare/0.15.0...0.16.0
+[0.15.0]: https://github.com/primait/event_sourcing.rs/compare/0.14.0...0.15.0
 [0.14.0]: https://github.com/primait/event_sourcing.rs/compare/0.13.0...0.14.0
 [0.13.0]: https://github.com/primait/event_sourcing.rs/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/primait/event_sourcing.rs/compare/0.11.0...0.12.0
@@ -328,6 +350,11 @@ Refer to: [#107], [#108] and [#109]
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
 
+[#194]: https://github.com/primait/event_sourcing.rs/pull/194
+[#192]: https://github.com/primait/event_sourcing.rs/pull/192
+[#191]: https://github.com/primait/event_sourcing.rs/pull/191
+[#189]: https://github.com/primait/event_sourcing.rs/pull/189
+[#187]: https://github.com/primait/event_sourcing.rs/pull/187
 [#185]: https://github.com/primait/event_sourcing.rs/pull/185
 [#175]: https://github.com/primait/event_sourcing.rs/pull/175
 [#164]: https://github.com/primait/event_sourcing.rs/pull/164
