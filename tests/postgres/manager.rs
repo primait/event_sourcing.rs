@@ -4,18 +4,10 @@ use std::time::Duration;
 use sqlx::{Pool, Postgres};
 
 use esrs::manager::AggregateManager;
-use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
+use esrs::store::postgres::{PgStore, PgStoreBuilder};
 use esrs::AggregateState;
 
-use crate::aggregate::{TestAggregate, TestAggregateState, TestCommand, TestError};
-
-#[derive(Debug, thiserror::Error)]
-pub enum ManagerTestError {
-    #[error(transparent)]
-    Aggregate(#[from] TestError),
-    #[error(transparent)]
-    Store(#[from] PgStoreError),
-}
+use crate::aggregate::{TestAggregate, TestAggregateState, TestCommand};
 
 #[sqlx::test]
 async fn handle_command_test(pool: Pool<Postgres>) {
@@ -26,8 +18,9 @@ async fn handle_command_test(pool: Pool<Postgres>) {
     let aggregate_id = *aggregate_state.id();
 
     manager
-        .handle_command::<ManagerTestError>(aggregate_state, TestCommand::Single)
+        .handle_command(aggregate_state, TestCommand::Single)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state = manager.load(aggregate_id).await.unwrap().unwrap();
@@ -35,8 +28,9 @@ async fn handle_command_test(pool: Pool<Postgres>) {
     assert_eq!(aggregate_state.sequence_number(), &1);
 
     manager
-        .handle_command::<ManagerTestError>(aggregate_state, TestCommand::Single)
+        .handle_command(aggregate_state, TestCommand::Single)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state = manager.load(aggregate_id).await.unwrap().unwrap();
@@ -44,8 +38,9 @@ async fn handle_command_test(pool: Pool<Postgres>) {
     assert_eq!(aggregate_state.sequence_number(), &2);
 
     manager
-        .handle_command::<ManagerTestError>(aggregate_state, TestCommand::Multi)
+        .handle_command(aggregate_state, TestCommand::Multi)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state = manager.load(aggregate_id).await.unwrap().unwrap();
@@ -65,8 +60,9 @@ async fn load_aggregate_state_test(pool: Pool<Postgres>) {
     let initial_count = initial_aggregate_state.inner().count;
 
     manager
-        .handle_command::<ManagerTestError>(initial_aggregate_state, TestCommand::Multi)
+        .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state = manager.load(initial_id).await.unwrap().unwrap();
@@ -87,8 +83,9 @@ async fn lock_and_load_aggregate_state_test(pool: Pool<Postgres>) {
     let initial_count = initial_aggregate_state.inner().count;
 
     manager
-        .handle_command::<ManagerTestError>(initial_aggregate_state, TestCommand::Multi)
+        .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state_1 = manager.lock_and_load(initial_id).await.unwrap().unwrap();
@@ -127,8 +124,9 @@ async fn lock_and_load_aggregate_state_test_2(pool: Pool<Postgres>) {
     let initial_count = initial_aggregate_state.inner().count;
 
     manager
-        .handle_command::<ManagerTestError>(initial_aggregate_state, TestCommand::Multi)
+        .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state_1 = manager.lock_and_load(initial_id).await.unwrap().unwrap();
@@ -155,8 +153,9 @@ async fn delete_aggregate_test(pool: Pool<Postgres>) {
     let initial_count = initial_aggregate_state.inner().count;
 
     manager
-        .handle_command::<ManagerTestError>(initial_aggregate_state, TestCommand::Multi)
+        .handle_command(initial_aggregate_state, TestCommand::Multi)
         .await
+        .unwrap()
         .unwrap();
 
     let aggregate_state = manager.load(initial_id).await.unwrap().unwrap();

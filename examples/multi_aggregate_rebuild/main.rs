@@ -26,20 +26,11 @@ use crate::common::b::{AggregateB, CommandB, EventB};
 use crate::common::shared::event_handler::SharedEventHandler;
 use crate::common::shared::view::SharedView;
 use crate::common::util::new_pool;
-use crate::common::CommonError;
 use crate::transactional_event_handler::SharedTransactionalEventHandler;
 
 #[path = "../common/lib.rs"]
 mod common;
 mod transactional_event_handler;
-
-#[derive(Debug, thiserror::Error)]
-pub enum RebuilderError {
-    #[error(transparent)]
-    Aggregate(#[from] CommonError),
-    #[error(transparent)]
-    Store(#[from] PgStoreError),
-}
 
 #[tokio::main]
 async fn main() {
@@ -184,8 +175,9 @@ async fn setup(shared_id: Uuid, pool: Pool<Postgres>, view: SharedView, transact
 
     let manager: AggregateManager<PgStore<AggregateA>> = AggregateManager::new(pg_store_a);
     manager
-        .handle_command::<RebuilderError>(AggregateState::default(), CommandA { v: 10, shared_id })
+        .handle_command(AggregateState::default(), CommandA { v: 10, shared_id })
         .await
+        .unwrap()
         .unwrap();
 
     let pg_store_b: PgStore<AggregateB> = PgStoreBuilder::new(pool.clone())
@@ -202,8 +194,9 @@ async fn setup(shared_id: Uuid, pool: Pool<Postgres>, view: SharedView, transact
 
     let manager: AggregateManager<PgStore<AggregateB>> = AggregateManager::new(pg_store_b);
     manager
-        .handle_command::<RebuilderError>(AggregateState::default(), CommandB { v: 7, shared_id })
+        .handle_command(AggregateState::default(), CommandB { v: 7, shared_id })
         .await
+        .unwrap()
         .unwrap();
 
     assert_eq!(view.by_id(shared_id, &pool).await.unwrap().unwrap().sum, 17);
