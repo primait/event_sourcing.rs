@@ -34,6 +34,8 @@ where
     ///
     /// The store transactionally persists the events - recording them in the aggregate instance's history.
     ///
+    /// On success, the updated aggregate state is returned.
+    ///
     /// Returns two layers of errors:
     /// - `Err(_)` if the aggregate handled the command but the outcome failed to be recorded;
     /// - `Ok(Err(_))` if the aggregate denied the command.
@@ -41,11 +43,13 @@ where
         &self,
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
-    ) -> Result<Result<(), <E::Aggregate as Aggregate>::Error>, E::Error> {
+    ) -> Result<Result<<E::Aggregate as Aggregate>::State, <E::Aggregate as Aggregate>::Error>, E::Error> {
         match <E::Aggregate as Aggregate>::handle_command(aggregate_state.inner(), command) {
             Err(domain_error) => Ok(Err(domain_error)),
             Ok(events) => match self.event_store.persist(&mut aggregate_state, events).await {
-                Ok(_) => Ok(Ok(())),
+                Ok(store_events) => Ok(Ok(aggregate_state
+                    .apply_store_events(store_events, <E::Aggregate as Aggregate>::apply_event)
+                    .into_inner())),
                 Err(operational_error) => Err(operational_error),
             },
         }
