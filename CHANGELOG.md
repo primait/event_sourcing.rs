@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.17.0] - 2024-06-10
+
+### Changed
+
+- [[#196]]: `AggregateManager::handle_command` now returns the updated aggregate state, instead of `()`.
+
+---
 ## [0.16.0] - 2024-05-08
 
 Note: this version contains hard breaking changes in the `AggregateManager` API - refer to [#192] and [#194].
@@ -335,7 +342,8 @@ Refer to: [#107], [#108] and [#109]
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve sqlx-core dep
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.16.0...HEAD
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.17.0...HEAD
+[0.17.0]: https://github.com/primait/event_sourcing.rs/compare/0.16.0...0.17.0
 [0.16.0]: https://github.com/primait/event_sourcing.rs/compare/0.15.0...0.16.0
 [0.15.0]: https://github.com/primait/event_sourcing.rs/compare/0.14.0...0.15.0
 [0.14.0]: https://github.com/primait/event_sourcing.rs/compare/0.13.0...0.14.0
@@ -351,7 +359,7 @@ Refer to: [#107], [#108] and [#109]
 [0.7.0]: https://github.com/primait/event_sourcing.rs/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/primait/event_sourcing.rs/compare/0.6.1...0.6.2
 
-
+[#196]: https://github.com/primait/event_sourcing.rs/pull/196
 [#194]: https://github.com/primait/event_sourcing.rs/pull/194
 [#192]: https://github.com/primait/event_sourcing.rs/pull/192
 [#191]: https://github.com/primait/event_sourcing.rs/pull/191
