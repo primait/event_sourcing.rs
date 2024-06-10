@@ -14,7 +14,7 @@ Event Sourcing RS uses under the hood [`sqlx`].
 # Cargo.toml
 [dependencies]
 # postgres database
-esrs = { version = "0.13", features = ["postgres"] }
+esrs = { version = "0.17", features = ["postgres"] }
 sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "uuid", "json", "chrono"] }
 ```
 
