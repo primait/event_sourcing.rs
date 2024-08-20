@@ -9,7 +9,7 @@ name = "esrs"
 readme = "README.md"
 repository = "https://github.com/primait/event_sourcing.rs"
 rust-version = "1.74.0"
-version = "0.17.0"
+version = "0.17.1"
 
 [package.metadata.docs.rs]
 all-features = true
@@ -39,7 +39,7 @@ async-trait = "0.1.50"
 ouroboros = "0.18"
 
 # Sql library for async impl
-sqlx = { version = "0.7.0", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true }
+sqlx = { version = "0.8.0", features = ["runtime-tokio-native-tls", "uuid", "json", "chrono"], optional = true }
 # Kafka library
 rdkafka = { version = "0.35.*", features = ["ssl-vendored"], optional = true }
 # Rabbit library
