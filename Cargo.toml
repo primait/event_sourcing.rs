@@ -45,7 +45,7 @@ rdkafka = { version = "0.35.*", features = ["ssl-vendored"], optional = true }
 # Rabbit library
 lapin = { version = "2.1.1", optional = true }
 # Builder pattern
-typed-builder = { version = "0.19.1", optional = true }
+typed-builder = { version = "0.20.0", optional = true }
 bb8 = "0.8.1"
 
 # To stream over sqlx results
