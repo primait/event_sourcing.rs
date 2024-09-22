@@ -31,6 +31,7 @@ where
     event_handlers: Vec<Box<dyn EventHandler<A> + Send>>,
     transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
+    event_id_format: UuidFormat,
     run_migrations: bool,
     _schema: PhantomData<Schema>,
 }
@@ -47,6 +48,7 @@ where
             event_handlers: vec![],
             transactional_event_handlers: vec![],
             event_buses: vec![],
+            event_id_format: UuidFormat::V4,
             run_migrations: true,
             _schema: PhantomData,
         }
@@ -119,8 +121,15 @@ where
             event_handlers: self.event_handlers,
             transactional_event_handlers: self.transactional_event_handlers,
             event_buses: self.event_buses,
+            event_id_format: self.event_id_format,
             _schema: PhantomData,
         }
+    }
+
+    /// Set the UUID format of event IDs.
+    pub fn with_event_id_format(mut self, event_id_format: UuidFormat) -> Self {
+        self.event_id_format = event_id_format;
+        self
     }
 
     /// This function runs all the needed [`Migrations`], atomically setting up the database if
@@ -144,7 +153,7 @@ where
                 event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
-                event_id_format: UuidFormat::V4,
+                event_id_format: self.event_id_format,
             }),
             _schema: self._schema,
         })
