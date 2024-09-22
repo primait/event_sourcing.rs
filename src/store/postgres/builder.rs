@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use sqlx::{PgConnection, Pool, Postgres};
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::bus::EventBus;
 use crate::handler::{EventHandler, TransactionalEventHandler};
@@ -137,6 +138,7 @@ where
                 event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
+                event_id_func: Uuid::new_v4,
             }),
             _schema: self._schema,
         })
