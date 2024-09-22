@@ -14,6 +14,13 @@ use crate::Aggregate;
 use super::persistable::Persistable;
 use super::{PgStore, Schema};
 
+/// The `UuidFormat` enum defines the UUID format preference:
+///
+/// - `V4`: Uses the random UUID version 4 as defined by RFC 9562 section 5.4.
+pub enum UuidFormat {
+    V4,
+}
+
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A, Schema = <A as Aggregate>::Event>
 where
@@ -137,6 +144,7 @@ where
                 event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
+                event_id_format: UuidFormat::V4,
             }),
             _schema: self._schema,
         })
