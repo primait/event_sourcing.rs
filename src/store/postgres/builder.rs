@@ -18,9 +18,11 @@ use super::{PgStore, Schema};
 /// The `EventIdUuidFormat` enum defines the UUID format of the event ID:
 ///
 /// - `V4`: Uses the random UUID version 4 as defined by RFC 9562 section 5.4.
+/// - `V7`: Uses the time-ordered UUID version 7 as defined by RFC 9562 section 5.7.
 /// - `Custom`: Accepts a function used to generate UUIDs.
 pub enum EventIdUuidFormat {
     V4,
+    V7,
     Custom(fn() -> Uuid),
 }
 
@@ -28,6 +30,7 @@ impl Into<fn() -> Uuid> for EventIdUuidFormat {
     fn into(self) -> fn() -> Uuid {
         match self {
             EventIdUuidFormat::V4 => Uuid::new_v4,
+            EventIdUuidFormat::V7 => Uuid::now_v7,
             EventIdUuidFormat::Custom(func) => func,
         }
     }
