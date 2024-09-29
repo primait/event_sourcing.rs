@@ -99,6 +99,7 @@ where
     ) -> Result<StoreEvent<A::Event>, PgStoreError> {
         let id: Uuid = match self.inner.event_id_format {
             UuidFormat::V4 => Uuid::new_v4(),
+            UuidFormat::V7 => Uuid::now_v7(),
         };
 
         #[cfg(feature = "upcasting")]

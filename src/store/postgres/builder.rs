@@ -17,8 +17,10 @@ use super::{PgStore, Schema};
 /// The `UuidFormat` enum defines the UUID format preference:
 ///
 /// - `V4`: Uses the random UUID version 4 as defined by RFC 9562 section 5.4.
+/// - `V7`: Uses the time-ordered UUID version 7 as defined by RFC 9562 section 5.7.
 pub enum UuidFormat {
     V4,
+    V7,
 }
 
 /// Struct used to build a brand new [`PgStore`].
