@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use sqlx::{PgConnection, Pool, Postgres};
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use crate::bus::EventBus;
 use crate::handler::{EventHandler, TransactionalEventHandler};
@@ -14,6 +15,27 @@ use crate::Aggregate;
 use super::persistable::Persistable;
 use super::{PgStore, Schema};
 
+/// The `EventIdUuidFormat` enum defines the UUID format of the event ID:
+///
+/// - `V4`: Uses the random UUID version 4 as defined by RFC 9562 section 5.4.
+/// - `V7`: Uses the time-ordered UUID version 7 as defined by RFC 9562 section 5.7.
+/// - `Custom`: Accepts a function used to generate UUIDs.
+pub enum EventIdUuidFormat {
+    V4,
+    V7,
+    Custom(fn() -> Uuid),
+}
+
+impl Into<fn() -> Uuid> for EventIdUuidFormat {
+    fn into(self) -> fn() -> Uuid {
+        match self {
+            EventIdUuidFormat::V4 => Uuid::new_v4,
+            EventIdUuidFormat::V7 => Uuid::now_v7,
+            EventIdUuidFormat::Custom(func) => func,
+        }
+    }
+}
+
 /// Struct used to build a brand new [`PgStore`].
 pub struct PgStoreBuilder<A, Schema = <A as Aggregate>::Event>
 where
@@ -24,6 +46,7 @@ where
     event_handlers: Vec<Box<dyn EventHandler<A> + Send>>,
     transactional_event_handlers: Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     event_buses: Vec<Box<dyn EventBus<A> + Send>>,
+    event_id_uuid_format: EventIdUuidFormat,
     run_migrations: bool,
     _schema: PhantomData<Schema>,
 }
@@ -40,6 +63,7 @@ where
             event_handlers: vec![],
             transactional_event_handlers: vec![],
             event_buses: vec![],
+            event_id_uuid_format: EventIdUuidFormat::V4,
             run_migrations: true,
             _schema: PhantomData,
         }
@@ -112,8 +136,15 @@ where
             event_handlers: self.event_handlers,
             transactional_event_handlers: self.transactional_event_handlers,
             event_buses: self.event_buses,
+            event_id_uuid_format: self.event_id_uuid_format,
             _schema: PhantomData,
         }
+    }
+
+    /// Set the UUID format of event IDs.
+    pub fn with_event_id_uuid_format(mut self, event_id_uuid_format: EventIdUuidFormat) -> Self {
+        self.event_id_uuid_format = event_id_uuid_format;
+        self
     }
 
     /// This function runs all the needed [`Migrations`], atomically setting up the database if
@@ -137,6 +168,7 @@ where
                 event_handlers: RwLock::new(self.event_handlers),
                 transactional_event_handlers: self.transactional_event_handlers,
                 event_buses: self.event_buses,
+                event_id_func: self.event_id_uuid_format.into(),
             }),
             _schema: self._schema,
         })

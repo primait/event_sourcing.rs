@@ -58,6 +58,7 @@ where
     pub(super) transactional_event_handlers:
         Vec<Box<dyn TransactionalEventHandler<A, PgStoreError, PgConnection> + Send>>,
     pub(super) event_buses: Vec<Box<dyn EventBus<A> + Send>>,
+    pub(super) event_id_func: fn() -> Uuid,
 }
 
 impl<A, S> PgStore<A, S>
@@ -95,7 +96,7 @@ where
         sequence_number: SequenceNumber,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<StoreEvent<A::Event>, PgStoreError> {
-        let id: Uuid = Uuid::new_v4();
+        let id: Uuid = (self.inner.event_id_func)();
 
         #[cfg(feature = "upcasting")]
         let version: Option<i32> = S::current_version();
