@@ -5,7 +5,9 @@ use crate::common::util::random_letters;
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct BasicViewRow {
+    #[allow(unused)]
     pub id: Uuid,
+    #[allow(unused)]
     pub content: String,
 }
 
