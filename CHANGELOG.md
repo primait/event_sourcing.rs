@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.18.0] - 2024-11-22
+
+- Bump MSRV to `1.81.0`.
+- Expose option for setting ID function (#202)
+  - Add ID format to `PgStore`
+  - Allow `PgStoreBuilder` to set ID format
+  - Support UUID version 7 directly
+
+---
+
 ## [0.17.1] - 2024-08-20
 
 ### Updated
@@ -351,7 +361,10 @@ Refer to: [#107], [#108] and [#109]
 
 
 
-[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.17.1...HEAD
+
+
+[Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.18.0...HEAD
+[0.18.0]: https://github.com/primait/event_sourcing.rs/compare/0.17.1...0.18.0
 [0.17.1]: https://github.com/primait/event_sourcing.rs/compare/0.17.0...0.17.1
 [0.17.0]: https://github.com/primait/event_sourcing.rs/compare/0.16.0...0.17.0
 [0.16.0]: https://github.com/primait/event_sourcing.rs/compare/0.15.0...0.16.0

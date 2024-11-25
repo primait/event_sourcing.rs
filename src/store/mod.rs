@@ -19,6 +19,7 @@ pub trait UnlockOnDrop: Send + Sync + 'static {}
 /// Lock guard preventing concurrent access to a resource.
 ///
 /// The lock is released when this guard is dropped.
+#[allow(dead_code)]
 pub struct EventStoreLockGuard(Box<dyn UnlockOnDrop>);
 
 impl EventStoreLockGuard {
