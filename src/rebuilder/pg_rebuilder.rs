@@ -123,6 +123,49 @@ where
         Ok(())
     }
 
+    /// To regenerate read models for a specific aggregate. Within this transaction, the list of events for
+    /// each aggregate ID is extracted. Then, for every [`TransactionalEventHandler`] and
+    /// [`crate::handler::EventHandler`], the corresponding aggregate is deleted, and the list of
+    /// events is processed by the mentioned handlers.
+    /// Finally the events are passed to every configured [`EventBus`].
+    async fn just_one_aggregate(&self, aggregate_id: Uuid, pool: Pool<Postgres>) -> Result<(), Self::Error> {
+        let store: PgStore<A, _> = PgStoreBuilder::new(pool.clone())
+            .without_running_migrations()
+            .with_schema::<S>()
+            .try_build()
+            .await?;
+
+        let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
+
+        let events = store.by_aggregate_id(aggregate_id).await.unwrap();
+
+        for handler in self.transactional_event_handlers.iter() {
+            handler.delete(aggregate_id, &mut transaction).await?;
+
+            for event in &events {
+                handler.handle(event, &mut transaction).await?;
+            }
+        }
+
+        transaction.commit().await.unwrap();
+
+        for handler in self.event_handlers.iter() {
+            handler.delete(aggregate_id).await;
+
+            for event in &events {
+                handler.handle(event).await;
+            }
+        }
+
+        for bus in self.event_buses.iter() {
+            for event in &events {
+                bus.publish(event).await;
+            }
+        }
+
+        Ok(())
+    }
+
     /// To process all events in the database, a single transaction is opened, and within this
     /// transaction, all aggregates are deleted and for each [`TransactionalEventHandler`], the
     /// events are handled. After the transaction ends, for each [`crate::handler::EventHandler`]
