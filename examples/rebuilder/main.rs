@@ -70,6 +70,14 @@ async fn main() {
     let aggregate_id: Uuid = Uuid::new_v4();
     setup(aggregate_id, view.clone(), transactional_view.clone(), pool.clone()).await;
     rebuild_all_at_once(aggregate_id, view.clone(), transactional_view.clone(), pool.clone()).await;
+
+    // Rebuilder::just_one_aggregate Rebuilding
+    let view: BasicView = BasicView::new("view_v3", &pool).await;
+    let transactional_view: BasicView = BasicView::new("transactional_view_v3", &pool).await;
+
+    let aggregate_id: Uuid = Uuid::new_v4();
+    setup(aggregate_id, view.clone(), transactional_view.clone(), pool.clone()).await;
+    rebuild_a_single_aggregate(aggregate_id, view.clone(), transactional_view.clone(), pool.clone()).await;
 }
 
 async fn setup(aggregate_id: Uuid, view: BasicView, transactional_view: BasicView, pool: Pool<Postgres>) {
@@ -134,6 +142,43 @@ async fn rebuild_by_aggregate_id(
         .with_transactional_event_handlers(vec![Box::new(transactional_event_handler_v2)]);
 
     rebuilder.by_aggregate_id(pool.clone()).await.unwrap();
+
+    assert_eq!(
+        view.by_id(aggregate_id, &pool).await.unwrap().unwrap().content,
+        "basic_command.v2"
+    );
+
+    assert_eq!(
+        transactional_view
+            .by_id(aggregate_id, &pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .content,
+        "basic_command.v2"
+    );
+}
+
+async fn rebuild_a_single_aggregate(
+    aggregate_id: Uuid,
+    view: BasicView,
+    transactional_view: BasicView,
+    pool: Pool<Postgres>,
+) {
+    let event_handler_v2 = BasicEventHandlerV2 {
+        pool: pool.clone(),
+        view: view.clone(),
+    };
+
+    let transactional_event_handler_v2 = BasicTransactionalEventHandlerV2 {
+        view: transactional_view.clone(),
+    };
+
+    let rebuilder: PgRebuilder<BasicAggregate> = PgRebuilder::new()
+        .with_event_handlers(vec![Box::new(event_handler_v2)])
+        .with_transactional_event_handlers(vec![Box::new(transactional_event_handler_v2)]);
+
+    rebuilder.just_one_aggregate(aggregate_id, pool.clone()).await.unwrap();
 
     assert_eq!(
         view.by_id(aggregate_id, &pool).await.unwrap().unwrap().content,
