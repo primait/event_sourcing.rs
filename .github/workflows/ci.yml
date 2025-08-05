@@ -47,7 +47,7 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRESQL_DATABASE: postgres
+          POSTGRES_DB: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
       rabbitmq:
