@@ -26,7 +26,7 @@ services:
       - default
 
   postgres:
-    image: public.ecr.aws/bitnami/postgresql:11
+    image: 279066465364.dkr.ecr.eu-west-1.amazonaws.com/docker-hub/library/postgres:11
     ports:
       - "5432:5432"
     environment:
