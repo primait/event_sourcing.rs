@@ -45,7 +45,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: 279066465364.dkr.ecr.eu-west-1.amazonaws.com/docker-hub/confluentinc/cp-zookeeper:7.3.0
+    image: docker.io/confluentinc/cp-zookeeper:7.3.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
