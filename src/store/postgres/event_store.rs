@@ -136,7 +136,7 @@ where
     pub fn stream_events<'s>(
         &'s self,
         executor: impl Executor<'s, Database = Postgres> + 's,
-    ) -> BoxStream<Result<StoreEvent<A::Event>, PgStoreError>> {
+    ) -> BoxStream<'s, Result<StoreEvent<A::Event>, PgStoreError>> {
         Box::pin({
             sqlx::query_as::<_, DbEvent>(self.inner.statements.select_all())
                 .fetch(executor)

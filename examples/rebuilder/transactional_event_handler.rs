@@ -12,7 +12,6 @@ use crate::common::basic::{BasicAggregate, BasicEvent};
 /// example just for the sake of showing how a single transactional event handler, in this case called
 /// `BasicTransactionalEventHandler`, changed overtime. In this example is needed to have both the
 /// v1 and v2 version in order to be able to run both the code versions.
-
 pub struct BasicTransactionalEventHandlerV1 {
     pub view: BasicView,
 }

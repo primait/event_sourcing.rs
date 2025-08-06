@@ -2,7 +2,7 @@
 ///
 /// - `Json`: Indicates a failure in serializing/deserializing the event payload.
 /// - `Kafka`: Indicates an error occurred while establishing a connection with the Kafka cluster or
-///            an error encountered during the event publishing process.
+///   an error encountered during the event publishing process.
 #[derive(thiserror::Error, Debug)]
 pub enum KafkaEventBusError {
     #[error(transparent)]
