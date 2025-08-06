@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Bump MSRV to `1.85.0`
+
 ---
 
 ## [0.19.0] - 2025-05-20
@@ -430,7 +434,6 @@ order to upgrade library version! Refer to: [#107], [#108] and [#109]
 
 - Bump min version of supported Rust to 1.58 since <1.58 fails to resolve
   sqlx-core dep
-
 
 [Unreleased]: https://github.com/primait/event_sourcing.rs/compare/0.19.0...HEAD
 [0.19.0]: https://github.com/primait/event_sourcing.rs/compare/0.18.0...0.19.0
