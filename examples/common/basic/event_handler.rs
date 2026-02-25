@@ -9,6 +9,7 @@ use crate::common::basic::view::BasicView;
 use crate::common::basic::{BasicAggregate, BasicEvent};
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct BasicEventHandler {
     pub pool: Pool<Postgres>,
     pub view: BasicView,

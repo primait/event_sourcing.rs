@@ -6,6 +6,7 @@ pub mod event_handler;
 pub mod view;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct BasicAggregate;
 
 impl Aggregate for BasicAggregate {
@@ -28,11 +29,13 @@ impl Aggregate for BasicAggregate {
     fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {}
 }
 
+#[allow(dead_code)]
 pub struct BasicCommand {
     pub content: String,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[allow(dead_code)]
 pub struct BasicEvent {
     pub content: String,
 }
