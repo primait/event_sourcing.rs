@@ -91,6 +91,7 @@ where
         let aggregate_ids: Vec<Uuid> = get_all_aggregate_ids(&pool, store.table_name()).await?;
 
         for id in aggregate_ids {
+            tracing::debug!(aggregate_id = %id, "Processing aggregate");
             let mut transaction: Transaction<Postgres> = pool.begin().await.unwrap();
 
             let events = store.by_aggregate_id(id).await.unwrap();
