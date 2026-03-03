@@ -11,6 +11,9 @@ and this project adheres to
 ### Changed
 
 - Bump MSRV to `1.85.0`
+- Bump Rust to `1.93`
+- Allow examples to pass clippy checks
+- Add debug when rebuilding read_models
 
 ---
 
