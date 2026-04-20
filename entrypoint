@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-export DATABASE_URL="postgresql://postgres:postgres@postgres:5432/postgres"
-export RABBIT_URL="amqp://rabbit:rabbit@rabbit/rabbit"
-export KAFKA_BROKERS_URL="kafka:9092"
+# Preserve injected RDS URLs, and default local Docker Compose to plaintext explicitly.
+export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable}"
+export RABBIT_URL="${RABBIT_URL:-amqp://rabbit:rabbit@rabbit/rabbit}"
+export KAFKA_BROKERS_URL="${KAFKA_BROKERS_URL:-kafka:9092}"
 
 sh -c "$@"

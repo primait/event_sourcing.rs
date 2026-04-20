@@ -99,6 +99,12 @@ path = "examples/saga/main.rs"
 required-features = ["postgres"]
 
 [[example]]
+# Gate the schema example behind postgres so the default test command does not compile it without sqlx.
+name = "schema"
+path = "examples/schema/main.rs"
+required-features = ["postgres"]
+
+[[example]]
 name = "shared_view"
 path = "examples/shared_view/main.rs"
 required-features = ["postgres"]

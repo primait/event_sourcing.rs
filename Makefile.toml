@@ -1,5 +1,5 @@
 [env]
-DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres"
+DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable" # Keep sqlx CLI/CI on plaintext for the local test Postgres container.
 RABBIT_URL = "amqp://rabbit:rabbit@rabbit:5672/rabbit"
 KAFKA_BROKERS_URL = "kafka:9092"
 
