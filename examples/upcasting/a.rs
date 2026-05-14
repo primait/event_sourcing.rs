@@ -64,10 +64,7 @@ impl Upcaster for Event {
                 _ => Err(serde_json::Error::custom("TestEvent not deserializable")),
             },
             Some(1) => serde_json::from_value::<Self>(value),
-            Some(v) => Err(serde_json::Error::custom(format!(
-                "Invalid event version number: {}",
-                v
-            ))),
+            Some(v) => Err(serde_json::Error::custom(format!("Invalid event version number: {v}"))),
         }
     }
 

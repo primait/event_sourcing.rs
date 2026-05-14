@@ -21,10 +21,8 @@ impl BasicView {
     pub async fn new(table_name: &str, pool: &Pool<Postgres>) -> Self {
         let table_name: String = format!("{}_{}", random_letters(), table_name);
 
-        let query: String = format!(
-            "CREATE TABLE IF NOT EXISTS {} (id uuid PRIMARY KEY NOT NULL, content VARCHAR)",
-            table_name
-        );
+        let query: String =
+            format!("CREATE TABLE IF NOT EXISTS {table_name} (id uuid PRIMARY KEY NOT NULL, content VARCHAR)");
 
         let _ = sqlx::query(query.as_str()).execute(pool).await.unwrap();
 
@@ -36,7 +34,7 @@ impl BasicView {
         id: Uuid,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<Option<BasicViewRow>, sqlx::Error> {
-        let query: String = format!("SELECT * FROM {} WHERE id = $1", &self.table_name);
+        let query: String = format!("SELECT * FROM {} WHERE id = $1", self.table_name);
 
         sqlx::query_as::<_, BasicViewRow>(query.as_str())
             .bind(id)
@@ -51,8 +49,8 @@ impl BasicView {
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
         let query = format!(
-            "INSERT INTO {0} (id, content) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET content = $2;",
-            &self.table_name
+            "INSERT INTO {} (id, content) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET content = $2;",
+            self.table_name
         );
 
         sqlx::query(query.as_str())
@@ -64,7 +62,7 @@ impl BasicView {
     }
 
     pub async fn delete(&self, id: Uuid, executor: impl Executor<'_, Database = Postgres>) -> Result<(), sqlx::Error> {
-        let query = format!("DELETE FROM {0} WHERE id = $1;", &self.table_name);
+        let query = format!("DELETE FROM {} WHERE id = $1;", self.table_name);
 
         sqlx::query(query.as_str())
             .bind(id)

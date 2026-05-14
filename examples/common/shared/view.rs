@@ -34,8 +34,7 @@ impl SharedView {
         let table_name: String = format!("{}_{}", random_letters(), table_name);
 
         let query: String = format!(
-            "CREATE TABLE IF NOT EXISTS {} (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)",
-            table_name
+            "CREATE TABLE IF NOT EXISTS {table_name} (shared_id uuid PRIMARY KEY NOT NULL, aggregate_id_a uuid, aggregate_id_b uuid, sum INTEGER)"
         );
 
         let _ = sqlx::query(query.as_str()).execute(pool).await.unwrap();
@@ -48,7 +47,7 @@ impl SharedView {
         shared_id: Uuid,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<Option<SharedViewRow>, sqlx::Error> {
-        let query: String = format!("SELECT * FROM {} WHERE shared_id = $1", &self.table_name);
+        let query: String = format!("SELECT * FROM {0} WHERE shared_id = $1", self.table_name);
 
         sqlx::query_as::<_, SharedViewRow>(query.as_str())
             .bind(shared_id)
@@ -101,7 +100,8 @@ impl SharedView {
         value: i32,
         executor: impl Executor<'_, Database = Postgres>,
     ) -> Result<(), sqlx::Error> {
-        let query = format!("UPDATE {} SET sum = $2 WHERE shared_id = $1", self.table_name());
+        let table_name = self.table_name();
+        let query = format!("UPDATE {table_name} SET sum = $2 WHERE shared_id = $1");
 
         sqlx::query(query.as_str())
             .bind(shared_id)
@@ -125,9 +125,8 @@ async fn upsert(
     executor: impl Executor<'_, Database = Postgres>,
 ) -> Result<(), sqlx::Error> {
     let query = format!(
-        "INSERT INTO {0} (shared_id, {1}, sum) VALUES ($1, $2, $3) \
-        ON CONFLICT (shared_id) DO UPDATE SET {1} = $2, sum = {0}.sum + $3;",
-        table_name, id_field
+        "INSERT INTO {table_name} (shared_id, {id_field}, sum) VALUES ($1, $2, $3) \
+        ON CONFLICT (shared_id) DO UPDATE SET {id_field} = $2, sum = {table_name}.sum + $3;",
     );
 
     sqlx::query(query.as_str())

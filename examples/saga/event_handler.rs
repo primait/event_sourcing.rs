@@ -27,8 +27,8 @@ impl EventHandler<SagaAggregate> for SagaEventHandler {
                     let mut guard = self.side_effect_mutex.lock().await;
                     *guard = true;
                     match manager.handle_command(state, SagaCommand::RegisterMutation).await {
-                        Err(err) => eprintln!("Operational error while handling register mutation command: {:?}", err),
-                        Ok(Err(err)) => eprintln!("Register mutation command denied: {:?}", err),
+                        Err(err) => eprintln!("Operational error while handling register mutation command: {err:?}"),
+                        Ok(Err(err)) => eprintln!("Register mutation and command denied: {err:?}"),
                         Ok(Ok(_)) => {}
                     };
                 }
@@ -36,7 +36,7 @@ impl EventHandler<SagaAggregate> for SagaEventHandler {
                     eprintln!("Something went wrong getting aggregate state")
                 }
                 Err(err) => {
-                    eprintln!("Failed to perform side effect: {:?}", err)
+                    eprintln!("Failed to perform side effect: {err:?}")
                 }
             }
         }

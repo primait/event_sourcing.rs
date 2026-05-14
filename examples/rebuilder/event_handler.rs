@@ -33,7 +33,7 @@ impl EventHandler<BasicAggregate> for BasicEventHandlerV1 {
             .upsert(event.aggregate_id, format!("{}.v1", &event.payload.content), &self.pool)
             .await
         {
-            eprintln!("Error while upserting view: {:?}", e);
+            eprintln!("Error while upserting view: {e:?}");
         }
     }
 }
@@ -48,7 +48,7 @@ impl EventHandler<BasicAggregate> for BasicEventHandlerV2 {
             .upsert(event.aggregate_id, format!("{}.v2", &event.payload.content), &self.pool)
             .await
         {
-            eprintln!("Error while upserting view: {:?}", e);
+            eprintln!("Error while upserting view: {e:?}");
         }
     }
 }

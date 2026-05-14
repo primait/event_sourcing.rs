@@ -28,7 +28,7 @@ impl TransactionalEventHandler<BasicAggregate, PgStoreError, PgConnection> for B
             .await;
 
         if let Err(e) = result {
-            eprintln!("Error while upserting view: {:?}", e);
+            eprintln!("Error while upserting view: {e:?}");
             Err(e.into())
         } else {
             Ok(())

@@ -30,7 +30,7 @@ impl EventHandler<AggregateA> for SharedEventHandler {
             .await;
 
         if let Err(e) = result {
-            eprintln!("Error inserting A to shared view: {:?}", e)
+            eprintln!("Error inserting A to shared view: {e:?}")
         }
     }
 }
@@ -51,7 +51,7 @@ impl EventHandler<AggregateB> for SharedEventHandler {
             .await;
 
         if let Err(e) = result {
-            println!("Error inserting B to shared view: {:?}", e)
+            println!("Error inserting B to shared view: {e:?}")
         }
     }
 }
