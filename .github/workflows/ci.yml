@@ -57,7 +57,7 @@ jobs:
           RABBITMQ_DEFAULT_PASS: rabbit
           RABBITMQ_DEFAULT_USER: rabbit
       kafka:
-        image: public.ecr.aws/prima/kafka:7.3.0
+        image: public.ecr.aws/primaassicurazioni/kafka:7.3.0-1
         ports:
           - 9092:9092
         env:
@@ -74,13 +74,15 @@ jobs:
           KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
           KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport"
       zookeeper:
-        image: docker.io/confluentinc/cp-zookeeper:7.3.0
+        image: public.ecr.aws/primaassicurazioni/zookeeper:7.3.0
         ports:
           - 2181:2181
         env:
           ZOOKEEPER_CLIENT_PORT: 2181
           ZOOKEEPER_TICK_TIME: 2000
+          JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport"
 
   alls-green:
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name)
