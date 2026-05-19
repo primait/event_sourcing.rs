@@ -22,13 +22,13 @@ impl EventHandler<BasicAggregate> for BasicEventHandler {
             .upsert(event.aggregate_id, event.payload.content.to_string(), &self.pool)
             .await
         {
-            eprintln!("Error while upserting view: {:?}", e);
+            eprintln!("Error while upserting view: {e:?}");
         }
     }
 
     async fn delete(&self, aggregate_id: Uuid) {
         if let Err(e) = self.view.delete(aggregate_id, &self.pool).await {
-            eprintln!("Error while deleting view: {:?}", e);
+            eprintln!("Error while deleting view: {e:?}");
         }
     }
 }

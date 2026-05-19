@@ -213,7 +213,7 @@ where
 }
 
 async fn get_all_aggregate_ids(pool: &Pool<Postgres>, store_table_name: &str) -> Result<Vec<Uuid>, sqlx::Error> {
-    let query: String = format!("SELECT DISTINCT(aggregate_id) FROM {}", store_table_name);
+    let query: String = format!("SELECT DISTINCT(aggregate_id) FROM {store_table_name}");
     let result: Vec<(Uuid,)> = sqlx::query_as::<_, (Uuid,)>(query.as_str()).fetch_all(pool).await?;
     Ok(result.iter().map(|v| v.0).collect())
 }

@@ -137,7 +137,7 @@ async fn main() {
 }
 
 async fn get_event_by_event_id(id: Uuid, table_name: &str, pool: &Pool<Postgres>) -> Option<StoreEvent<BasicEvent>> {
-    let query: String = format!("SELECT * FROM {} WHERE id = $1", table_name);
+    let query: String = format!("SELECT * FROM {table_name} WHERE id = $1");
 
     sqlx::query_as::<_, DbEvent>(query.as_str())
         .bind(id)

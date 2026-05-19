@@ -38,7 +38,7 @@ async fn table_exists(table_name: &str, pool: &Pool<Postgres>) -> bool {
 }
 
 async fn drop(table_name: &str, pool: &Pool<Postgres>) {
-    let query: String = format!("DROP TABLE IF EXISTS {}", table_name);
+    let query: String = format!("DROP TABLE IF EXISTS {table_name}");
     let _ = sqlx::query(query.as_str())
         .bind(table_name)
         .execute(pool)

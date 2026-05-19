@@ -10,7 +10,7 @@ and this project adheres to
 
 ### Changed
 
-- Bump MSRV to `1.85.0`
+- Bump MSRV to `1.88.0`
 
 ---
 

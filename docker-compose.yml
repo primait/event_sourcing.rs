@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   web:
     build: .
@@ -45,7 +43,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: docker.io/confluentinc/cp-zookeeper:7.3.0
+    image: public.ecr.aws/primaassicurazioni/zookeeper:7.3.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -60,7 +58,7 @@ services:
 
   kafka:
     container_name: kafka
-    image: public.ecr.aws/prima/kafka:7.3.0-1
+    image: public.ecr.aws/primaassicurazioni/kafka:7.3.0-1
     depends_on:
       zookeeper:
         condition: service_healthy

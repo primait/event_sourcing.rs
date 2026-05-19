@@ -34,10 +34,7 @@ impl Upcaster for Event {
             Some(1) => serde_json::from_value::<Self>(value),
             Some(v) => {
                 use serde::de::Error;
-                Err(serde_json::Error::custom(format!(
-                    "Invalid event version number: {}",
-                    v
-                )))
+                Err(serde_json::Error::custom(format!("Invalid event version number: {v}")))
             }
         }
     }
