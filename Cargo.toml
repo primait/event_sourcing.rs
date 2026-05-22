@@ -46,7 +46,7 @@ rdkafka = { version = "0.35.*", features = ["ssl-vendored"], optional = true }
 lapin = { version = "3.7.2", optional = true }
 # Builder pattern
 typed-builder = { version = "0.20.0", optional = true }
-bb8 = "0.8.1"
+bb8 = "0.9.1"
 
 # To stream over sqlx results
 futures = "0.3"
