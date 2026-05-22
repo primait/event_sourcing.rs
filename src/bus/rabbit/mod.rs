@@ -35,7 +35,7 @@ impl ManageConnection for RabbitConnectionManager {
 
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
         if self.has_broken(conn) {
-            return Err(lapin::Error::InvalidConnectionState(conn.status().state()));
+            return Err(lapin::ErrorKind::InvalidConnectionState(conn.status().state()).into());
         }
         Ok(())
     }
@@ -63,7 +63,13 @@ impl ManageConnection for RabbitChannelManager {
             Ok(connection) => connection,
             Err(e) => match e {
                 bb8::RunError::User(e) => return Err(e),
-                bb8::RunError::TimedOut => return Err(lapin::Error::InvalidChannelState(lapin::ChannelState::Closed)),
+                bb8::RunError::TimedOut => {
+                    return Err(lapin::ErrorKind::InvalidChannelState(
+                        lapin::ChannelState::Closed,
+                        "connection timed out",
+                    )
+                    .into())
+                }
             },
         };
         let channel = connection.create_channel().await?;
@@ -80,7 +86,7 @@ impl ManageConnection for RabbitChannelManager {
 
     async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
         if self.has_broken(conn) {
-            return Err(lapin::Error::InvalidChannelState(conn.status().state()));
+            return Err(lapin::ErrorKind::InvalidChannelState(conn.status().state(), "channel is closed").into());
         }
         Ok(())
     }
