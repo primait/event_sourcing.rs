@@ -155,7 +155,7 @@ pub enum BookError {
 And now let's put all together in the `Aggregate`, implementing `handle_command` and `apply_events` functions too.
 
 ```rust
-...
+// ...
 
 impl Aggregate for Book {
     const NAME: &'static str = "book";
@@ -172,7 +172,7 @@ impl Aggregate for Book {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
         match payload {
             BookEvent::Bought { num_of_copies } => BookState { leftover: state.leftover - num_of_copies },
             BookEvent::Returned { num_of_copies } => BookState { leftover: state.leftover + num_of_copies },
