@@ -27,6 +27,8 @@ pub(crate) enum Command {}
 
 mod before_deprecation {
     //! This module represents the code of the initial iteration of the system.
+    use esrs::AggregateContext;
+
     use super::*;
     pub(crate) struct Aggregate;
     impl esrs::Aggregate for Aggregate {
@@ -40,7 +42,7 @@ mod before_deprecation {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 
@@ -91,6 +93,8 @@ mod before_deprecation {
 mod after_deprecation {
     //! This module represents the code after `Event::B` has been deprecated and a new event
     //! (`Event::C`) has been introduced
+    use esrs::AggregateContext;
+
     use super::*;
 
     pub(crate) struct Aggregate;
@@ -105,7 +109,7 @@ mod after_deprecation {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 

@@ -28,6 +28,8 @@ pub(crate) enum Command {}
 
 mod before_upcasting {
     //! This module represents the code of the initial iteration of the system.
+    use esrs::AggregateContext;
+
     use super::*;
     pub(crate) struct Aggregate;
     impl esrs::Aggregate for Aggregate {
@@ -41,7 +43,7 @@ mod before_upcasting {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 
@@ -91,6 +93,8 @@ mod before_upcasting {
 
 mod after_upcasting {
     //! This module represents the code after the upcasting has been implemented
+    use esrs::AggregateContext;
+
     use super::*;
     pub(crate) struct Aggregate;
     impl esrs::Aggregate for Aggregate {
@@ -104,7 +108,7 @@ mod after_upcasting {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 

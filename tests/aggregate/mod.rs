@@ -1,4 +1,4 @@
-use esrs::Aggregate;
+use esrs::{Aggregate, AggregateContext};
 pub use event_handler::*;
 pub use structs::*;
 #[cfg(feature = "postgres")]
@@ -36,7 +36,7 @@ impl Aggregate for TestAggregate {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
         Self::State {
             count: state.count + payload.add,
         }

@@ -1,3 +1,19 @@
+use uuid::Uuid;
+
+/// Provides context about the current aggregate.
+/// This context applies no matter the backend used by the event store.
+pub struct AggregateContext {
+    /// The unique identifier used to identify the aggregate
+    pub aggregate_id: Uuid,
+}
+
+impl AggregateContext {
+    /// Construct the context with a single aggregate id
+    pub(crate) fn with_aggregate_id(id: Uuid) -> Self {
+        Self { aggregate_id: id }
+    }
+}
+
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
 ///
@@ -44,5 +60,5 @@ pub trait Aggregate {
     /// to the state.
     ///
     /// If this is not the case, this function is allowed to panic.
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State;
+    fn apply_event(state: Self::State, payload: Self::Event, ctx: AggregateContext) -> Self::State;
 }

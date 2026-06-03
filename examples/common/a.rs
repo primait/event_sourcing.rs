@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use esrs::Aggregate;
+use esrs::{Aggregate, AggregateContext};
 
 use crate::common::CommonError;
 
@@ -21,7 +21,7 @@ impl Aggregate for AggregateA {
         }])
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
         state + payload.v
     }
 }

@@ -29,6 +29,8 @@ pub(crate) enum Command {}
 mod before_schema {
     //! This module represents the code of the initial iteration of the system before the
     //! introduction of the schema.
+    use esrs::AggregateContext;
+
     use super::*;
     pub(crate) struct Aggregate;
 
@@ -43,7 +45,7 @@ mod before_schema {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 
@@ -71,6 +73,8 @@ mod before_schema {
 
 mod after_schema {
     //! This module represents the code after the introduction of the schema.
+    use esrs::AggregateContext;
+
     use super::*;
     pub(crate) struct Aggregate;
 
@@ -85,7 +89,7 @@ mod after_schema {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
             let mut events = state.events;
             events.push(payload);
 

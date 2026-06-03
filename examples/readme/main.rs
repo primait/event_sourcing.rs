@@ -7,7 +7,7 @@ use esrs::handler::{EventHandler, TransactionalEventHandler};
 use esrs::manager::AggregateManager;
 use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::StoreEvent;
-use esrs::Aggregate;
+use esrs::{Aggregate, AggregateContext};
 
 use crate::common::util::new_pool;
 
@@ -55,7 +55,7 @@ impl Aggregate for Book {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
         match payload {
             BookEvent::Bought { num_of_copies } => BookState {
                 leftover: state.leftover - num_of_copies,

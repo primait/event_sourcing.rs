@@ -3,8 +3,8 @@ use std::convert::{TryFrom, TryInto};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use esrs::event::Upcaster;
 use esrs::Aggregate;
+use esrs::{event::Upcaster, AggregateContext};
 
 use crate::{Command, Error};
 
@@ -101,7 +101,7 @@ impl Aggregate for AggregateB {
         }
     }
 
-    fn apply_event(state: Self::State, _: Self::Event) -> Self::State {
+    fn apply_event(state: Self::State, _: Self::Event, _ctx: AggregateContext) -> Self::State {
         state
     }
 }

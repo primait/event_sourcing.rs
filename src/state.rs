@@ -1,5 +1,6 @@
 use uuid::Uuid;
 
+use crate::aggregate::AggregateContext;
 use crate::store::EventStoreLockGuard;
 use crate::store::StoreEvent;
 use crate::types::SequenceNumber;
@@ -66,11 +67,17 @@ impl<S: Default> AggregateState<S> {
     /// as dictated by `apply_event`.
     pub fn apply_store_events<T, F>(self, store_events: Vec<StoreEvent<T>>, apply_event: F) -> Self
     where
-        F: Fn(S, T) -> S,
+        F: Fn(S, T, AggregateContext) -> S,
     {
+        let aggregate_id = self.id;
+
         store_events.into_iter().fold(self, |state, store_event| {
             let sequence_number = *store_event.sequence_number();
-            let inner = apply_event(state.inner, store_event.payload);
+            let inner = apply_event(
+                state.inner,
+                store_event.payload,
+                AggregateContext::with_aggregate_id(aggregate_id),
+            );
 
             Self {
                 sequence_number,

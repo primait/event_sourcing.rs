@@ -8,6 +8,7 @@ use esrs::store::StoreEvent;
 use crate::common::basic::view::BasicView;
 use crate::common::basic::{BasicAggregate, BasicEvent};
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct BasicEventHandler {
     pub pool: Pool<Postgres>,

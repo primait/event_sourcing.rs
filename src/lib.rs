@@ -11,6 +11,7 @@
 //! performed over the event store table.
 
 pub use aggregate::Aggregate;
+pub use aggregate::AggregateContext;
 pub use state::AggregateState;
 
 mod aggregate;

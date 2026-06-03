@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use esrs::Aggregate;
+use esrs::{Aggregate, AggregateContext};
 
 pub mod event_handler;
 pub mod view;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct BasicAggregate;
 
@@ -25,13 +26,15 @@ impl Aggregate for BasicAggregate {
         }
     }
 
-    fn apply_event(_state: Self::State, _payload: Self::Event) -> Self::State {}
+    fn apply_event(_state: Self::State, _payload: Self::Event, _ctx: AggregateContext) -> Self::State {}
 }
 
+#[allow(dead_code)]
 pub struct BasicCommand {
     pub content: String,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct BasicEvent {
     pub content: String,
