@@ -27,7 +27,8 @@ pub(crate) enum Command {}
 
 mod before_deprecation {
     //! This module represents the code of the initial iteration of the system.
-    use esrs::AggregateContext;
+
+    use esrs::AggregateView;
 
     use super::*;
     pub(crate) struct Aggregate;
@@ -38,12 +39,15 @@ mod before_deprecation {
         type Event = Event;
         type Error = CommonError;
 
-        fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+        fn handle_command(
+            _state: AggregateView<&Self::State>,
+            command: Self::Command,
+        ) -> Result<Vec<Self::Event>, Self::Error> {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
-            let mut events = state.events;
+        fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
+            let mut events = state.into_inner().events;
             events.push(payload);
 
             Self::State { events }
@@ -93,7 +97,8 @@ mod before_deprecation {
 mod after_deprecation {
     //! This module represents the code after `Event::B` has been deprecated and a new event
     //! (`Event::C`) has been introduced
-    use esrs::AggregateContext;
+
+    use esrs::AggregateView;
 
     use super::*;
 
@@ -105,12 +110,15 @@ mod after_deprecation {
         type Event = Event;
         type Error = CommonError;
 
-        fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+        fn handle_command(
+            _state: AggregateView<&Self::State>,
+            command: Self::Command,
+        ) -> Result<Vec<Self::Event>, Self::Error> {
             match command {}
         }
 
-        fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
-            let mut events = state.events;
+        fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
+            let mut events = state.into_inner().events;
             events.push(payload);
 
             Self::State { events }

@@ -1,18 +1,4 @@
-use uuid::Uuid;
-
-/// Provides context about the current aggregate.
-/// This context applies no matter the backend used by the event store.
-pub struct AggregateContext {
-    /// The unique identifier used to identify the aggregate
-    pub aggregate_id: Uuid,
-}
-
-impl AggregateContext {
-    /// Construct the context with a single aggregate id
-    pub(crate) fn with_aggregate_id(id: Uuid) -> Self {
-        Self { aggregate_id: id }
-    }
-}
+use crate::AggregateView;
 
 /// The Aggregate trait is responsible for validating commands, mapping commands to events, and applying
 /// events onto the state.
@@ -54,11 +40,14 @@ pub trait Aggregate {
     ///
     /// Will return `Err` if the user of this library set up command validations. Every error here
     /// could be just a "domain error". No technical errors.
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error>;
+    fn handle_command(
+        state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error>;
 
     /// Updates the aggregate state using the new event. This assumes that the event can be correctly applied
     /// to the state.
     ///
     /// If this is not the case, this function is allowed to panic.
-    fn apply_event(state: Self::State, payload: Self::Event, ctx: AggregateContext) -> Self::State;
+    fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State;
 }

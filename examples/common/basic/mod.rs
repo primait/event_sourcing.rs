@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use esrs::{Aggregate, AggregateContext};
+use esrs::{Aggregate, AggregateView};
 
 pub mod event_handler;
 pub mod view;
@@ -16,7 +16,10 @@ impl Aggregate for BasicAggregate {
     type Event = BasicEvent;
     type Error = BasicError;
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(
+        _state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         if command.content.is_empty() {
             Err(BasicError::EmptyContent)
         } else {
@@ -26,7 +29,7 @@ impl Aggregate for BasicAggregate {
         }
     }
 
-    fn apply_event(_state: Self::State, _payload: Self::Event, _ctx: AggregateContext) -> Self::State {}
+    fn apply_event(_state: AggregateView<Self::State>, _payload: Self::Event) -> Self::State {}
 }
 
 #[allow(dead_code)]

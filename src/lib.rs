@@ -11,11 +11,12 @@
 //! performed over the event store table.
 
 pub use aggregate::Aggregate;
-pub use aggregate::AggregateContext;
 pub use state::AggregateState;
+pub use view::AggregateView;
 
 mod aggregate;
 mod state;
+mod view;
 
 pub mod bus;
 #[cfg(feature = "upcasting")]

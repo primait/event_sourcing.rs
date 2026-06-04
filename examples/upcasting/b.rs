@@ -3,8 +3,8 @@ use std::convert::{TryFrom, TryInto};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use esrs::Aggregate;
-use esrs::{event::Upcaster, AggregateContext};
+use esrs::event::Upcaster;
+use esrs::{Aggregate, AggregateView};
 
 use crate::{Command, Error};
 
@@ -94,14 +94,17 @@ impl Aggregate for AggregateB {
     type Event = Event;
     type Error = Error;
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(
+        _state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             Self::Command::Increment { u } => Ok(vec![Self::Event::Incremented(IncPayload { u })]),
             Self::Command::Decrement { u } => Ok(vec![Self::Event::Decremented(DecPayload { u })]),
         }
     }
 
-    fn apply_event(state: Self::State, _: Self::Event, _ctx: AggregateContext) -> Self::State {
-        state
+    fn apply_event(state: AggregateView<Self::State>, _: Self::Event) -> Self::State {
+        state.into_inner()
     }
 }

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use esrs::{Aggregate, AggregateContext};
+use esrs::{Aggregate, AggregateView};
 
 use crate::common::CommonError;
 
@@ -14,15 +14,18 @@ impl Aggregate for AggregateB {
     type Event = EventB;
     type Error = CommonError;
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(
+        _state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         Ok(vec![EventB {
             shared_id: command.shared_id,
             v: command.v,
         }])
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
-        state + payload.v
+    fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
+        *state + payload.v
     }
 }
 

@@ -1,4 +1,4 @@
-use esrs::{Aggregate, AggregateContext};
+use esrs::{Aggregate, AggregateView};
 pub use event_handler::*;
 pub use structs::*;
 #[cfg(feature = "postgres")]
@@ -29,14 +29,17 @@ impl Aggregate for TestAggregate {
     type Event = TestEvent;
     type Error = TestError;
 
-    fn handle_command(_state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(
+        _state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             TestCommand::Single => Ok(vec![TestEvent { add: 1 }]),
             TestCommand::Multi => Ok(vec![TestEvent { add: 1 }, TestEvent { add: 1 }]),
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
+    fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
         Self::State {
             count: state.count + payload.add,
         }

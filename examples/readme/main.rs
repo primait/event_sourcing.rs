@@ -7,7 +7,7 @@ use esrs::handler::{EventHandler, TransactionalEventHandler};
 use esrs::manager::AggregateManager;
 use esrs::store::postgres::{PgStore, PgStoreBuilder, PgStoreError};
 use esrs::store::StoreEvent;
-use esrs::{Aggregate, AggregateContext};
+use esrs::{Aggregate, AggregateView};
 
 use crate::common::util::new_pool;
 
@@ -47,7 +47,10 @@ impl Aggregate for Book {
     type Event = BookEvent;
     type Error = BookError;
 
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(
+        state: AggregateView<&Self::State>,
+        command: Self::Command,
+    ) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             BookCommand::Buy { num_of_copies } if state.leftover < num_of_copies => Err(BookError::NotEnoughCopies),
             BookCommand::Buy { num_of_copies } => Ok(vec![BookEvent::Bought { num_of_copies }]),
@@ -55,7 +58,7 @@ impl Aggregate for Book {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
+    fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
         match payload {
             BookEvent::Bought { num_of_copies } => BookState {
                 leftover: state.leftover - num_of_copies,

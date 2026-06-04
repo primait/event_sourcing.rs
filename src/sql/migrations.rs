@@ -45,7 +45,7 @@ mod tests {
     use sqlx::{Pool, Postgres};
 
     use crate::sql::migrations::{Migrations, MigrationsHandler};
-    use crate::{Aggregate, AggregateContext};
+    use crate::{Aggregate, AggregateView};
 
     #[sqlx::test]
     async fn can_read_postgres_migrations(pool: Pool<Postgres>) {
@@ -72,10 +72,13 @@ mod tests {
         type Event = TestEvent;
         type Error = Error;
 
-        fn handle_command(_state: &Self::State, _command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+        fn handle_command(
+            _state: AggregateView<&Self::State>,
+            _command: Self::Command,
+        ) -> Result<Vec<Self::Event>, Self::Error> {
             Ok(vec![])
         }
 
-        fn apply_event(_state: Self::State, _: Self::Event, _ctx: AggregateContext) -> Self::State {}
+        fn apply_event(_state: AggregateView<Self::State>, _: Self::Event) -> Self::State {}
     }
 }

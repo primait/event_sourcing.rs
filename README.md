@@ -156,6 +156,7 @@ And now let's put all together in the `Aggregate`, implementing `handle_command`
 
 ```rust
 // ...
+use esrs::{Aggregate, AggregateView};
 
 impl Aggregate for Book {
     const NAME: &'static str = "book";
@@ -164,7 +165,7 @@ impl Aggregate for Book {
     type Event = BookEvent;
     type Error = BookError;
 
-    fn handle_command(state: &Self::State, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
+    fn handle_command(state: AggregateView<&Self::State>, command: Self::Command) -> Result<Vec<Self::Event>, Self::Error> {
         match command {
             BookCommand::Buy { num_of_copies } if state.leftover < num_of_copies => Err(BookError::NotEnoughCopies),
             BookCommand::Buy { num_of_copies } => Ok(vec![BookEvent::Bought { num_of_copies }]),
@@ -172,7 +173,7 @@ impl Aggregate for Book {
         }
     }
 
-    fn apply_event(state: Self::State, payload: Self::Event, _ctx: AggregateContext) -> Self::State {
+    fn apply_event(state: AggregateView<Self::State>, payload: Self::Event) -> Self::State {
         match payload {
             BookEvent::Bought { num_of_copies } => BookState { leftover: state.leftover - num_of_copies },
             BookEvent::Returned { num_of_copies } => BookState { leftover: state.leftover + num_of_copies },
