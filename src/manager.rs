@@ -44,9 +44,9 @@ where
         mut aggregate_state: AggregateState<<E::Aggregate as Aggregate>::State>,
         command: <E::Aggregate as Aggregate>::Command,
     ) -> Result<Result<<E::Aggregate as Aggregate>::State, <E::Aggregate as Aggregate>::Error>, E::Error> {
-        let context = AggregateView::new(*aggregate_state.id(), aggregate_state.inner());
+        let view = AggregateView::new(*aggregate_state.id(), aggregate_state.inner());
 
-        match <E::Aggregate as Aggregate>::handle_command(context, command) {
+        match <E::Aggregate as Aggregate>::handle_command(view, command) {
             Err(domain_error) => Ok(Err(domain_error)),
             Ok(events) => match self.event_store.persist(&mut aggregate_state, events).await {
                 Ok(store_events) => Ok(Ok(aggregate_state

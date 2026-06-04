@@ -71,9 +71,9 @@ impl<S: Default> AggregateState<S> {
         let aggregate_id = self.id;
 
         store_events.into_iter().fold(self, |state, store_event| {
-            let context = AggregateView::new(aggregate_id, state.inner);
+            let view = AggregateView::new(aggregate_id, state.inner);
             let sequence_number = *store_event.sequence_number();
-            let inner = apply_event(context, store_event.payload);
+            let inner = apply_event(view, store_event.payload);
 
             Self {
                 sequence_number,
