@@ -5,7 +5,6 @@ use esrs::{Aggregate, AggregateView};
 pub mod event_handler;
 pub mod view;
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct BasicAggregate;
 
@@ -32,12 +31,10 @@ impl Aggregate for BasicAggregate {
     fn apply_event(_state: AggregateView<Self::State>, _payload: Self::Event) -> Self::State {}
 }
 
-#[allow(dead_code)]
 pub struct BasicCommand {
     pub content: String,
 }
 
-#[allow(dead_code)]
 #[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct BasicEvent {
     pub content: String,
