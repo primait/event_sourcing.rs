@@ -4,7 +4,6 @@ updates:
   directory: "/"
   schedule:
     interval: daily
-  open-pull-requests-limit: 10
   ignore:
   - dependency-name: async-trait
     versions:
