@@ -4,14 +4,6 @@ updates:
   directory: "/"
   schedule:
     interval: daily
-  ignore:
-  - dependency-name: async-trait
-    versions:
-    - 0.1.48
-    - 0.1.49
-  - dependency-name: sqlx
-    versions:
-    - 0.5.1
 - package-ecosystem: docker
   directories:
     - "*"
