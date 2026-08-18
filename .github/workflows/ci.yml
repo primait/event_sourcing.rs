@@ -11,7 +11,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - run: |
           rustup default 1.88.0
           rustup component add rustfmt clippy rust-docs
@@ -27,7 +27,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - run: rustup default 1.88.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # ratchet:Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@ae532dedd825648efd18d9c49c9a443d0398ca0a # ratchet:taiki-e/install-action@cargo-make
