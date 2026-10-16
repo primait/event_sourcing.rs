@@ -57,7 +57,7 @@ jobs:
           RABBITMQ_DEFAULT_PASS: rabbit
           RABBITMQ_DEFAULT_USER: rabbit
       kafka:
-        image: public.ecr.aws/primaassicurazioni/kafka:7.3.0-1
+        image: 279066465364.dkr.ecr.eu-west-1.amazonaws.com/docker-hub/confluentinc/cp-kafka:7.3.0
         ports:
           - 9092:9092
         env:
@@ -76,7 +76,7 @@ jobs:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
           JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport"
       zookeeper:
-        image: public.ecr.aws/primaassicurazioni/zookeeper:7.3.0
+        image: 279066465364.dkr.ecr.eu-west-1.amazonaws.com/docker-hub/confluentinc/cp-zookeeper:7.3.0
         ports:
           - 2181:2181
         env:
