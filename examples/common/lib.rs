@@ -2,6 +2,7 @@
 
 pub mod a;
 pub mod b;
+#[allow(dead_code)]
 #[cfg(feature = "postgres")]
 pub mod basic;
 

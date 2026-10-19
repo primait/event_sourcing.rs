@@ -30,7 +30,7 @@ impl EventHandler<BasicAggregate> for BasicEventHandlerV1 {
     async fn handle(&self, event: &StoreEvent<BasicEvent>) {
         if let Err(e) = self
             .view
-            .upsert(event.aggregate_id, format!("{}.v1", &event.payload.content), &self.pool)
+            .upsert(event.aggregate_id, format!("{}.v1", event.payload.content), &self.pool)
             .await
         {
             eprintln!("Error while upserting view: {e:?}");
@@ -45,7 +45,7 @@ impl EventHandler<BasicAggregate> for BasicEventHandlerV2 {
     async fn handle(&self, event: &StoreEvent<BasicEvent>) {
         if let Err(e) = self
             .view
-            .upsert(event.aggregate_id, format!("{}.v2", &event.payload.content), &self.pool)
+            .upsert(event.aggregate_id, format!("{}.v2", event.payload.content), &self.pool)
             .await
         {
             eprintln!("Error while upserting view: {e:?}");

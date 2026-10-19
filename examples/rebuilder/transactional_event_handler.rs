@@ -25,11 +25,7 @@ impl TransactionalEventHandler<BasicAggregate, PgStoreError, PgConnection> for B
     async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
-            .upsert(
-                event.aggregate_id,
-                format!("{}.v1", &event.payload.content),
-                transaction,
-            )
+            .upsert(event.aggregate_id, format!("{}.v1", event.payload.content), transaction)
             .await?)
     }
 }
@@ -39,11 +35,7 @@ impl TransactionalEventHandler<BasicAggregate, PgStoreError, PgConnection> for B
     async fn handle(&self, event: &StoreEvent<BasicEvent>, transaction: &mut PgConnection) -> Result<(), PgStoreError> {
         Ok(self
             .view
-            .upsert(
-                event.aggregate_id,
-                format!("{}.v2", &event.payload.content),
-                transaction,
-            )
+            .upsert(event.aggregate_id, format!("{}.v2", event.payload.content), transaction)
             .await?)
     }
 }
