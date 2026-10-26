@@ -1,4 +1,4 @@
-FROM 279066465364.dkr.ecr.eu-west-1.amazonaws.com/prima-rust:1.97.1
+FROM 279066465364.dkr.ecr.eu-west-1.amazonaws.com/prima-rust:1.99.1-2
 
 WORKDIR /code
 
