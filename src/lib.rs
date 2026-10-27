@@ -10,6 +10,9 @@
 //! while using `postgres` event store, everytime a state load is required a database query is
 //! performed over the event store table.
 
+// `async_trait` expands to `#[must_use]` on functions returning a future
+#![allow(clippy::double_must_use)]
+
 pub use aggregate::Aggregate;
 pub use state::AggregateState;
 
