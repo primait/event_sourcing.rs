@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Validate Rust 1.97.1 Clippy",
+			"type": "shell",
+			"command": "/Users/cristianopiemontese/.cargo/bin/cargo",
+			"args": [
+				"+1.97.1",
+				"clippy",
+				"--all-targets",
+				"--all-features",
+				"--message-format",
+				"short",
+				"--",
+				"-D",
+				"warnings"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$rustc"
+			]
+		}
+	]
+}
